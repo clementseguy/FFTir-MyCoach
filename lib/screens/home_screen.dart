@@ -56,11 +56,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Accueil'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/app_logo.png',
+              height: 36,
+            ),
+            const SizedBox(width: 12),
+            const Text('Accueil'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.bolt, color: Colors.amber),
-            tooltip: 'Ajouter 25 sessions aléatoires',
+            tooltip: 'Ajouter 3 sessions aléatoires',
             onPressed: _addRandomSessions,
           ),
         ],
@@ -74,7 +83,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.sports, size: 48, color: Colors.amber),
+                  Image.asset(
+                    'assets/app_logo.png',
+                    height: 56,
+                  ),
                   SizedBox(height: 8),
                   Text('Tir Sportif', style: TextStyle(color: Colors.white, fontSize: 20)),
                 ],
@@ -165,7 +177,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Évolution du nombre de points par série'),
+                      Center(
+                        child: Text(
+                          'Évolution du nombre de points par série',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                       SizedBox(height: 8),
                       SizedBox(
                         height: 180,
@@ -179,6 +196,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   showTitles: true,
                                   reservedSize: 36,
                                   getTitlesWidget: (value, meta) {
+                                    // Affiche les scores (axe Y)
+                                    if (value % 1 != 0) return SizedBox.shrink();
                                     return Text(
                                       value.toInt().toString(),
                                       style: TextStyle(fontSize: 11, color: Colors.white),
@@ -193,11 +212,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   showTitles: true,
                                   reservedSize: 32,
                                   getTitlesWidget: (value, meta) {
+                                    // Affiche la date de la série (axe X)
                                     final i = value.toInt();
-                                    if (i < 0 || i >= dates.length) return SizedBox.shrink();
-                                    if (value != i.toDouble()) return SizedBox.shrink();
+                                    if (value % 1 != 0 || i < 0 || i >= dates.length) return SizedBox.shrink();
                                     final d = dates[i];
-                                    return Text('${d.day}/${d.month}');
+                                    return Text(
+                                      '${d.day}/${d.month}',
+                                      style: TextStyle(fontSize: 11, color: Colors.white),
+                                      overflow: TextOverflow.visible,
+                                      maxLines: 1,
+                                    );
                                   },
                                 ),
                               ),
@@ -222,7 +246,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                       SizedBox(height: 24),
-                      Text('Évolution de la taille du groupement par série'),
+                      Center(
+                        child: Text(
+                          'Évolution de la taille du groupement par série',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                       SizedBox(height: 8),
                       SizedBox(
                         height: 180,
@@ -297,14 +326,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     itemBuilder: (context, index) {
                       final session = last3[index]['session'];
                       final series = last3[index]['series'] as List<dynamic>? ?? [];
-                      final date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
-                      // Calcul score total et groupement moyen
-                      int totalPoints = 0;
-                      double avgGroup = 0;
-                      if (series.isNotEmpty) {
-                        totalPoints = series.fold(0, (sum, s) => sum + ((s['points'] ?? 0) as int));
-                        avgGroup = series.map((s) => (s['group_size'] ?? 0.0) as num).fold(0.0, (a, b) => a + b) / series.length;
-                      }
                       return SessionCard(
                         session: session,
                         series: series,
