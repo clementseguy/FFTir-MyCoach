@@ -36,6 +36,14 @@ class _SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
         title: Text('Historique des sessions'),
         actions: [
           IconButton(
+            icon: Icon(Icons.bolt, color: Colors.amber),
+            tooltip: 'Ajouter 3 sessions aléatoires',
+            onPressed: () async {
+              await LocalDatabaseHive().insertRandomSessions(count: 3, status: 'réalisée');
+              _refreshSessions();
+            },
+          ),
+          IconButton(
             icon: Icon(Icons.refresh),
             tooltip: 'Recharger',
             onPressed: _refreshSessions,
@@ -48,7 +56,12 @@ class _SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-          final sessions = snapshot.data ?? [];
+          final sessions = (snapshot.data ?? [])
+            .where((s) {
+              final session = s['session'];
+              return session != null && (session['status'] ?? 'réalisée') == 'réalisée' && session['date'] != null;
+            })
+            .toList();
           if (sessions.isEmpty) {
             return Center(child: Text('Aucune session enregistrée.'));
           }

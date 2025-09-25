@@ -66,20 +66,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const Text('Accueil'),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.bolt, color: Colors.amber),
-            tooltip: 'Ajouter 3 sessions aléatoires',
-            onPressed: _addRandomSessions,
-          ),
-        ],
+        actions: [],
       ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blueGrey[800]),
+              decoration: BoxDecoration(color: Colors.black),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -136,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   final allSessions = (snapshot.data ?? [])
                     .where((s) {
                       final session = s['session'];
-                      return session != null && session['date'] != null;
+                      return session != null && (session['status'] ?? 'réalisée') == 'réalisée' && session['date'] != null;
                     })
                     .toList();
                   if (allSessions.isEmpty) {
@@ -308,7 +302,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   }
-                  final sessions = snapshot.data ?? [];
+                  final sessions = (snapshot.data ?? [])
+                    .where((s) {
+                      final session = s['session'];
+                      return session != null && (session['status'] ?? 'réalisée') == 'réalisée' && session['date'] != null;
+                    })
+                    .toList();
                   if (sessions.isEmpty) {
                     return Center(child: Text('Aucune session enregistrée.'));
                   }

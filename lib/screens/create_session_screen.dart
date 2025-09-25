@@ -23,14 +23,15 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           key: _formKey,
           child: ListView(
             children: [
+
               ListTile(
                 title: Text('Date'),
-                subtitle: Text('${_date.day}/${_date.month}/${_date.year}'),
+                subtitle: _date != null ? Text('${_date!.day}/${_date!.month}/${_date!.year}') : Text('Aucune date'),
                 trailing: Icon(Icons.calendar_today),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
-                    initialDate: _date,
+                    initialDate: _date ?? DateTime.now(),
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2100),
                   );
@@ -131,7 +132,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     );
   }
   final _formKey = GlobalKey<FormState>();
-  late DateTime _date = DateTime.now();
+  DateTime? _date;
+  String _status = 'réalisée';
   late TextEditingController _weaponController = TextEditingController();
   late TextEditingController _caliberController = TextEditingController(text: '22LR');
   late List<SeriesFormData> _series = [SeriesFormData(distance: 25)];
@@ -140,7 +142,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   @override
   void initState() {
     super.initState();
-    _date = DateTime.now();
+  _date = null;
     _weaponController = TextEditingController();
     _caliberController = TextEditingController();
     if (widget.initialSessionData != null) {
@@ -149,7 +151,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       final List<dynamic> series = (seriesRaw is List) ? seriesRaw : [];
       _editingSessionId = session['id'] as int?
         ?? widget.initialSessionData!['id'] as int?;
-      _date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
+      _date = session['date'] != null && session['date'] != '' ? DateTime.tryParse(session['date']) : null;
+      _status = session['status'] ?? 'réalisée';
       _weaponController.text = session['weapon'] ?? '';
       _caliberController.text = session['caliber'] ?? '22LR';
       _series = series.map((s) => SeriesFormData(
@@ -163,6 +166,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     } else {
       _caliberController.text = '22LR';
       _series = [SeriesFormData(distance: 25)];
+      _status = 'réalisée';
+      _date = null;
     }
   }
 
@@ -187,10 +192,26 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       );
       return;
     }
+    // Validation selon le statut
+    if (_status == 'réalisée') {
+      if (_date == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('La date est obligatoire pour une session réalisée.')),
+        );
+        return;
+      }
+      if (_date!.isAfter(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('La date d\'une session réalisée ne peut pas être dans le futur.')),
+        );
+        return;
+      }
+    }
     final session = <String, dynamic>{
-      'date': _date.toIso8601String(),
+      'date': _date != null ? _date!.toIso8601String() : null,
       'weapon': _weaponController.text,
       'caliber': _caliberController.text,
+      'status': _status,
     };
     if (_editingSessionId != null) {
       session['id'] = _editingSessionId;

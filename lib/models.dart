@@ -3,34 +3,38 @@ class ShootingSession {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'date': date.toIso8601String(),
+      'date': date?.toIso8601String(),
       'weapon': weapon,
       'caliber': caliber,
       'series': series.map((s) => s.toMap()).toList(),
+      'status': status,
     };
   }
 
   static ShootingSession fromMap(Map<String, dynamic> map) {
     return ShootingSession(
       id: map['id'] as int?,
-      date: DateTime.parse(map['date'] as String),
+      date: map['date'] != null ? DateTime.tryParse(map['date']) : null,
       weapon: map['weapon'] as String,
       caliber: map['caliber'] as String,
       series: (map['series'] as List<dynamic>).map((e) => Series.fromMap(Map<String, dynamic>.from(e))).toList(),
+      status: map['status'] as String? ?? 'réalisée',
     );
   }
   int? id;
-  DateTime date;
+  DateTime? date;
   String weapon;
   String caliber;
   List<Series> series;
+  String status; // "prévue" ou "réalisée"
 
   ShootingSession({
     this.id,
-    required this.date,
+    this.date,
     required this.weapon,
     required this.caliber,
     required this.series,
+    this.status = 'réalisée',
   });
 }
 

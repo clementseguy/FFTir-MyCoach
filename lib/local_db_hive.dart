@@ -9,7 +9,7 @@ class LocalDatabaseHive {
 
 
   /// Génère et insère 25 sessions de tir aléatoires en base (pour démo/tests)
-  Future<void> insertRandomSessions({int count = 25}) async {
+  Future<void> insertRandomSessions({int count = 25, String status = 'réalisée'}) async {
     final random = Random();
     final now = DateTime.now();
     for (int i = 0; i < count; i++) {
@@ -20,6 +20,7 @@ class LocalDatabaseHive {
         'date': date.toIso8601String(),
         'weapon': weapon,
         'caliber': caliber,
+        'status': status,
       };
       // 1 à 4 séries par session
       final seriesCount = 1 + random.nextInt(4);
