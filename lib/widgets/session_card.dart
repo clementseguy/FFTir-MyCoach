@@ -4,7 +4,8 @@ class SessionCard extends StatelessWidget {
   final Map<String, dynamic> session;
   final List<dynamic> series;
   final VoidCallback? onTap;
-  const SessionCard({required this.session, required this.series, this.onTap, super.key});
+  final VoidCallback? onDelete;
+  const SessionCard({required this.session, required this.series, this.onTap, this.onDelete, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +25,7 @@ class SessionCard extends StatelessWidget {
             Text('${date.day}/${date.month}', style: TextStyle(fontSize: 12)),
           ],
         ),
-        title: Text('Arme: ${session['weapon']} | Calibre: ${session['caliber']}'),
+  title: Text('${session['weapon']} [${session['caliber']}] - # Séries : ${series.length}'),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -32,6 +33,12 @@ class SessionCard extends StatelessWidget {
             Text('Groupement moyen : ${avgGroup.toStringAsFixed(1)} cm'),
           ],
         ),
+        trailing: onDelete != null
+            ? IconButton(
+                icon: Icon(Icons.delete, color: Colors.red),
+                onPressed: onDelete,
+              )
+            : null,
         onTap: onTap,
       ),
     );
