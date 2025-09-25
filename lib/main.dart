@@ -1,0 +1,928 @@
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'local_db_hive.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await Hive.openBox('sessions');
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Tir Sportif',
+      theme: ThemeData.dark().copyWith(
+        colorScheme: ColorScheme.dark(
+          primary: Colors.amber,
+          secondary: Colors.blueGrey,
+        ),
+        scaffoldBackgroundColor: Colors.blueGrey[900],
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.blueGrey[800],
+          foregroundColor: Colors.white,
+        ),
+        cardColor: Colors.blueGrey[800],
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber,
+            foregroundColor: Colors.black,
+          ),
+        ),
+      ),
+      home: HomeScreen(),
+    );
+  }
+}
+
+// Accueil/statistiques
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      setState(() {
+        _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    ModalRoute.of(context)?.addScopedWillPopCallback(() async {
+      setState(() {
+        _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+      });
+      return true;
+    });
+  }
+
+  void didPopNext() {
+    setState(() {
+      _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+    });
+  }
+  Future<void> _addRandomSessions() async {
+    await LocalDatabaseHive().insertRandomSessions(count: 25);
+    setState(() {
+      _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+    });
+  }
+  late Future<List<Map<String, dynamic>>> _sessionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Accueil'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.bolt, color: Colors.amber),
+            tooltip: 'Ajouter 25 sessions aléatoires',
+            onPressed: _addRandomSessions,
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blueGrey[800]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.sports, size: 48, color: Colors.amber),
+                  SizedBox(height: 8),
+                  Text('Tir Sportif', style: TextStyle(color: Colors.white, fontSize: 20)),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.home),
+              title: Text('Accueil'),
+              onTap: () {
+                Navigator.pop(context); // Ferme le Drawer
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.add),
+              title: Text('Nouvelle session'),
+              onTap: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => CreateSessionScreen()));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.list),
+              title: Text('Historique'),
+              onTap: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => SessionsHistoryScreen()));
+              },
+            ),
+          ],
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Statistiques', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              SizedBox(height: 16),
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: _sessionsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  final allSessions = (snapshot.data ?? [])
+                    .where((s) {
+                      // On ne garde que les sessions qui existent vraiment (non supprimées)
+                      final session = s['session'];
+                      return session != null && session['date'] != null;
+                    })
+                    .toList();
+                  if (allSessions.isEmpty) {
+                    return Center(child: Text('Aucune donnée pour les graphes.'));
+                  }
+                  // Préparation des données pour les graphes
+                  final List<DateTime> dates = [];
+                  final List<FlSpot> pointsSpots = [];
+                  final List<FlSpot> groupSizeSpots = [];
+                  // Limite aux 25 dernières sessions (par date décroissante)
+                  final List<Map<String, dynamic>> sortedSessions = List<Map<String, dynamic>>.from(allSessions);
+                  sortedSessions.sort((a, b) {
+                    final dateA = DateTime.tryParse(a['session']['date'] ?? '') ?? DateTime.now();
+                    final dateB = DateTime.tryParse(b['session']['date'] ?? '') ?? DateTime.now();
+                    return dateB.compareTo(dateA); // décroissant
+                  });
+                  final List<Map<String, dynamic>> lastSessions = sortedSessions.take(25).toList();
+
+                  // Construit la liste globale des séries de ces sessions, triées par date croissante
+                  final List<Map<String, dynamic>> allSeries = [];
+                  for (final session in lastSessions) {
+                    final sessionDate = DateTime.tryParse(session['session']['date'] ?? '') ?? DateTime.now();
+                    final List<dynamic> series = session['series'] ?? [];
+                    for (final serie in series) {
+                      allSeries.add({
+                        'date': sessionDate,
+                        'points': (serie['points'] ?? 0).toDouble(),
+                        'group_size': (serie['group_size'] ?? 0).toDouble(),
+                      });
+                    }
+                  }
+                  allSeries.sort((a, b) => a['date'].compareTo(b['date']));
+                  for (int i = 0; i < allSeries.length; i++) {
+                    final serie = allSeries[i];
+                    dates.add(serie['date']);
+                    pointsSpots.add(FlSpot(i.toDouble(), serie['points']));
+                    groupSizeSpots.add(FlSpot(i.toDouble(), serie['group_size']));
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Évolution du nombre de points par série'),
+                      SizedBox(height: 8),
+                      SizedBox(
+                        height: 180,
+                        child: LineChart(
+                          LineChartData(
+                            backgroundColor: Colors.transparent,
+                            gridData: FlGridData(show: false),
+                            titlesData: FlTitlesData(
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 36,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      value.toInt().toString(),
+                                      style: TextStyle(fontSize: 11, color: Colors.white),
+                                      overflow: TextOverflow.visible,
+                                      maxLines: 1,
+                                    );
+                                  },
+                                ),
+                              ),
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 32,
+                                  getTitlesWidget: (value, meta) {
+                                    final i = value.toInt();
+                                    // Affiche la date seulement si l'index correspond à un point
+                                    if (i < 0 || i >= dates.length) return SizedBox.shrink();
+                                    // Affiche la date uniquement pour les index entiers correspondant à un point
+                                    if (value != i.toDouble()) return SizedBox.shrink();
+                                    final d = dates[i];
+                                    return Text('${d.day}/${d.month}');
+                                  },
+                                ),
+                              ),
+                              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            ),
+                            borderData: FlBorderData(show: false),
+                            minX: 0,
+                            maxX: pointsSpots.isNotEmpty ? pointsSpots.length - 1.0 : 1.0,
+                            minY: 0,
+                            maxY: pointsSpots.map((e) => e.y).fold<double>(0, (prev, y) => y > prev ? y : prev) + 5,
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: pointsSpots,
+                                isCurved: true,
+                                color: Colors.amber,
+                                barWidth: 3,
+                                dotData: FlDotData(show: true),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      Text('Évolution de la taille du groupement par série'),
+                      SizedBox(height: 8),
+                      SizedBox(
+                        height: 180,
+                        child: LineChart(
+                          LineChartData(
+                            backgroundColor: Colors.transparent,
+                            gridData: FlGridData(show: false),
+                            titlesData: FlTitlesData(
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(showTitles: true, reservedSize: 32),
+                              ),
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 32,
+                                  getTitlesWidget: (value, meta) {
+                                    final i = value.toInt();
+                                    if (i < 0 || i >= dates.length) return SizedBox.shrink();
+                                    if (value != i.toDouble()) return SizedBox.shrink();
+                                    final d = dates[i];
+                                    return Text('${d.day}/${d.month}');
+                                  },
+                                ),
+                              ),
+                              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            ),
+                            borderData: FlBorderData(show: false),
+                            minX: 0,
+                            maxX: groupSizeSpots.isNotEmpty ? groupSizeSpots.length - 1.0 : 1.0,
+                            minY: 0,
+                            maxY: groupSizeSpots.map((e) => e.y).fold<double>(0, (prev, y) => y > prev ? y : prev) + 2,
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: groupSizeSpots,
+                                isCurved: true,
+                                color: Colors.cyanAccent,
+                                barWidth: 3,
+                                dotData: FlDotData(show: true),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              SizedBox(height: 24),
+              Text('Dernières sessions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: _sessionsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  final sessions = snapshot.data ?? [];
+                  if (sessions.isEmpty) {
+                    return Center(child: Text('Aucune session enregistrée.'));
+                  }
+                  // Trie les sessions par date décroissante (plus récentes d'abord)
+                  final List<Map<String, dynamic>> sortedSessions = List<Map<String, dynamic>>.from(sessions);
+                  sortedSessions.sort((a, b) {
+                    final dateA = DateTime.tryParse(a['session']['date'] ?? '') ?? DateTime.now();
+                    final dateB = DateTime.tryParse(b['session']['date'] ?? '') ?? DateTime.now();
+                    return dateB.compareTo(dateA);
+                  });
+                  final List<Map<String, dynamic>> last3 = sortedSessions.take(3).toList();
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: last3.length,
+                    itemBuilder: (context, index) {
+                      final session = last3[index]['session'];
+                      final date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
+                      return Card(
+                        child: ListTile(
+                          title: Text('Session du ${date.day}/${date.month}/${date.year}'),
+                          subtitle: Text('Arme: ${session['weapon']} | Calibre: ${session['caliber']}'),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SessionDetailScreen(sessionData: last3[index]),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CreateSessionScreen extends StatefulWidget {
+  final Map<String, dynamic>? initialSessionData;
+  const CreateSessionScreen({super.key, this.initialSessionData});
+
+  @override
+  State<CreateSessionScreen> createState() => _CreateSessionScreenState();
+}
+
+class _CreateSessionScreenState extends State<CreateSessionScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late DateTime _date = DateTime.now();
+  late TextEditingController _weaponController = TextEditingController();
+  late TextEditingController _caliberController = TextEditingController(text: '22LR');
+  late List<SeriesFormData> _series = [SeriesFormData(distance: 25)];
+  int? _editingSessionId;
+
+  @override
+  void initState() {
+    super.initState();
+    _date = DateTime.now();
+    _weaponController = TextEditingController();
+    _caliberController = TextEditingController();
+    if (widget.initialSessionData != null) {
+      final session = widget.initialSessionData!['session'];
+      final seriesRaw = widget.initialSessionData!['series'];
+      final List<dynamic> series = (seriesRaw is List) ? seriesRaw : [];
+      // Récupère la clé Hive (id) depuis le parent de sessionData si présente
+      _editingSessionId = session['id'] as int?
+        ?? widget.initialSessionData!['id'] as int?;
+      _date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
+      _weaponController.text = session['weapon'] ?? '';
+      _caliberController.text = session['caliber'] ?? '22LR';
+      _series = series.map((s) => SeriesFormData(
+        shotCount: s['shot_count'] ?? 5,
+        distance: (s['distance'] as num?)?.toDouble() ?? 25,
+        points: s['points'] ?? 0,
+        groupSize: (s['group_size'] as num?)?.toDouble() ?? 0,
+        comment: s['comment'] ?? '',
+      )).toList();
+      if (_series.isEmpty) _series = [SeriesFormData(distance: 25)];
+    } else {
+      _caliberController.text = '22LR';
+      _series = [SeriesFormData(distance: 25)];
+    }
+  }
+
+  @override
+  void dispose() {
+    _weaponController.dispose();
+    _caliberController.dispose();
+    super.dispose();
+  }
+
+  void _addSeries() {
+    setState(() {
+      _series.add(SeriesFormData(distance: 25));
+    });
+  }
+
+  Future<void> _saveSession() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_series.isEmpty || _series.every((s) => s.shotCount == 0 && s.distance == 0 && s.points == 0 && s.groupSize == 0 && s.comment.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Veuillez ajouter au moins une série à la session.')),
+      );
+      return;
+    }
+    final session = <String, dynamic>{
+      'date': _date.toIso8601String(),
+      'weapon': _weaponController.text,
+      'caliber': _caliberController.text,
+    };
+    if (_editingSessionId != null) {
+      session['id'] = _editingSessionId;
+    }
+    final seriesList = _series.map((s) => {
+      'shot_count': s.shotCount,
+      'distance': s.distance,
+      'points': s.points,
+      'group_size': s.groupSize,
+      'comment': s.comment,
+    }).toList();
+    try {
+      if (_editingSessionId != null) {
+        await LocalDatabaseHive().updateSession(session, seriesList);
+        print('Session mise à jour: id=$_editingSessionId');
+      } else {
+        await LocalDatabaseHive().insertSession(session, seriesList);
+        print('Session insérée: data=$session, séries=$seriesList');
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Session enregistrée')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur à l\'enregistrement')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_editingSessionId != null ? 'Modifier la session' : 'Nouvelle session'),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blueGrey[800]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.sports, size: 48, color: Colors.amber),
+                  SizedBox(height: 8),
+                  Text('Tir Sportif', style: TextStyle(color: Colors.white, fontSize: 20)),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.home),
+              title: Text('Accueil'),
+              onTap: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.add),
+              title: Text('Nouvelle session'),
+              onTap: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => CreateSessionScreen()));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.list),
+              onTap: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => SessionsHistoryScreen()));
+              },
+            ),
+          ],
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              ListTile(
+                title: Text('Date'),
+                subtitle: Text('${_date.day}/${_date.month}/${_date.year}'),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _date,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) setState(() => _date = picked);
+                },
+              ),
+              TextFormField(
+                controller: _weaponController,
+                decoration: InputDecoration(labelText: 'Arme utilisée'),
+                validator: (v) => v == null || v.isEmpty ? 'Champ requis' : null,
+                onTap: () {
+                  if (_weaponController.text.isEmpty) _weaponController.clear();
+                },
+              ),
+              TextFormField(
+                controller: _caliberController,
+                decoration: InputDecoration(labelText: 'Calibre'),
+                validator: (v) => v == null || v.isEmpty ? 'Champ requis' : null,
+                onTap: () {
+                  if (_caliberController.text == '22LR' || _caliberController.text.isEmpty) _caliberController.clear();
+                },
+              ),
+              SizedBox(height: 16),
+              Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
+              ..._series.asMap().entries.map((entry) {
+                final i = entry.key;
+                final serie = entry.value;
+                return Card(
+                  margin: EdgeInsets.symmetric(vertical: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Série ${i + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
+                        TextFormField(
+                          initialValue: serie.shotCount.toString(),
+                          decoration: InputDecoration(labelText: 'Nombre de coups'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (v) => serie.shotCount = int.tryParse(v) ?? 0,
+                          onTap: () {
+                            if (serie.shotCount == 5) {
+                              // Efface la valeur par défaut si pas modifiée
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                final field = FocusScope.of(context).focusedChild;
+                                if (field != null) field.unfocus();
+                              });
+                            }
+                          },
+                        ),
+                        TextFormField(
+                          initialValue: serie.distance.toString(),
+                          decoration: InputDecoration(labelText: 'Distance tireur/cible (m)'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (v) => serie.distance = double.tryParse(v) ?? 0,
+                          onTap: () {
+                            if (serie.distance == 25) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                final field = FocusScope.of(context).focusedChild;
+                                if (field != null) field.unfocus();
+                              });
+                            }
+                          },
+                        ),
+                        TextFormField(
+                          initialValue: serie.points.toString(),
+                          decoration: InputDecoration(labelText: 'Nombre de points'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (v) => serie.points = int.tryParse(v) ?? 0,
+                        ),
+                        TextFormField(
+                          initialValue: serie.groupSize.toString(),
+                          decoration: InputDecoration(labelText: 'Taille du groupement (cm)'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (v) => serie.groupSize = double.tryParse(v) ?? 0,
+                        ),
+                        TextFormField(
+                          initialValue: serie.comment,
+                          decoration: InputDecoration(labelText: 'Commentaires'),
+                          onChanged: (v) => serie.comment = v,
+                        ),
+                        if (_series.length > 1)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () {
+                                setState(() => _series.removeAt(i));
+                              },
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              label: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _addSeries,
+                  icon: Icon(Icons.add),
+                  label: Text('Ajouter une série'),
+                ),
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _saveSession,
+                child: Text(_editingSessionId != null ? 'Enregistrer les modifications' : 'Enregistrer la session'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SessionsHistoryScreen extends StatefulWidget {
+  @override
+  _SessionsHistoryScreenState createState() => _SessionsHistoryScreenState();
+}
+
+class _SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
+  late Future<List<Map<String, dynamic>>> _sessionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshSessions();
+  }
+
+  void _refreshSessions() {
+    setState(() {
+      _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh when coming back to this screen
+    _refreshSessions();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Historique des sessions'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            tooltip: 'Recharger',
+            onPressed: _refreshSessions,
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _sessionsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          final sessions = snapshot.data ?? [];
+          if (sessions.isEmpty) {
+            return Center(child: Text('Aucune session enregistrée.'));
+          }
+          // Trier les sessions par date décroissante
+          sessions.sort((a, b) {
+            final dateA = DateTime.tryParse(a['session']['date'] ?? '') ?? DateTime(1970);
+            final dateB = DateTime.tryParse(b['session']['date'] ?? '') ?? DateTime(1970);
+            return dateB.compareTo(dateA);
+          });
+          return ListView.builder(
+            itemCount: sessions.length,
+            itemBuilder: (context, index) {
+              final session = sessions[index]['session'];
+              final series = sessions[index]['series'] as List<dynamic>? ?? [];
+              final date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
+              final caliber = session['caliber'] ?? '';
+              final weapon = session['weapon'] ?? '';
+              final nbSeries = series.length;
+              return Card(
+                child: ListTile(
+                  title: Text('${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}'),
+                  subtitle: Text('Arme : $weapon   |   Calibre : $caliber   |   Séries : $nbSeries'),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SessionDetailScreen(sessionData: sessions[index]),
+                      ),
+                    );
+                    _refreshSessions();
+                  },
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    tooltip: 'Supprimer',
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text('Supprimer la session ?'),
+                          content: Text('Cette action est irréversible.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: Text('Annuler'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        final sessionId = session['id'] as int? ?? sessions[index]['id'] as int?;
+                        if (sessionId != null) {
+                          await LocalDatabaseHive().deleteSession(sessionId);
+                          print('Session supprimée : id=$sessionId');
+                          _refreshSessions();
+                        }
+                      }
+                    },
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+// (getAllSessionsWithSeries est maintenant géré par LocalDatabaseHive)
+
+class SeriesFormData {
+  int shotCount;
+  double distance;
+  int points;
+  double groupSize;
+  String comment;
+  SeriesFormData({
+    this.shotCount = 5,
+    this.distance = 0,
+    this.points = 0,
+    this.groupSize = 0,
+    this.comment = '',
+  });
+}
+
+class SessionDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> sessionData;
+  const SessionDetailScreen({super.key, required this.sessionData});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = sessionData['session'];
+    final series = sessionData['series'] as List<dynamic>;
+    final date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Détail de la session'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit),
+            tooltip: 'Modifier',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreateSessionScreen(initialSessionData: sessionData),
+                ),
+              );
+              if (context.mounted) {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.delete),
+            tooltip: 'Supprimer',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text('Supprimer la session ?'),
+                  content: Text('Cette action est irréversible.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text('Annuler'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await LocalDatabaseHive().deleteSession(session['id']);
+                if (context.mounted) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
+              }
+            },
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: EdgeInsets.all(16),
+        children: [
+          Text('Date : ${date.day}/${date.month}/${date.year}', style: TextStyle(fontSize: 16)),
+          Text('Arme : ${session['weapon']}'),
+          Text('Calibre : ${session['caliber']}'),
+          SizedBox(height: 16),
+          Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
+          ...series.asMap().entries.map((entry) {
+            int i = entry.key;
+            final s = entry.value;
+            return Card(
+              color: Colors.blueGrey[900],
+              margin: EdgeInsets.symmetric(vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Série ${i + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text('Nombre de coups : ${s['shot_count']}'),
+                    Text('Distance : ${s['distance']} m'),
+                    Text('Points : ${s['points']}'),
+                    Text('Groupement : ${s['group_size']} cm'),
+                    if ((s['comment'] ?? '').toString().isNotEmpty)
+                      Text('Commentaire : ${s['comment']}'),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class PointsLineChart extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Données simulées : évolution des points sur 6 sessions
+    final spots = [
+      FlSpot(0, 38),
+      FlSpot(1, 42),
+      FlSpot(2, 45),
+      FlSpot(3, 44),
+      FlSpot(4, 47),
+      FlSpot(5, 49),
+    ];
+    return LineChart(
+      LineChartData(
+        backgroundColor: Colors.transparent,
+        gridData: FlGridData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: true, reservedSize: 32),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: true, reservedSize: 24),
+          ),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: 5,
+        minY: 35,
+        maxY: 50,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: Colors.amber,
+            barWidth: 3,
+            dotData: FlDotData(show: true),
+          ),
+        ],
+      ),
+    );
+  }
+}
