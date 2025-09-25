@@ -1,3 +1,4 @@
+import '../widgets/session_card.dart';
 import 'package:flutter/material.dart';
 import '../local_db_hive.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -292,20 +293,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     itemCount: last3.length,
                     itemBuilder: (context, index) {
                       final session = last3[index]['session'];
+                      final series = last3[index]['series'] as List<dynamic>? ?? [];
                       final date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
-                      return Card(
-                        child: ListTile(
-                          title: Text('Session du ${date.day}/${date.month}/${date.year}'),
-                          subtitle: Text('Arme: ${session['weapon']} | Calibre: ${session['caliber']}'),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SessionDetailScreen(sessionData: last3[index]),
-                              ),
-                            );
-                          },
-                        ),
+                      // Calcul score total et groupement moyen
+                      int totalPoints = 0;
+                      double avgGroup = 0;
+                      if (series.isNotEmpty) {
+                        totalPoints = series.fold(0, (sum, s) => sum + ((s['points'] ?? 0) as int));
+                        avgGroup = series.map((s) => (s['group_size'] ?? 0.0) as num).fold(0.0, (a, b) => a + b) / series.length;
+                      }
+                      return SessionCard(
+                        session: session,
+                        series: series,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SessionDetailScreen(sessionData: last3[index]),
+                            ),
+                          );
+                        },
                       );
                     },
                   );

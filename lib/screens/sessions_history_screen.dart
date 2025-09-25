@@ -1,3 +1,4 @@
+import '../widgets/session_card.dart';
 import 'package:flutter/material.dart';
 import '../local_db_hive.dart';
 import 'session_detail_screen.dart';
@@ -62,14 +63,45 @@ class _SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
             itemBuilder: (context, index) {
               final session = sessions[index]['session'];
               final series = sessions[index]['series'] as List<dynamic>? ?? [];
-              final date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
-              final caliber = session['caliber'] ?? '';
-              final weapon = session['weapon'] ?? '';
-              final nbSeries = series.length;
-              return Card(
-                child: ListTile(
-                  title: Text('${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}'),
-                  subtitle: Text('Arme : $weapon   |   Calibre : $caliber   |   Séries : $nbSeries'),
+              return Dismissible(
+                key: ValueKey(session['id'] ?? index),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Icon(Icons.delete, color: Colors.white),
+                ),
+                confirmDismiss: (direction) async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text('Supprimer la session ?'),
+                      content: Text('Cette action est irréversible.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text('Annuler'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  );
+                  return confirm == true;
+                },
+                onDismissed: (direction) async {
+                  final sessionId = session['id'] as int? ?? sessions[index]['id'] as int?;
+                  if (sessionId != null) {
+                    await LocalDatabaseHive().deleteSession(sessionId);
+                    _refreshSessions();
+                  }
+                },
+                child: SessionCard(
+                  session: session,
+                  series: series,
                   onTap: () async {
                     await Navigator.push(
                       context,
@@ -79,36 +111,6 @@ class _SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                     );
                     _refreshSessions();
                   },
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    tooltip: 'Supprimer',
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text('Supprimer la session ?'),
-                          content: Text('Cette action est irréversible.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: Text('Annuler'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: Text('Supprimer', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        final sessionId = session['id'] as int? ?? sessions[index]['id'] as int?;
-                        if (sessionId != null) {
-                          await LocalDatabaseHive().deleteSession(sessionId);
-                          _refreshSessions();
-                        }
-                      }
-                    },
-                  ),
                 ),
               );
             },
