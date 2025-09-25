@@ -85,6 +85,7 @@ class SessionDetailScreen extends StatelessWidget {
                           final prompt = await DefaultAssetBundle.of(context).loadString('assets/coach_prompt.yaml');
                           final message = _buildAnalysePrompt(prompt, session, series);
                           String analyseResult = '';
+                          bool apiSuccess = false;
                           try {
                             // Clé API Mistral fournie par l'utilisateur
                             const mistralApiKey = 'EeVTEcDwYHmXJVM4akVym7VdkOSMp28p';
@@ -105,10 +106,11 @@ class SessionDetailScreen extends StatelessWidget {
                             );
                             print('[Mistral] Status: ${response.statusCode}');
                             print('[Mistral] Réponse brute: ${response.body}');
-                            if (response.statusCode == 200) {
+                            if (response.statusCode >= 200 && response.statusCode < 300) {
                               final data = jsonDecode(response.body);
                               analyseResult = data['choices'][0]['message']['content']?.toString() ?? 'Réponse vide.';
                               print('[Mistral] Analyse extraite: $analyseResult');
+                              apiSuccess = true;
                             } else {
                               analyseResult = 'Erreur API Mistral : ${response.statusCode}\n${response.body}';
                               print('[Mistral] Erreur API : $analyseResult');
@@ -117,19 +119,31 @@ class SessionDetailScreen extends StatelessWidget {
                             analyseResult = 'Erreur lors de l\'appel à l\'API Mistral : $e';
                             print('[Mistral] Exception : $e');
                           }
-                          // Enregistrer l'analyse en base
-                          final updatedSession = Map<String, dynamic>.from(session);
-                          updatedSession['analyse'] = analyseResult;
-                          await LocalDatabaseHive().updateSession(updatedSession, List<Map<String, dynamic>>.from(series));
-                          // Afficher le retour
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: Text('Analyse de la session'),
-                              content: Text(analyseResult),
-                              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Fermer'))],
-                            ),
-                          );
+                          if (apiSuccess) {
+                            // Enregistrer l'analyse en base
+                            final updatedSession = Map<String, dynamic>.from(session);
+                            updatedSession['analyse'] = analyseResult;
+                            await LocalDatabaseHive().updateSession(updatedSession, List<Map<String, dynamic>>.from(series));
+                            // Afficher le retour
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text('Analyse de la session'),
+                                content: Text(analyseResult),
+                                actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Fermer'))],
+                              ),
+                            );
+                          } else {
+                            // Afficher une popup d'erreur sans enregistrer l'analyse
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text('Erreur'),
+                                content: Text('Désolé, le coach n\'est pas disponible. Réessayez ultérieurement ou contactez le support.'),
+                                actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Fermer'))],
+                              ),
+                            );
+                          }
                         },
                 ),
               Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
