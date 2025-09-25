@@ -219,6 +219,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             ListTile(
               leading: Icon(Icons.home),
               title: Text('Accueil'),
+              selected: ModalRoute.of(context)?.settings.name == '/' || ModalRoute.of(context)?.settings.name == null,
               onTap: () {
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
@@ -226,16 +227,19 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             ListTile(
               leading: Icon(Icons.add),
               title: Text('Nouvelle session'),
+              selected: ModalRoute.of(context)?.settings.name == '/create',
               onTap: () {
                 Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => CreateSessionScreen()));
+                Navigator.of(context).push(MaterialPageRoute(settings: RouteSettings(name: '/create'), builder: (context) => CreateSessionScreen()));
               },
             ),
             ListTile(
               leading: Icon(Icons.list),
+              title: Text('Historique'),
+              selected: ModalRoute.of(context)?.settings.name == '/history',
               onTap: () {
                 Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => SessionsHistoryScreen()));
+                Navigator.of(context).push(MaterialPageRoute(settings: RouteSettings(name: '/history'), builder: (context) => SessionsHistoryScreen()));
               },
             ),
           ],

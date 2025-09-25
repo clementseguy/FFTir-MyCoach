@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:yaml/yaml.dart';
 import '../local_db_hive.dart';
 import 'create_session_screen.dart';
 
@@ -83,21 +84,24 @@ class SessionDetailScreen extends StatelessWidget {
                       ? null
                       : () async {
                           final prompt = await DefaultAssetBundle.of(context).loadString('assets/coach_prompt.yaml');
+                          final configStr = await DefaultAssetBundle.of(context).loadString('assets/config.yaml');
+                          final config = loadYaml(configStr);
+                          final mistralApiKey = config['api']['mistral_key']?.toString() ?? '';
+                          final mistralUrl = config['api']['mistral_url']?.toString() ?? 'https://api.mistral.ai/v1/chat/completions';
+                          final mistralModel = config['api']['mistral_model']?.toString() ?? 'mistral-medium';
                           final message = _buildAnalysePrompt(prompt, session, series);
                           String analyseResult = '';
                           bool apiSuccess = false;
                           try {
-                            // Clé API Mistral fournie par l'utilisateur
-                            const mistralApiKey = 'EeVTEcDwYHmXJVM4akVym7VdkOSMp28p';
                             print('[Mistral] Appel API avec prompt :\n$message');
                             final response = await http.post(
-                              Uri.parse('https://api.mistral.ai/v1/chat/completions'),
+                              Uri.parse(mistralUrl),
                               headers: {
                                 'Content-Type': 'application/json',
                                 'Authorization': 'Bearer $mistralApiKey',
                               },
                               body: jsonEncode({
-                                'model': 'mistral-medium',
+                                'model': mistralModel,
                                 'messages': [
                                   {'role': 'user', 'content': message},
                                 ],
@@ -129,7 +133,36 @@ class SessionDetailScreen extends StatelessWidget {
                               context: context,
                               builder: (ctx) => AlertDialog(
                                 title: Text('Analyse de la session'),
-                                content: Text(analyseResult),
+                                content: SizedBox(
+                                  width: double.maxFinite,
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) => Container(
+                                      constraints: BoxConstraints(
+                                        maxHeight: MediaQuery.of(context).size.height * 0.6,
+                                        minWidth: 300,
+                                        maxWidth: 600,
+                                      ),
+                                      child: Scrollbar(
+                                        thumbVisibility: true,
+                                        child: SingleChildScrollView(
+                                          child: MarkdownBody(
+                                            data: analyseResult,
+                                            styleSheet: MarkdownStyleSheet(
+                                              p: TextStyle(color: Colors.black),
+                                              strong: TextStyle(fontWeight: FontWeight.bold),
+                                              h1: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                                              h2: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                              h3: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                              code: TextStyle(color: Colors.deepOrange),
+                                              blockquote: TextStyle(color: Colors.black54, fontStyle: FontStyle.italic),
+                                              listBullet: TextStyle(color: Colors.black),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                                 actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Fermer'))],
                               ),
                             );
