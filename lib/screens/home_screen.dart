@@ -139,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     final dateB = DateTime.tryParse(b['session']['date'] ?? '') ?? DateTime.now();
                     return dateB.compareTo(dateA);
                   });
-                  final List<Map<String, dynamic>> lastSessions = sortedSessions.take(25).toList();
+                  final List<Map<String, dynamic>> lastSessions = sortedSessions.take(10).toList();
                   final List<Map<String, dynamic>> allSeries = [];
                   for (final session in lastSessions) {
                     final sessionDate = DateTime.tryParse(session['session']['date'] ?? '') ?? DateTime.now();
@@ -153,8 +153,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     }
                   }
                   allSeries.sort((a, b) => a['date'].compareTo(b['date']));
-                  for (int i = 0; i < allSeries.length; i++) {
-                    final serie = allSeries[i];
+                  final List<Map<String, dynamic>> lastSeries = allSeries.length > 10
+                      ? allSeries.sublist(allSeries.length - 10)
+                      : allSeries;
+                  for (int i = 0; i < lastSeries.length; i++) {
+                    final serie = lastSeries[i];
                     dates.add(serie['date']);
                     pointsSpots.add(FlSpot(i.toDouble(), serie['points']));
                     groupSizeSpots.add(FlSpot(i.toDouble(), serie['group_size']));
