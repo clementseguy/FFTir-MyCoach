@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _addRandomSessions() async {
-    await LocalDatabaseHive().insertRandomSessions(count: 25);
+    await LocalDatabaseHive().insertRandomSessions(count: 3);
     setState(() {
       _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
     });
