@@ -19,23 +19,69 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Tir Sportif',
-      theme: ThemeData.dark().copyWith(
+      theme: ThemeData(
+        brightness: Brightness.dark,
         colorScheme: ColorScheme.dark(
           primary: Colors.amber,
-          secondary: Colors.blueGrey,
+          secondary: Color(0xFF16FF8B), // Sea Foam
+          background: Color(0xFF181A20),
+          surface: Color(0xFF23272F),
         ),
-        scaffoldBackgroundColor: Colors.blueGrey[900],
+        scaffoldBackgroundColor: Color(0xFF181A20),
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.blueGrey[800],
+          backgroundColor: Colors.black,
           foregroundColor: Colors.white,
-        ),
-        cardColor: Colors.blueGrey[800],
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.amber,
-            foregroundColor: Colors.black,
+          elevation: 0,
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            letterSpacing: 1.2,
           ),
         ),
+        cardColor: Color(0xFF23272F),
+        cardTheme: CardThemeData(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 2,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF16FF8B), // Sea Foam
+            foregroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            elevation: 2,
+          ),
+        ),
+        textTheme: ThemeData.dark().textTheme.copyWith(
+          bodyLarge: TextStyle(fontSize: 16, color: Colors.white),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.white70),
+          titleLarge: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Color(0xFF23272F),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFF16FF8B), width: 1.2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.amber, width: 2),
+          ),
+          labelStyle: TextStyle(color: Color(0xFF16FF8B)),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+        ),
+  iconTheme: IconThemeData(color: Color(0xFF16FF8B), size: 24),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: Color(0xFF16FF8B),
+          foregroundColor: Colors.black,
+        ),
+        dividerColor: Colors.grey[800],
       ),
       home: HomeScreen(),
     );

@@ -42,6 +42,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                 decoration: InputDecoration(labelText: 'Arme'),
                 validator: (value) => value == null || value.isEmpty ? 'Champ requis' : null,
               ),
+              SizedBox(height: 10),
               TextFormField(
                 controller: _caliberController,
                 decoration: InputDecoration(labelText: 'Calibre'),
@@ -66,24 +67,28 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                           keyboardType: TextInputType.number,
                           onChanged: (v) => s.shotCount = int.tryParse(v) ?? 0,
                         ),
+                        SizedBox(height: 8),
                         TextFormField(
                           initialValue: s.distance.toString(),
                           decoration: InputDecoration(labelText: 'Distance (m)'),
                           keyboardType: TextInputType.number,
                           onChanged: (v) => s.distance = double.tryParse(v) ?? 0,
                         ),
+                        SizedBox(height: 8),
                         TextFormField(
                           initialValue: s.points.toString(),
                           decoration: InputDecoration(labelText: 'Points'),
                           keyboardType: TextInputType.number,
                           onChanged: (v) => s.points = int.tryParse(v) ?? 0,
                         ),
+                        SizedBox(height: 8),
                         TextFormField(
                           initialValue: s.groupSize.toString(),
                           decoration: InputDecoration(labelText: 'Groupement (cm)'),
                           keyboardType: TextInputType.number,
                           onChanged: (v) => s.groupSize = double.tryParse(v) ?? 0,
                         ),
+                        SizedBox(height: 8),
                         TextFormField(
                           initialValue: s.comment,
                           decoration: InputDecoration(labelText: 'Commentaire'),
