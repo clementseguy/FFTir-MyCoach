@@ -266,7 +266,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     if (i < 0 || i >= dates.length) return SizedBox.shrink();
                                     if (value != i.toDouble()) return SizedBox.shrink();
                                     final d = dates[i];
-                                    return Text('${d.day}/${d.month}');
+                                    return Text(
+                                      '${d.day}/${d.month}',
+                                      style: TextStyle(fontSize: 11, color: Colors.white),
+                                      overflow: TextOverflow.visible,
+                                      maxLines: 1,
+                                    );
                                   },
                                 ),
                               ),
