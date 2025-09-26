@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   final sessionsMonth = stats.sessionsCountCurrentMonth();
                   final consistency = stats.consistencyIndexLast30Days();
                   final progression = stats.progressionPercent30Days();
-                  final distDistrib = stats.distanceDistribution();
+                  final distDistrib = stats.distanceDistribution(); // global (30j)
                   final mostPlayedDistance = distDistrib.isEmpty ? null : distDistrib.entries.reduce((a,b)=> a.value>=b.value? a : b);
                   final catDistrib = stats.categoryDistribution();
                   final pointBuckets = stats.pointBuckets();
@@ -129,6 +129,79 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     category: _filterCategory,
                   );
                   final filteredLast = filteredSeries.length > 40 ? filteredSeries.sublist(filteredSeries.length - 40) : filteredSeries;
+                  final bool filtersActive = _filterDistance != null || _filterCategory != null;
+
+                  // Préparation des séries pour les line charts (points & groupement) basées sur les filtres
+                  // Fenêtre choisie: 20 dernières séries filtrées (option B)
+                  final List<SeriesStat> chartSeries = List<SeriesStat>.from(filteredSeries)
+                    ..sort((a,b)=> a.date.compareTo(b.date));
+                  final List<SeriesStat> lastForCharts = chartSeries.length > 20
+                    ? chartSeries.sublist(chartSeries.length - 20)
+                    : chartSeries;
+
+                  final List<DateTime> dates = [];
+                  final List<FlSpot> pointsSpots = [];
+                  final List<FlSpot> groupSizeSpots = [];
+                  for (int i=0; i<lastForCharts.length; i++) {
+                    final s = lastForCharts[i];
+                    dates.add(s.date);
+                    pointsSpots.add(FlSpot(i.toDouble(), s.points.toDouble()));
+                    groupSizeSpots.add(FlSpot(i.toDouble(), s.groupSize.toDouble()));
+                  }
+
+                  // Moyenne mobile (SMA3) recalculée sur l'échantillon filtré
+                  List<FlSpot> trendSpots = [];
+                  if (pointsSpots.length >= 3) {
+                    final values = lastForCharts.map((e)=> e.points.toDouble()).toList();
+                    for (int i=0; i<values.length; i++) {
+                      final start = (i - 2) < 0 ? 0 : i - 2; // fenêtre 3
+                      final subset = values.sublist(start, i+1);
+                      final avg = subset.reduce((a,b)=> a+b) / subset.length;
+                      trendSpots.add(FlSpot(i.toDouble(), avg));
+                    }
+                  }
+
+                  // Distributions filtrées (si filtres actifs) sinon globales
+                  Map<double,int> distDistribToShow;
+                  Map<String,int> catDistribToShow;
+                  List<dynamic> pointBucketsToShow; // garde la structure d'origine (_PointBucket)
+
+                  if (filtersActive) {
+                    // Distance (30j) sur séries filtrées
+                    final cutoff = DateTime.now().subtract(const Duration(days:30));
+                    final Map<double,int> dd = {};
+                    for (final s in filteredSeries) {
+                      if (s.date.isAfter(cutoff)) {
+                        final d = double.parse(s.distance.toStringAsFixed(0));
+                        dd[d] = (dd[d] ?? 0) + 1;
+                      }
+                    }
+                    distDistribToShow = dd;
+                    // Catégories basées sur séries filtrées
+                    final Map<String,int> cd = {};
+                    for (final s in filteredSeries) {
+                      cd[s.category] = (cd[s.category] ?? 0) + 1;
+                    }
+                    catDistribToShow = cd;
+                    // Buckets points (30j) filtrés
+                    final fps = filteredSeries.where((s)=> s.date.isAfter(cutoff)).toList();
+                    if (fps.isEmpty) {
+                      pointBucketsToShow = [];
+                    } else {
+                      final maxP = fps.map((e)=> e.points).reduce((a,b)=> a>b?a:b);
+                      final List<dynamic> buckets = [];
+                      for (int start=0; start<=maxP; start+=10) {
+                        final end = start + 10 -1;
+                        final count = fps.where((e)=> e.points >= start && e.points <= end).length;
+                        buckets.add(_TmpPointBucket(start: start, end: end, count: count));
+                      }
+                      pointBucketsToShow = buckets;
+                    }
+                  } else {
+                    distDistribToShow = distDistrib;
+                    catDistribToShow = catDistrib;
+                    pointBucketsToShow = pointBuckets; // type _PointBucket original
+                  }
 
                   // Bandeau KPI (Grid 2x2)
                   Widget kpiCard(String title, String value, {IconData icon = Icons.insights}) => _KpiCard(title: title, value: value, icon: icon);
@@ -149,37 +222,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       kpiCard('Sessions ce mois', sessionsMonth.toString(), icon: Icons.calendar_month),
                     ],
                   );
-                  final List<DateTime> dates = [];
-                  final List<FlSpot> pointsSpots = [];
-                  final List<FlSpot> groupSizeSpots = [];
-                  final List<ShootingSession> sortedSessions = List<ShootingSession>.from(allSessions);
-                  sortedSessions.sort((a, b) {
-                    final dateA = a.date ?? DateTime.now();
-                    final dateB = b.date ?? DateTime.now();
-                    return dateB.compareTo(dateA);
-                  });
-                  final List<ShootingSession> lastSessions = sortedSessions.take(10).toList();
-                  final List<Map<String, dynamic>> allSeries = [];
-                  for (final session in lastSessions) {
-                    final sessionDate = session.date ?? DateTime.now();
-                    for (final serie in session.series) {
-                      allSeries.add({
-                        'date': sessionDate,
-                        'points': (serie.points).toDouble(),
-                        'group_size': (serie.groupSize).toDouble(),
-                      });
-                    }
-                  }
-                  allSeries.sort((a, b) => a['date'].compareTo(b['date']));
-                  final List<Map<String, dynamic>> lastSeries = allSeries.length > 10
-                      ? allSeries.sublist(allSeries.length - 10)
-                      : allSeries;
-                  for (int i = 0; i < lastSeries.length; i++) {
-                    final serie = lastSeries[i];
-                    dates.add(serie['date']);
-                    pointsSpots.add(FlSpot(i.toDouble(), serie['points']));
-                    groupSizeSpots.add(FlSpot(i.toDouble(), serie['group_size']));
-                  }
+                  // Ancienne construction des séries supprimée (remplacée par logique filtrée ci-dessus)
 
                   // OBJECTIF points (45 sur 50) pour la ligne de référence
                   const objectifPoints = 45.0;
@@ -220,6 +263,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           )),
                         ],
                       ),
+                      if (filtersActive) ...[
+                        SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: InputChip(
+                            avatar: Icon(Icons.filter_alt, size: 18, color: Colors.amberAccent),
+                            label: Text('Filtres actifs'),
+                            onDeleted: () => setState(() { _filterDistance = null; _filterCategory = null; }),
+                            deleteIcon: Icon(Icons.close, size: 18),
+                            backgroundColor: Colors.white.withOpacity(0.08),
+                          ),
+                        ),
+                      ],
                       SizedBox(height: 16),
                       // KPI banner
                       kpiGrid,
@@ -260,13 +316,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       SizedBox(
                         height: 200,
                         child: Builder(builder: (context) {
-                          // Trend line (SMA 3)
-                          final statsAll = StatsService(allSessions);
-                          final moving = statsAll.movingAveragePoints(window: 3);
-                          final List<FlSpot> trendSpots = [];
-                          for (int i = 0; i < moving.length && i < pointsSpots.length; i++) {
-                            trendSpots.add(FlSpot(pointsSpots[i].x, moving[i]));
-                          }
+                          // Trend line (SMA3) déjà calculée via trendSpots (filtré)
                           final maxPoints = pointsSpots.isNotEmpty
                               ? pointsSpots.map((e) => e.y).reduce((a, b) => a > b ? a : b)
                               : 10;
@@ -496,7 +546,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     getTitlesWidget: (value, meta) {
-                                      final keys = distDistrib.keys.toList()..sort();
+                                      final keys = distDistribToShow.keys.toList()..sort();
                                       final idx = value.toInt();
                                       if (idx < 0 || idx >= keys.length) return SizedBox.shrink();
                                       return Text('${keys[idx].toStringAsFixed(0)}m', style: TextStyle(fontSize: 11));
@@ -505,10 +555,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 ),
                               ),
                               barGroups: () {
-                                final keys = distDistrib.keys.toList()..sort();
+                                final keys = distDistribToShow.keys.toList()..sort();
                                 return List.generate(keys.length, (i) {
                                   final k = keys[i];
-                                  final v = distDistrib[k]!.toDouble();
+                                  final v = distDistribToShow[k]!.toDouble();
                                   return BarChartGroupData(
                                     x: i,
                                     barRods: [
@@ -535,19 +585,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         SizedBox(height: 28),
                       ],
-                      if (catDistrib.isNotEmpty) ...[
+                      if (catDistribToShow.isNotEmpty) ...[
                         Text('Répartition catégories', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         SizedBox(height: 12),
-                        _CategoryStackedBar(distribution: catDistrib),
+                        _CategoryStackedBar(distribution: catDistribToShow),
                         SizedBox(height: 10),
                         Wrap(
                           spacing: 12,
                           runSpacing: 4,
-                          children: _CategoryStackedBar.legend(catDistrib),
+                          children: _CategoryStackedBar.legend(catDistribToShow),
                         ),
                         SizedBox(height: 28),
                       ],
-                      if (pointBuckets.isNotEmpty) ...[
+                      if (pointBucketsToShow.isNotEmpty) ...[
                         Text('Distribution points (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         SizedBox(height: 8),
                         SizedBox(
@@ -566,15 +616,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     showTitles: true,
                                     getTitlesWidget: (value, meta) {
                                       final idx = value.toInt();
-                                      if (idx < 0 || idx >= pointBuckets.length) return SizedBox.shrink();
-                                      final b = pointBuckets[idx];
+                                      if (idx < 0 || idx >= pointBucketsToShow.length) return SizedBox.shrink();
+                                      final b = pointBucketsToShow[idx];
                                       return Text('${b.start}-${b.end}', style: TextStyle(fontSize: 10));
                                     },
                                   ),
                                 ),
                               ),
-                              barGroups: List.generate(pointBuckets.length, (i) {
-                                final b = pointBuckets[i];
+                              barGroups: List.generate(pointBucketsToShow.length, (i) {
+                                final b = pointBucketsToShow[i];
                                 return BarChartGroupData(x: i, barRods: [
                                   BarChartRodData(
                                     toY: b.count.toDouble(),
@@ -972,4 +1022,12 @@ class _CategorySegment extends StatelessWidget {
       ),
     );
   }
+}
+
+// Bucket temporaire pour affichage filtré (évite d'exposer la classe privée de StatsService)
+class _TmpPointBucket {
+  final int start;
+  final int end;
+  final int count;
+  _TmpPointBucket({required this.start, required this.end, required this.count});
 }
