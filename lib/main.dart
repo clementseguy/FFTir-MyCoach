@@ -3,8 +3,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'local_db_hive.dart';
 import 'screens/home_screen.dart';
+import 'screens/sessions_history_screen.dart';
 
-// Pages vides pour Coach et Exercices
+// Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -15,6 +16,15 @@ class CoachScreen extends StatelessWidget {
 }
 
 class ExercicesScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(child: Text('Coming soon', style: TextStyle(fontSize: 24))),
+    );
+  }
+}
+
+class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,14 +123,18 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  int _selectedIndex = 2; // 0: Coach, 1: Exercices, 2: Accueil, 3: Historique
+  int _selectedIndex = 2; // 0: Coach, 1: Exercices, 2: Accueil, 3: Historique, 4: Paramètres
 
   final List<Widget> _pages = [
     CoachScreen(),
     ExercicesScreen(),
     HomeScreen(),
-    SessionsHistoryScreen(),
+    const SessionsHistoryScreen(),
+    SettingsScreen(),
   ];
+
+  // Pour rafraîchir SessionsHistoryScreen
+  final GlobalKey<SessionsHistoryScreenState> _historyKey = GlobalKey<SessionsHistoryScreenState>();
 
   void _onItemTapped(int index) {
     setState(() {
@@ -130,34 +144,101 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final int safeIndex = (_selectedIndex >= 0 && _selectedIndex < _pages.length) ? _selectedIndex : 0;
+
+    // Historique : AppBar + actions + contenu
+    if (safeIndex == 3) {
+      return Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.track_changes, color: Colors.amber),
+              SizedBox(width: 10),
+              Text('Mes sessions'),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.bolt, color: Colors.amber),
+              tooltip: 'Ajouter 3 sessions aléatoires',
+              onPressed: () async {
+                await LocalDatabaseHive().insertRandomSessions(count: 3, status: 'réalisée');
+                _historyKey.currentState?.refreshSessions();
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.refresh),
+              tooltip: 'Recharger',
+              onPressed: () {
+                _historyKey.currentState?.refreshSessions();
+              },
+            ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            SessionsHistoryScreen(key: _historyKey),
+            // FloatingActionButton positionné en bas à droite
+            Positioned(
+              bottom: 24,
+              right: 24,
+              child: FloatingActionButton(
+                heroTag: 'fab_create_session',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (ctx) => CreateSessionScreen()),
+                  ).then((_) => _historyKey.currentState?.refreshSessions());
+                },
+                child: Icon(Icons.add),
+                tooltip: 'Créer une session',
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: _buildBottomNavBar(safeIndex),
+      );
+    }
+
+    // Autres pages : Scaffold simple
     return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.black,
-        selectedItemColor: Colors.amber,
-        unselectedItemColor: Colors.white70,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.school),
-            label: 'Coach',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.fitness_center),
-            label: 'Exercices',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Accueil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.track_changes),
-            label: 'Historique',
-          ),
-        ],
-      ),
+      body: _pages[safeIndex],
+      bottomNavigationBar: _buildBottomNavBar(safeIndex),
+    );
+  }
+
+  Widget _buildBottomNavBar(int safeIndex) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: Colors.black,
+      selectedItemColor: Colors.amber,
+      unselectedItemColor: Colors.white70,
+      currentIndex: safeIndex,
+      onTap: _onItemTapped,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.school),
+          label: 'Coach',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.fitness_center),
+          label: 'Exercices',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bar_chart),
+          label: 'Accueil',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.track_changes),
+          label: 'Sessions',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.settings),
+          label: 'Paramètres',
+        ),
+      ],
     );
   }
 }
@@ -411,124 +492,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   }
 }
 
-class SessionsHistoryScreen extends StatefulWidget {
-  @override
-  _SessionsHistoryScreenState createState() => _SessionsHistoryScreenState();
-}
-
-class _SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
-  late Future<List<Map<String, dynamic>>> _sessionsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _refreshSessions();
-  }
-
-  void _refreshSessions() {
-    setState(() {
-      _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Refresh when coming back to this screen
-    _refreshSessions();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Historique des sessions'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            tooltip: 'Recharger',
-            onPressed: _refreshSessions,
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _sessionsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          final sessions = snapshot.data ?? [];
-          if (sessions.isEmpty) {
-            return Center(child: Text('Aucune session enregistrée.'));
-          }
-          // Trier les sessions par date décroissante
-          sessions.sort((a, b) {
-            final dateA = DateTime.tryParse(a['session']['date'] ?? '') ?? DateTime(1970);
-            final dateB = DateTime.tryParse(b['session']['date'] ?? '') ?? DateTime(1970);
-            return dateB.compareTo(dateA);
-          });
-          return ListView.builder(
-            itemCount: sessions.length,
-            itemBuilder: (context, index) {
-              final session = sessions[index]['session'];
-              final series = sessions[index]['series'] as List<dynamic>? ?? [];
-              final date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
-              final caliber = session['caliber'] ?? '';
-              final weapon = session['weapon'] ?? '';
-              final nbSeries = series.length;
-              return Card(
-                child: ListTile(
-                  title: Text('${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}'),
-                  subtitle: Text('Arme : $weapon   |   Calibre : $caliber   |   Séries : $nbSeries'),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SessionDetailScreen(sessionData: sessions[index]),
-                      ),
-                    );
-                    _refreshSessions();
-                  },
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    tooltip: 'Supprimer',
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text('Supprimer la session ?'),
-                          content: Text('Cette action est irréversible.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: Text('Annuler'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: Text('Supprimer', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        final sessionId = session['id'] as int? ?? sessions[index]['id'] as int?;
-                        if (sessionId != null) {
-                          await LocalDatabaseHive().deleteSession(sessionId);
-                          print('Session supprimée : id=$sessionId');
-                          _refreshSessions();
-                        }
-                      }
-                    },
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
 
 // (getAllSessionsWithSeries est maintenant géré par LocalDatabaseHive)
 

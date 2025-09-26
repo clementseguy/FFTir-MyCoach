@@ -56,7 +56,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
               'assets/app_logo.png',
@@ -66,7 +69,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const Text('Accueil'),
           ],
         ),
-        actions: [],
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            tooltip: 'Rafraîchir',
+            onPressed: () {
+              setState(() {
+                _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+              });
+            },
+          ),
+        ],
       ),
       // Drawer supprimé
       body: Padding(
@@ -75,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Statistiques', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Mes Stats', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 16),
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: _sessionsFuture,
@@ -256,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
               ),
               SizedBox(height: 24),
-              Text('Dernières sessions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Mes dernières sessions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: _sessionsFuture,
                 builder: (context, snapshot) {
