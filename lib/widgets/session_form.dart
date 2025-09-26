@@ -15,6 +15,7 @@ class SessionForm extends StatefulWidget {
 }
 
 class _SessionFormState extends State<SessionForm> {
+  late TextEditingController _syntheseController;
   final _formKey = GlobalKey<FormState>();
   DateTime? _date;
   String _status = 'réalisée';
@@ -38,6 +39,7 @@ class _SessionFormState extends State<SessionForm> {
       _status = session['status'] ?? 'réalisée';
       _weaponController.text = session['weapon'] ?? '';
       _caliberController.text = session['caliber'] ?? '22LR';
+      _syntheseController = TextEditingController(text: session['synthese'] ?? '');
       _series = series.map((s) => SeriesFormData(
         shotCount: s['shot_count'] ?? 5,
         distance: (s['distance'] as num?)?.toDouble() ?? 25,
@@ -51,6 +53,7 @@ class _SessionFormState extends State<SessionForm> {
       _series = [SeriesFormData(distance: 25)];
       _status = 'réalisée';
       _date = null;
+      _syntheseController = TextEditingController();
     }
     _seriesControllers = _series.map((s) => SeriesFormControllers(
       shotCount: s.shotCount,
@@ -68,6 +71,7 @@ class _SessionFormState extends State<SessionForm> {
     }
     _weaponController.dispose();
     _caliberController.dispose();
+    _syntheseController.dispose();
     super.dispose();
   }
 
@@ -119,6 +123,7 @@ class _SessionFormState extends State<SessionForm> {
         groupSize: double.tryParse(_seriesControllers[i].groupSizeController.text) ?? 0,
         comment: _seriesControllers[i].commentController.text,
       )),
+      synthese: _syntheseController.text,
     );
     widget.onSave(session);
   }
@@ -228,6 +233,17 @@ class _SessionFormState extends State<SessionForm> {
             icon: Icon(Icons.add),
             label: Text('Ajouter une série'),
             onPressed: _addSeries,
+          ),
+          SizedBox(height: 24),
+          TextFormField(
+            controller: _syntheseController,
+            decoration: InputDecoration(
+              labelText: 'Synthèse',
+              hintText: 'Récapitulatif de la session par le tireur',
+              border: OutlineInputBorder(),
+            ),
+            minLines: 3,
+            maxLines: 6,
           ),
           SizedBox(height: 24),
           ElevatedButton(
