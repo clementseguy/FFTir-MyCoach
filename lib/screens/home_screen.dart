@@ -537,57 +537,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                       if (catDistrib.isNotEmpty) ...[
                         Text('Répartition catégories', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                        SizedBox(height: 8),
-                        SizedBox(
-                          height: 180,
-                          child: PieChart(
-                            PieChartData(
-                              centerSpaceRadius: 40,
-                              sectionsSpace: 2,
-                              sections: () {
-                                final total = catDistrib.values.fold<int>(0, (a,b)=> a+b).toDouble();
-                                final colors = [
-                                  Colors.amberAccent,
-                                  Colors.lightBlueAccent,
-                                  Colors.lightGreenAccent,
-                                  Colors.pinkAccent,
-                                  Colors.tealAccent,
-                                ];
-                                int ci = 0;
-                                return catDistrib.entries.map((e) {
-                                  final pct = total == 0 ? 0 : (e.value / total) * 100;
-                                  final section = PieChartSectionData(
-                                    value: e.value.toDouble(),
-                                    color: colors[ci % colors.length],
-                                    title: pct < 8 ? '' : '${pct.toStringAsFixed(0)}%',
-                                    radius: 60,
-                                    titleStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
-                                  );
-                                  ci++;
-                                  return section;
-                                }).toList();
-                              }(),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 6),
+                        SizedBox(height: 12),
+                        _CategoryStackedBar(distribution: catDistrib),
+                        SizedBox(height: 10),
                         Wrap(
                           spacing: 12,
                           runSpacing: 4,
-                          children: () {
-                            final colors = [
-                              Colors.amberAccent,
-                              Colors.lightBlueAccent,
-                              Colors.lightGreenAccent,
-                              Colors.pinkAccent,
-                              Colors.tealAccent,
-                            ];
-                            int ci = 0;
-                            return catDistrib.entries.map((e){
-                              final color = colors[ci++ % colors.length];
-                              return _LegendDot(color: color, label: '${e.key} (${e.value})');
-                            }).toList();
-                          }(),
+                          children: _CategoryStackedBar.legend(catDistrib),
                         ),
                         SizedBox(height: 28),
                       ],
@@ -924,6 +880,95 @@ class _MiniStatChip extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CategoryStackedBar extends StatelessWidget {
+  final Map<String,int> distribution;
+  const _CategoryStackedBar({required this.distribution});
+
+  static const List<Color> _palette = [
+    Colors.amberAccent,
+    Colors.lightBlueAccent,
+    Colors.lightGreenAccent,
+    Colors.pinkAccent,
+    Colors.tealAccent,
+  ];
+
+  static List<Widget> legend(Map<String,int> distribution) {
+    int ci = 0;
+    final total = distribution.values.fold<int>(0,(a,b)=> a+b).toDouble();
+    return distribution.entries.map((e){
+      final color = _palette[ci++ % _palette.length];
+      final pct = total==0?0:(e.value/total*100);
+      return _LegendDot(color: color, label: '${e.key} (${pct.toStringAsFixed(0)}%)');
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final total = distribution.values.fold<int>(0,(a,b)=> a+b).toDouble();
+    if (total == 0) {
+      return Container(
+        height: 28,
+        decoration: BoxDecoration(
+          color: Colors.white12,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Text('-', style: TextStyle(color: Colors.white54)),
+      );
+    }
+    int ci = 0;
+    final segments = distribution.entries.map((e){
+      final color = _palette[ci++ % _palette.length];
+      final pct = e.value / total;
+      return _CategorySegment(
+        flex: (pct * 1000).round().clamp(1, 1000),
+        color: color,
+        label: pct>=0.12 ? '${(pct*100).toStringAsFixed(0)}%' : null,
+      );
+    }).toList();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          height: 34,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white12),
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Row(children: segments),
+        );
+      },
+    );
+  }
+}
+
+class _CategorySegment extends StatelessWidget {
+  final int flex;
+  final Color color;
+  final String? label;
+  const _CategorySegment({required this.flex, required this.color, this.label});
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        color: color.withOpacity(0.85),
+        child: label == null ? null : Center(
+          child: Text(
+            label!,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+              shadows: [Shadow(color: Colors.white54, blurRadius: 2)],
+            ),
+          ),
+        ),
       ),
     );
   }
