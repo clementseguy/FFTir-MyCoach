@@ -130,50 +130,36 @@ class _SessionFormState extends State<SessionForm> {
       final size = MediaQuery.of(context).size;
       debugPrint('SessionForm context size: \\n  width: \\${size.width}, height: \\${size.height}');
     });
-    return Container(
-      color: Colors.red.withOpacity(0.07),
-      child: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.only(top: 16, bottom: 24),
-          children: [
-            Container(
-            color: Colors.yellow.withOpacity(0.1),
-            constraints: BoxConstraints(minHeight: 56),
-            child: ListTile(
-              title: Text('Date'),
-              subtitle: _date != null ? Text('${_date!.day}/${_date!.month}/${_date!.year}') : Text('Aucune date'),
-              trailing: Icon(Icons.calendar_today),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _date ?? DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                );
-                if (picked != null) setState(() => _date = picked);
-              },
-            ),
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.only(top: 16, bottom: 24),
+        children: [
+          ListTile(
+            title: Text('Date'),
+            subtitle: _date != null ? Text('${_date!.day}/${_date!.month}/${_date!.year}') : Text('Aucune date'),
+            trailing: Icon(Icons.calendar_today),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _date ?? DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null) setState(() => _date = picked);
+            },
           ),
           SizedBox(height: 16),
-          Container(
-            color: Colors.green.withOpacity(0.1),
-            constraints: BoxConstraints(minHeight: 56),
-            child: TextFormField(
-              controller: _weaponController,
-              decoration: InputDecoration(labelText: 'Arme'),
-              validator: (value) => value == null || value.isEmpty ? 'Champ requis' : null,
-            ),
+          TextFormField(
+            controller: _weaponController,
+            decoration: InputDecoration(labelText: 'Arme'),
+            validator: (value) => value == null || value.isEmpty ? 'Champ requis' : null,
           ),
           SizedBox(height: 16),
-          Container(
-            color: Colors.blue.withOpacity(0.1),
-            constraints: BoxConstraints(minHeight: 56),
-            child: TextFormField(
-              controller: _caliberController,
-              decoration: InputDecoration(labelText: 'Calibre'),
-              validator: (value) => value == null || value.isEmpty ? 'Champ requis' : null,
-            ),
+          TextFormField(
+            controller: _caliberController,
+            decoration: InputDecoration(labelText: 'Calibre'),
+            validator: (value) => value == null || value.isEmpty ? 'Champ requis' : null,
           ),
           SizedBox(height: 24),
           Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -238,18 +224,17 @@ class _SessionFormState extends State<SessionForm> {
             );
           }),
           SizedBox(height: 8),
-            ElevatedButton.icon(
-              icon: Icon(Icons.add),
-              label: Text('Ajouter une série'),
-              onPressed: _addSeries,
-            ),
-            SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _save,
-              child: Text(widget.isEdit ? 'Enregistrer les modifications' : 'Enregistrer'),
-            ),
-          ],
-        ),
+          ElevatedButton.icon(
+            icon: Icon(Icons.add),
+            label: Text('Ajouter une série'),
+            onPressed: _addSeries,
+          ),
+          SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _save,
+            child: Text(widget.isEdit ? 'Enregistrer les modifications' : 'Enregistrer'),
+          ),
+        ],
       ),
     );
   }

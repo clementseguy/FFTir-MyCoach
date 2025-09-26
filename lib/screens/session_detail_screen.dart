@@ -78,7 +78,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CreateSessionScreen(initialSessionData: widget.sessionData),
+                  builder: (context) => CreateSessionScreen(initialSessionData: widget.sessionData, isEdit: true),
                 ),
               );
               if (context.mounted) {
