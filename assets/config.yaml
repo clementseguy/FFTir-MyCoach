@@ -1,4 +1,4 @@
 api:
-  mistral_key: "EeVTEcDwYHmXJVM4akVym7VdkOSMp28p"
+  mistral_key: "l84H8vdQ8ppOVxSDEZ09ByJhoMnTgM9M"
   mistral_url: "https://api.mistral.ai/v1/chat/completions"
-  mistral_model: "mistral-medium"
+  mistral_model: "mistral-tiny"

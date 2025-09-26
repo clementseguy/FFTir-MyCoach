@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'local_db_hive.dart';
+import 'data/local_db_hive.dart';
 import 'screens/home_screen.dart';
 import 'screens/sessions_history_screen.dart';
 

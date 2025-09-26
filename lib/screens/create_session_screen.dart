@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../local_db_hive.dart';
+// import '../data/local_db_hive.dart';
 import '../forms/series_form_data.dart';
+import '../models/shooting_session.dart';
+import '../models/series.dart';
+import '../services/session_service.dart';
 
 class CreateSessionScreen extends StatefulWidget {
   final Map<String, dynamic>? initialSessionData;
@@ -11,6 +14,8 @@ class CreateSessionScreen extends StatefulWidget {
 }
 
 class _CreateSessionScreenState extends State<CreateSessionScreen> {
+  final SessionService _sessionService = SessionService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -207,29 +212,27 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         return;
       }
     }
-    final session = <String, dynamic>{
-      'date': _date != null ? _date!.toIso8601String() : null,
-      'weapon': _weaponController.text,
-      'caliber': _caliberController.text,
-      'status': _status,
-    };
-    if (_editingSessionId != null) {
-      session['id'] = _editingSessionId;
-    }
-    final seriesList = _series.map((s) => {
-      'shot_count': s.shotCount,
-      'distance': s.distance,
-      'points': s.points,
-      'group_size': s.groupSize,
-      'comment': s.comment,
-    }).toList();
+    final session = ShootingSession(
+      id: _editingSessionId,
+      date: _date,
+      weapon: _weaponController.text,
+      caliber: _caliberController.text,
+      status: _status,
+      series: _series.map((s) => Series(
+        shotCount: s.shotCount,
+        distance: s.distance,
+        points: s.points,
+        groupSize: s.groupSize,
+        comment: s.comment,
+      )).toList(),
+    );
     try {
       if (_editingSessionId != null) {
-        await LocalDatabaseHive().updateSession(session, seriesList);
+        await _sessionService.updateSession(session);
         print('Session mise à jour: id=$_editingSessionId');
       } else {
-        await LocalDatabaseHive().insertSession(session, seriesList);
-        print('Session insérée: data=$session, séries=$seriesList');
+        await _sessionService.addSession(session);
+        print('Session insérée: $session');
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,7 +1,8 @@
 import '../widgets/session_card.dart';
 import 'package:flutter/material.dart';
-import '../local_db_hive.dart';
+import '../services/session_service.dart';
 import 'session_detail_screen.dart';
+import '../models/shooting_session.dart';
 
 
 class SessionsHistoryScreen extends StatefulWidget {
@@ -12,51 +13,49 @@ class SessionsHistoryScreen extends StatefulWidget {
 }
 
 class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
-  late Future<List<Map<String, dynamic>>> _sessionsFuture;
+  final SessionService _sessionService = SessionService();
+  late Future<List<ShootingSession>> _sessionsFuture;
 
   @override
   void initState() {
     super.initState();
-  refreshSessions();
+    refreshSessions();
   }
 
   void refreshSessions() {
     setState(() {
-      _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+      _sessionsFuture = _sessionService.getAllSessions();
     });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-  refreshSessions();
+    refreshSessions();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
+    return FutureBuilder<List<ShootingSession>>(
       future: _sessionsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
         final sessions = (snapshot.data ?? [])
-            .where((s) {
-              final session = s['session'];
-              return session != null && (session['status'] ?? 'réalisée') == 'réalisée' && session['date'] != null;
-            })
+            .where((s) => (s.status == 'réalisée') && (s.date != null))
             .toList();
         if (sessions.isEmpty) {
           return Center(child: Text('Aucune session enregistrée.'));
         }
         // Calculs statistiques
         final int nbSessions = sessions.length;
-        final int totalSeries = sessions.fold(0, (sum, s) => sum + ((s['series'] as List?)?.length ?? 0));
+        final int totalSeries = sessions.fold(0, (sum, s) => sum + (s.series.length));
         final double avgSeries = nbSessions > 0 ? totalSeries / nbSessions : 0;
         // Trier les sessions par date décroissante
         sessions.sort((a, b) {
-          final dateA = DateTime.tryParse(a['session']['date'] ?? '') ?? DateTime(1970);
-          final dateB = DateTime.tryParse(b['session']['date'] ?? '') ?? DateTime(1970);
+          final dateA = a.date ?? DateTime(1970);
+          final dateB = b.date ?? DateTime(1970);
           return dateB.compareTo(dateA);
         });
         return Column(
@@ -94,16 +93,18 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
               child: ListView.builder(
                 itemCount: sessions.length,
                 itemBuilder: (context, index) {
-                  final session = sessions[index]['session'];
-                  final series = sessions[index]['series'] as List<dynamic>? ?? [];
+                  final session = sessions[index];
                   return SessionCard(
-                    session: session,
-                    series: series,
+                    session: session.toMap(),
+                    series: session.series.map((s) => s.toMap()).toList(),
                     onTap: () async {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => SessionDetailScreen(sessionData: sessions[index]),
+                          builder: (context) => SessionDetailScreen(sessionData: {
+                            'session': session.toMap(),
+                            'series': session.series.map((s) => s.toMap()).toList(),
+                          }),
                         ),
                       );
                       refreshSessions();
@@ -126,12 +127,9 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                           ],
                         ),
                       );
-                      if (confirm == true) {
-                        final sessionId = session['id'] as int? ?? sessions[index]['id'] as int?;
-                        if (sessionId != null) {
-                          await LocalDatabaseHive().deleteSession(sessionId);
-                          refreshSessions();
-                        }
+                      if (confirm == true && session.id != null) {
+                        await _sessionService.deleteSession(session.id!);
+                        refreshSessions();
                       }
                     },
                   );
