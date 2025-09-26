@@ -68,51 +68,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         actions: [],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.black),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    'assets/app_logo.png',
-                    height: 56,
-                  ),
-                  SizedBox(height: 8),
-                  Text('Tir Sportif', style: TextStyle(color: Colors.white, fontSize: 20)),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Accueil'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.add),
-              title: Text('Nouvelle session'),
-              onTap: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => CreateSessionScreen()));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.list),
-              title: Text('Historique'),
-              onTap: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => SessionsHistoryScreen()));
-              },
-            ),
-          ],
-        ),
-      ),
+      // Drawer supprimé
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(

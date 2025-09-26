@@ -4,6 +4,24 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'local_db_hive.dart';
 import 'screens/home_screen.dart';
 
+// Pages vides pour Coach et Exercices
+class CoachScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(child: Text('Coming soon', style: TextStyle(fontSize: 24))),
+    );
+  }
+}
+
+class ExercicesScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(child: Text('Coming soon', style: TextStyle(fontSize: 24))),
+    );
+  }
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,6 +29,7 @@ Future<void> main() async {
   await Hive.openBox('sessions');
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -23,7 +42,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         colorScheme: ColorScheme.dark(
           primary: Colors.amber,
-          secondary: Color(0xFF16FF8B), // Sea Foam
+          secondary: Color(0xFF16FF8B),
           background: Color(0xFF181A20),
           surface: Color(0xFF23272F),
         ),
@@ -48,7 +67,7 @@ class MyApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF16FF8B), // Sea Foam
+            backgroundColor: Color(0xFF16FF8B),
             foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -76,14 +95,69 @@ class MyApp extends StatelessWidget {
           labelStyle: TextStyle(color: Color(0xFF16FF8B)),
           floatingLabelBehavior: FloatingLabelBehavior.always,
         ),
-  iconTheme: IconThemeData(color: Color(0xFF16FF8B), size: 24),
+        iconTheme: IconThemeData(color: Color(0xFF16FF8B), size: 24),
         floatingActionButtonTheme: FloatingActionButtonThemeData(
           backgroundColor: Color(0xFF16FF8B),
           foregroundColor: Colors.black,
         ),
         dividerColor: Colors.grey[800],
       ),
-      home: HomeScreen(),
+      home: MainNavigation(),
+    );
+  }
+}
+
+class MainNavigation extends StatefulWidget {
+  @override
+  State<MainNavigation> createState() => _MainNavigationState();
+}
+
+class _MainNavigationState extends State<MainNavigation> {
+  int _selectedIndex = 2; // 0: Coach, 1: Exercices, 2: Accueil, 3: Historique
+
+  final List<Widget> _pages = [
+    CoachScreen(),
+    ExercicesScreen(),
+    HomeScreen(),
+    SessionsHistoryScreen(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.black,
+        selectedItemColor: Colors.amber,
+        unselectedItemColor: Colors.white70,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.school),
+            label: 'Coach',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fitness_center),
+            label: 'Exercices',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.track_changes),
+            label: 'Historique',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -200,50 +274,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_editingSessionId != null ? 'Modifier la session' : 'Nouvelle session'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blueGrey[800]),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.sports, size: 48, color: Colors.amber),
-                  SizedBox(height: 8),
-                  Text('Tir Sportif', style: TextStyle(color: Colors.white, fontSize: 20)),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Accueil'),
-              selected: ModalRoute.of(context)?.settings.name == '/' || ModalRoute.of(context)?.settings.name == null,
-              onTap: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.add),
-              title: Text('Nouvelle session'),
-              selected: ModalRoute.of(context)?.settings.name == '/create',
-              onTap: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(MaterialPageRoute(settings: RouteSettings(name: '/create'), builder: (context) => CreateSessionScreen()));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.list),
-              title: Text('Historique'),
-              selected: ModalRoute.of(context)?.settings.name == '/history',
-              onTap: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(MaterialPageRoute(settings: RouteSettings(name: '/history'), builder: (context) => SessionsHistoryScreen()));
-              },
-            ),
-          ],
-        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
