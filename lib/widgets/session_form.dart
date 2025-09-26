@@ -11,20 +11,22 @@ class SessionForm extends StatefulWidget {
   final bool isEdit;
   const SessionForm({Key? key, this.initialSessionData, required this.onSave, this.isEdit = false}) : super(key: key);
 
+  static SessionFormState? of(BuildContext context) {
+    return context.findAncestorStateOfType<SessionFormState>();
+  }
+
   @override
-  State<SessionForm> createState() => _SessionFormState();
+  State<SessionForm> createState() => SessionFormState();
 }
 
-class _SessionFormState extends State<SessionForm> {
+class SessionFormState extends State<SessionForm> {
   late TextEditingController _syntheseController;
   final _formKey = GlobalKey<FormState>();
   DateTime? _date;
-  String _status = SessionConstants.statusRealisee;
   late TextEditingController _weaponController;
   late TextEditingController _caliberController;
   late List<SeriesFormData> _series;
   late List<SeriesFormControllers> _seriesControllers;
-  int? _editingSessionId;
   String _category = SessionConstants.categoryEntrainement;
 
   @override
@@ -36,9 +38,7 @@ class _SessionFormState extends State<SessionForm> {
       final session = widget.initialSessionData!['session'];
       final seriesRaw = widget.initialSessionData!['series'];
       final List<dynamic> series = (seriesRaw is List) ? seriesRaw : [];
-      _editingSessionId = session['id'] as int? ?? widget.initialSessionData!['id'] as int?;
       _date = session['date'] != null && session['date'] != '' ? DateTime.tryParse(session['date']) : null;
-      _status = session['status'] ?? 'réalisée';
       _weaponController.text = session['weapon'] ?? '';
       _caliberController.text = session['caliber'] ?? '22LR';
   _syntheseController = TextEditingController(text: session['synthese'] ?? '');
@@ -54,7 +54,6 @@ class _SessionFormState extends State<SessionForm> {
     } else {
       _caliberController.text = '22LR';
       _series = [SeriesFormData(distance: 25)];
-      _status = 'réalisée';
       _date = null;
   _syntheseController = TextEditingController();
   _category = SessionConstants.categoryEntrainement;
@@ -121,34 +120,27 @@ class _SessionFormState extends State<SessionForm> {
     });
   }
 
-  void _save() {
-    if (!_formKey.currentState!.validate()) return;
+  // _save supprimé (logique de validation déplacée dans callback externe si nécessaire)
+  bool validateAndBuild() {
+    if (!_formKey.currentState!.validate()) return false;
     if (_series.isEmpty || _series.every((s) => s.shotCount == 0 && s.distance == 0 && s.points == 0 && s.groupSize == 0 && s.comment.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Veuillez ajouter au moins une série à la session.')),
       );
-      return;
+      return false;
     }
-    if (_status == 'réalisée') {
-      if (_date == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('La date est obligatoire pour une session réalisée.')),
-        );
-        return;
-      }
-      if (_date!.isAfter(DateTime.now())) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('La date d\'une session réalisée ne peut pas être dans le futur.')),
-        );
-        return;
-      }
+    if (_date == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('La date est obligatoire.')),
+      );
+      return false;
     }
     final session = ShootingSession(
-      id: _editingSessionId,
+      id: null,
       date: _date,
       weapon: _weaponController.text,
       caliber: _caliberController.text,
-      status: _status,
+      status: SessionConstants.statusRealisee,
       series: List.generate(_series.length, (i) => Series(
         shotCount: int.tryParse(_seriesControllers[i].shotCountController.text) ?? 0,
         distance: double.tryParse(_seriesControllers[i].distanceController.text) ?? 0,
@@ -160,6 +152,7 @@ class _SessionFormState extends State<SessionForm> {
       category: _category,
     );
     widget.onSave(session);
+    return true;
   }
 
   @override
@@ -317,10 +310,7 @@ class _SessionFormState extends State<SessionForm> {
             maxLines: 6,
           ),
           SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _save,
-            child: Text(widget.isEdit ? 'Enregistrer les modifications' : 'Enregistrer'),
-          ),
+          SizedBox(height: 8),
         ],
       ),
     );
