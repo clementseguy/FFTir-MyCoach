@@ -22,7 +22,28 @@ class SessionService {
   }
 
   Future<void> updateSession(ShootingSession session) async {
-    await _db.updateSession(session.toMap(), session.series.map((s) => s.toMap()).toList());
+    // Prévention : si une session existante perdrait ses séries (liste vide),
+    // on tente de récupérer les séries existantes pour éviter un écrasement accidentel.
+    final seriesMaps = session.series.map((s) => s.toMap()).toList();
+    if ((session.id != null) && seriesMaps.isEmpty) {
+      final existing = await _db.getSessionsWithSeries();
+      final match = existing.firstWhere(
+        (e) => (e['session']?['id'] == session.id),
+        orElse: () => {},
+      );
+      if (match.isNotEmpty) {
+        final existingSeries = (match['series'] as List<dynamic>? ?? [])
+            .map((s) => (s is Map<String, dynamic>) ? s : Map<String, dynamic>.from(s))
+            .toList();
+        if (existingSeries.isNotEmpty) {
+          // Log debug (print) - pourrait être remplacé par un logger
+          // debugPrint('updateSession: séries fournies vides, récupération ${existingSeries.length} existantes');
+          await _db.updateSession(session.toMap(), existingSeries);
+          return;
+        }
+      }
+    }
+    await _db.updateSession(session.toMap(), seriesMaps);
   }
 
   Future<void> deleteSession(int id) async {
