@@ -1,6 +1,7 @@
 import '../widgets/session_card.dart';
 import 'package:flutter/material.dart';
 import '../services/session_service.dart';
+import '../constants/session_constants.dart';
 import 'session_detail_screen.dart';
 import '../models/shooting_session.dart';
 
@@ -43,7 +44,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
           return Center(child: CircularProgressIndicator());
         }
         final sessions = (snapshot.data ?? [])
-            .where((s) => (s.status == 'réalisée') && (s.date != null))
+            .where((s) => (s.status == SessionConstants.statusRealisee) && (s.date != null))
             .toList();
         if (sessions.isEmpty) {
           return Center(child: Text('Aucune session enregistrée.'));

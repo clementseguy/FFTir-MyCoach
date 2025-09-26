@@ -2,6 +2,7 @@ import '../forms/series_form_controllers.dart';
 import 'package:flutter/material.dart';
 import '../forms/series_form_data.dart';
 import '../models/shooting_session.dart';
+import '../constants/session_constants.dart';
 import '../models/series.dart';
 
 class SessionForm extends StatefulWidget {
@@ -18,7 +19,7 @@ class _SessionFormState extends State<SessionForm> {
   late TextEditingController _syntheseController;
   final _formKey = GlobalKey<FormState>();
   DateTime? _date;
-  String _status = 'réalisée';
+  String _status = SessionConstants.statusRealisee;
   late TextEditingController _weaponController;
   late TextEditingController _caliberController;
   late List<SeriesFormData> _series;

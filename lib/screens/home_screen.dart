@@ -1,6 +1,7 @@
 import '../widgets/session_card.dart';
 import 'package:flutter/material.dart';
 import '../services/session_service.dart';
+import '../constants/session_constants.dart';
 import '../models/shooting_session.dart';
 // import '../models/series.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -91,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     return Center(child: CircularProgressIndicator());
                   }
                   final allSessions = (snapshot.data ?? [])
-                      .where((s) => s.status == 'réalisée' && s.date != null)
+                      .where((s) => s.status == SessionConstants.statusRealisee && s.date != null)
                       .toList();
                   if (allSessions.isEmpty) {
                     return Center(child: Text('Aucune donnée pour les graphes.'));

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'constants/session_constants.dart';
 import 'data/local_db_hive.dart';
 import 'screens/home_screen.dart';
 import 'screens/sessions_history_screen.dart';
@@ -37,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  await Hive.openBox('sessions');
+  await Hive.openBox(SessionConstants.hiveBoxSessions);
   runApp(const MyApp());
 }
 

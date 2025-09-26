@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:yaml/yaml.dart';
 import '../services/session_service.dart';
+import '../constants/session_constants.dart';
 import 'create_session_screen.dart';
 import '../models/shooting_session.dart';
 import '../models/series.dart';
@@ -41,7 +42,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     final session = ShootingSession.fromMap(_currentSessionData!['session']);
     final series = (_currentSessionData!['series'] as List<dynamic>).map((s) => Series.fromMap(Map<String, dynamic>.from(s))).toList();
     final date = session.date ?? DateTime.now();
-    final isRealisee = session.status == 'réalisée';
+  final isRealisee = session.status == SessionConstants.statusRealisee;
     String? analyse = _currentSessionData!['session']['analyse'];
     return Scaffold(
       appBar: AppBar(
