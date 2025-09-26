@@ -192,8 +192,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           double niceFloor(double v) {
                             return (v / 5.0).floor() * 5.0;
                           }
-                          final maxY = niceCeil(maxPoints + 1);
+                          // Ancien maxY remplacé par adjustedMaxY (voir plus bas)
                           final minY = niceFloor(minPoints - 1 < 0 ? 0 : minPoints - 1);
+                          // Inclure valeurs trend dans maxY éventuel
+                          final combinedMax = [
+                            maxPoints,
+                            if (trendSpots.isNotEmpty) trendSpots.map((e)=> e.y).reduce((a,b)=> a>b?a:b)
+                          ].reduce((a,b)=> a>b?a:b);
+                          final adjustedMaxY = niceCeil(combinedMax + 1);
                           return LineChart(
                             LineChartData(
                               backgroundColor: Colors.transparent,
@@ -240,7 +246,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               minX: 0,
                               maxX: pointsSpots.isNotEmpty ? pointsSpots.length - 1.0 : 1.0,
                               minY: minY,
-                              maxY: maxY,
+                              maxY: adjustedMaxY,
+                              clipData: FlClipData.all(),
                               lineTouchData: LineTouchData(
                                 enabled: true,
                                 touchTooltipData: LineTouchTooltipData(
@@ -372,6 +379,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   },
                                 ),
                               ),
+                              clipData: FlClipData.all(),
                               lineBarsData: [
                                 LineChartBarData(
                                   spots: groupSizeSpots,
