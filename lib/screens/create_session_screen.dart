@@ -24,7 +24,11 @@ class CreateSessionScreen extends StatelessWidget {
           isEdit: isEdit,
           onSave: (session) async {
             try {
-              await SessionService().addSession(session);
+              if (isEdit) {
+                await SessionService().updateSession(session);
+              } else {
+                await SessionService().addSession(session);
+              }
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Session enregistrée')),
