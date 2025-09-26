@@ -7,4 +7,14 @@ class SessionConstants {
   static const String statusPrevue = 'prévue';
   /// Nom de la box Hive pour les sessions
   static const String hiveBoxSessions = 'sessions';
+
+  /// Catégories de session
+  static const String categoryEntrainement = 'entraînement';
+  static const String categoryMatch = 'match';
+  static const String categoryTest = 'test matériel';
+  static const List<String> categories = [
+    categoryEntrainement,
+    categoryMatch,
+    categoryTest,
+  ];
 }

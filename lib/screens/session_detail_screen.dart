@@ -100,6 +100,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
           Text('Date : ${date.day}/${date.month}/${date.year}', style: TextStyle(fontSize: 16)),
           Text('Arme : ${session.weapon}'),
           Text('Calibre : ${session.caliber}'),
+          if (session.category.isNotEmpty) Text('Catégorie : ${session.category}'),
           SizedBox(height: 16),
           if (_isAnalysing) ...[
             LinearProgressIndicator(),

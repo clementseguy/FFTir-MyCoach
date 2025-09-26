@@ -25,6 +25,7 @@ class _SessionFormState extends State<SessionForm> {
   late List<SeriesFormData> _series;
   late List<SeriesFormControllers> _seriesControllers;
   int? _editingSessionId;
+  String _category = SessionConstants.categoryEntrainement;
 
   @override
   void initState() {
@@ -40,7 +41,8 @@ class _SessionFormState extends State<SessionForm> {
       _status = session['status'] ?? 'réalisée';
       _weaponController.text = session['weapon'] ?? '';
       _caliberController.text = session['caliber'] ?? '22LR';
-      _syntheseController = TextEditingController(text: session['synthese'] ?? '');
+  _syntheseController = TextEditingController(text: session['synthese'] ?? '');
+  _category = session['category'] ?? SessionConstants.categoryEntrainement;
       _series = series.map((s) => SeriesFormData(
         shotCount: s['shot_count'] ?? 5,
         distance: (s['distance'] as num?)?.toDouble() ?? 25,
@@ -54,7 +56,8 @@ class _SessionFormState extends State<SessionForm> {
       _series = [SeriesFormData(distance: 25)];
       _status = 'réalisée';
       _date = null;
-      _syntheseController = TextEditingController();
+  _syntheseController = TextEditingController();
+  _category = SessionConstants.categoryEntrainement;
     }
     _seriesControllers = _series.map((s) => SeriesFormControllers(
       shotCount: s.shotCount,
@@ -166,6 +169,15 @@ class _SessionFormState extends State<SessionForm> {
             controller: _caliberController,
             decoration: InputDecoration(labelText: 'Calibre'),
             validator: (value) => value == null || value.isEmpty ? 'Champ requis' : null,
+          ),
+          SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: _category,
+            items: SessionConstants.categories
+                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                .toList(),
+            onChanged: (v) => setState(() => _category = v ?? SessionConstants.categoryEntrainement),
+            decoration: InputDecoration(labelText: 'Catégorie'),
           ),
           SizedBox(height: 24),
           Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
