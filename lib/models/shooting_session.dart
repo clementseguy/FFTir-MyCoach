@@ -7,6 +7,7 @@ class ShootingSession {
   String caliber;
   List<Series> series;
   String status; // "prévue" ou "réalisée"
+  String? analyse;
 
   ShootingSession({
     this.id,
@@ -15,6 +16,7 @@ class ShootingSession {
     required this.caliber,
     required this.series,
     this.status = 'réalisée',
+    this.analyse,
   });
 
   Map<String, dynamic> toMap() {
@@ -25,6 +27,7 @@ class ShootingSession {
       'caliber': caliber,
       'series': series.map((s) => s.toMap()).toList(),
       'status': status,
+      'analyse': analyse,
     };
   }
 
@@ -41,6 +44,7 @@ class ShootingSession {
       caliber: map['caliber'] as String,
       series: seriesList,
       status: map['status'] as String? ?? 'réalisée',
+      analyse: map['analyse'] as String?,
     );
   }
 }

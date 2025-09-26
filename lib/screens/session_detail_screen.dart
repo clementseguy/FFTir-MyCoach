@@ -18,7 +18,6 @@ class SessionDetailScreen extends StatefulWidget {
 }
 
 class _SessionDetailScreenState extends State<SessionDetailScreen> {
-  final ScrollController _analyseScrollController = ScrollController();
   final SessionService _sessionService = SessionService();
   bool _isAnalysing = false;
 
@@ -131,222 +130,184 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
             SizedBox(height: 16),
           ],
           if (isRealisee)
-            ElevatedButton.icon(
-              icon: Icon(Icons.analytics),
-              label: Text((analyse != null && analyse.trim().isNotEmpty)
-                  ? 'La session a été analysée'
-                  : 'Analyser la session'),
-              onPressed: (analyse != null && analyse.trim().isNotEmpty) || _isAnalysing
-                  ? null
-                  : () async {
-                      setState(() => _isAnalysing = true);
-                      final prompt = await DefaultAssetBundle.of(context).loadString('assets/coach_prompt.yaml');
-                      final configStr = await DefaultAssetBundle.of(context).loadString('assets/config.yaml');
-                      final config = loadYaml(configStr);
-                      final mistralApiKey = config['api']['mistral_key']?.toString() ?? '';
-                      final mistralUrl = config['api']['mistral_url']?.toString() ?? 'https://api.mistral.ai/v1/chat/completions';
-                      final mistralModel = config['api']['mistral_model']?.toString() ?? 'mistral-medium';
-                      final message = _buildAnalysePrompt(prompt, session, series);
-                      print('[Mistral] Clé API utilisée : $mistralApiKey');
-                      String analyseResult = '';
-                      bool apiSuccess = false;
-                      try {
-                        print('[Mistral] Appel API avec prompt :\n$message');
-                        final response = await http.post(
-                          Uri.parse(mistralUrl),
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer $mistralApiKey',
-                          },
-                          body: jsonEncode({
-                            'model': mistralModel,
-                            'messages': [
-                              {'role': 'user', 'content': message},
-                            ],
-                            'temperature': 0.7,
-                          }),
-                        );
-                        print('[Mistral] Status: \\${response.statusCode}');
-                        print('[Mistral] Réponse brute: \\${response.body}');
-                        if (response.statusCode >= 200 && response.statusCode < 300) {
-                          final data = jsonDecode(response.body);
-                          analyseResult = data['choices'][0]['message']['content']?.toString() ?? 'Réponse vide.';
-                          print('[Mistral] Analyse extraite: $analyseResult');
-                          apiSuccess = true;
-                        } else {
-                          analyseResult = 'Erreur API Mistral : \\${response.statusCode}\n\\${response.body}';
-                          print('[Mistral] Erreur API : $analyseResult');
-                        }
-                      } catch (e) {
-                        analyseResult = 'Erreur lors de l\'appel à l\'API Mistral : $e';
-                        print('[Mistral] Exception : $e');
-                      }
-                      setState(() => _isAnalysing = false);
-                      if (apiSuccess) {
-                        // Enregistrer l'analyse en base
-                        final updatedSession = ShootingSession.fromMap(session.toMap());
-                        updatedSession.toMap()['analyse'] = analyseResult;
-                        await _sessionService.updateSession(
-                          ShootingSession.fromMap({...updatedSession.toMap(), 'analyse': analyseResult})
-                            ..series = series
-                        );
-                        await _reloadSessionFromDb();
-                        // Afficher le retour
-                        showDialog(
-                          context: context,
-                          builder: (ctx) {
-                            final theme = Theme.of(context);
-                            final isDark = theme.brightness == Brightness.dark;
-                            final bgColor = theme.dialogBackgroundColor;
-                            final textColor = theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black87);
-                            final titleColor = theme.textTheme.titleLarge?.color ?? (isDark ? Colors.white : Colors.black87);
-                            return Dialog(
-                              backgroundColor: bgColor,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(20.0),
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxHeight: MediaQuery.of(context).size.height * 0.7,
-                                    minWidth: 300,
-                                    maxWidth: 600,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ElevatedButton.icon(
+                  icon: Icon(Icons.analytics),
+                  label: Text((analyse != null && analyse.trim().isNotEmpty)
+                      ? 'La session a été analysée'
+                      : 'Analyser la session'),
+                  onPressed: (!_isAnalysing && (analyse == null || analyse.trim().isEmpty))
+                      ? () async {
+                          setState(() => _isAnalysing = true);
+                          try {
+                            // 1. Charger la config API
+                            final configStr = await DefaultAssetBundle.of(context).loadString('assets/config.yaml');
+                            final config = loadYaml(configStr);
+                            final apiConfig = config['api'];
+                            final mistralApiKey = apiConfig['mistral_key'].toString();
+                            final mistralUrl = apiConfig['mistral_url'].toString();
+                            final mistralModel = apiConfig['mistral_model'].toString();
+
+                            // 2. Charger le prompt initial
+                            final promptStr = await DefaultAssetBundle.of(context).loadString('assets/coach_prompt.yaml');
+                            final promptYaml = loadYaml(promptStr);
+                            final promptTemplate = promptYaml['prompt'].toString();
+
+                            // 3. Construire le prompt complet
+                            final session = ShootingSession.fromMap(_currentSessionData!['session']);
+                            final buffer = StringBuffer();
+                            buffer.writeln(promptTemplate.trim());
+                            buffer.writeln('\nSession :');
+                            buffer.writeln('Arme : ${session.weapon}');
+                            buffer.writeln('Calibre : ${session.caliber}');
+                            buffer.writeln('Date : ${session.date?.toIso8601String() ?? "Non renseignée"}');
+                            buffer.writeln('Séries :');
+                            for (var i = 0; i < session.series.length; i++) {
+                              final s = session.series[i];
+                              buffer.writeln('- Série ${i + 1} : Coups=${s.shotCount}, Distance=${s.distance}m, Points=${s.points}, Groupement=${s.groupSize}cm, Commentaire=${s.comment ?? ""}');
+                            }
+                            final fullPrompt = buffer.toString();
+
+                            // 4. Appel API Mistral
+                            final response = await http.post(
+                              Uri.parse(mistralUrl),
+                              headers: {
+                                'Authorization': 'Bearer $mistralApiKey',
+                                'Content-Type': 'application/json',
+                              },
+                              body: jsonEncode({
+                                'model': mistralModel,
+                                'messages': [
+                                  {'role': 'user', 'content': fullPrompt}
+                                ]
+                              }),
+                            );
+
+                            if (response.statusCode >= 200 && response.statusCode < 300) {
+                              // Succès : extraire la réponse
+                              final data = jsonDecode(response.body);
+                              final coachReply = data['choices']?[0]?['message']?['content']?.toString() ?? 'Aucune analyse reçue.';
+                              // Afficher la popup markdown
+                              await showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Analyse du coach'),
+                                  content: SizedBox(
+                                    width: double.maxFinite,
+                                    child: SingleChildScrollView(
+                                      child: MarkdownBody(data: coachReply),
+                                    ),
                                   ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Analyse de la session',
-                                        style: theme.textTheme.titleLarge?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: titleColor,
-                                        ) ?? TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: titleColor),
-                                      ),
-                                      SizedBox(height: 16),
-                                      Expanded(
-                                        child: Scrollbar(
-                                          controller: _analyseScrollController,
-                                          thumbVisibility: true,
-                                          child: SingleChildScrollView(
-                                            controller: _analyseScrollController,
-                                            child: MarkdownBody(
-                                              data: analyseResult,
-                                              styleSheet: MarkdownStyleSheet(
-                                                p: TextStyle(color: textColor, fontSize: 16),
-                                                strong: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                                                h1: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: titleColor),
-                                                h2: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: titleColor.withOpacity(0.9)),
-                                                h3: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: titleColor.withOpacity(0.8)),
-                                                code: TextStyle(color: Colors.deepOrange),
-                                                blockquote: TextStyle(color: textColor.withOpacity(0.7), fontStyle: FontStyle.italic),
-                                                listBullet: TextStyle(color: textColor),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(height: 16),
-                                      Align(
-                                        alignment: Alignment.centerRight,
-                                        child: TextButton(
-                                          onPressed: () => Navigator.pop(ctx),
-                                          child: Text('Fermer', style: TextStyle(color: theme.colorScheme.primary)),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(),
+                                      child: const Text('Fermer'),
+                                    ),
+                                  ],
                                 ),
+                              );
+                              // Enregistrer la réponse dans la session (champ analyse)
+                              final updatedSession = session..analyse = coachReply;
+                              await SessionService().updateSession(updatedSession);
+                              setState(() {
+                                _currentSessionData!['session']['analyse'] = coachReply;
+                              });
+                            } else {
+                              // Erreur API
+                              await showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Erreur'),
+                                  content: const Text('Une erreur est survenue lors de l\'analyse, veuillez réesayer ultérieurement.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(),
+                                      child: const Text('Fermer'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            await showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Erreur'),
+                                content: const Text('Une erreur est survenue lors de l\'analyse, veuillez réesayer ultérieurement.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(),
+                                    child: const Text('Fermer'),
+                                  ),
+                                ],
                               ),
                             );
-                          },
-                        );
-                      } else {
-                        // Afficher une popup d'erreur sans enregistrer l'analyse
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: Text('Erreur'),
-                            content: Text('Désolé, le coach n\'est pas disponible. Réessayez ultérieurement ou contactez le support.'),
-                            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Fermer'))],
-                          ),
-                        );
-                      }
-                    },
-            ),
-              Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...series.asMap().entries.map((entry) {
-                int i = entry.key;
-                final s = entry.value;
-                return Card(
-                  color: Colors.blueGrey[900],
-                  margin: EdgeInsets.symmetric(vertical: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Série ${i + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Nombre de coups : ${s.shotCount}'),
-                        Text('Distance : ${s.distance} m'),
-                        Text('Points : ${s.points}'),
-                        Text('Groupement : ${s.groupSize} cm'),
-                        if ((s.comment).toString().isNotEmpty)
-                          Text('Commentaire : ${s.comment}'),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-              if (isRealisee && analyse != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 24.0),
-                  child: Card(
-                    color: Colors.green[900],
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Analyse du coach', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                          SizedBox(height: 8),
-                          MarkdownBody(
-                            data: analyse,
-                            styleSheet: MarkdownStyleSheet(
-                              p: TextStyle(color: Colors.white),
-                              strong: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              h1: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                              h2: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                              h3: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                              code: TextStyle(color: Colors.yellow[200]),
-                              blockquote: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
-                              listBullet: TextStyle(color: Colors.white),
+                          } finally {
+                            setState(() => _isAnalysing = false);
+                          }
+                        }
+                      : null,
+                ),
+                if (analyse != null && analyse.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24.0),
+                    child: Card(
+                      color: Colors.green[900],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Analyse du coach', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                            SizedBox(height: 8),
+                            MarkdownBody(
+                              data: analyse,
+                              styleSheet: MarkdownStyleSheet(
+                                p: TextStyle(color: Colors.white),
+                                strong: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                h1: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                                h2: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                h3: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                code: TextStyle(color: Colors.yellow[200]),
+                                blockquote: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
+                                listBullet: TextStyle(color: Colors.white),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
+              ],
+            ),
+          Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
+          ...series.asMap().entries.map((entry) {
+            int i = entry.key;
+            final s = entry.value;
+            return Card(
+              color: Colors.blueGrey[900],
+              margin: EdgeInsets.symmetric(vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Série ${i + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text('Nombre de coups : ${s.shotCount}'),
+                    Text('Distance : ${s.distance} m'),
+                    Text('Points : ${s.points}'),
+                    Text('Groupement : ${s.groupSize} cm'),
+                    if ((s.comment).toString().isNotEmpty)
+                      Text('Commentaire : ${s.comment}'),
+                  ],
                 ),
-            ],
-          ),
-        );
-  }
-
-  // Construit le prompt à envoyer au chat Mistral
-  String _buildAnalysePrompt(String prompt, ShootingSession session, List<Series> series) {
-    final buffer = StringBuffer();
-    buffer.writeln(prompt);
-    buffer.writeln('Session :');
-    buffer.writeln('Arme : ${session.weapon}');
-    buffer.writeln('Calibre : ${session.caliber}');
-    if (session.date != null) buffer.writeln('Date : ${session.date!.toIso8601String()}');
-    buffer.writeln('Séries :');
-    for (int i = 0; i < series.length; i++) {
-      final s = series[i];
-      buffer.writeln('- Série ${i + 1} : Coups=${s.shotCount}, Distance=${s.distance}m, Points=${s.points}, Groupement=${s.groupSize}cm, Commentaire=${s.comment}');
-    }
-    return buffer.toString();
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
 }
