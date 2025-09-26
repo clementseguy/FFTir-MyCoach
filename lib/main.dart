@@ -99,7 +99,7 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Color(0xFF16FF8B), width: 1.2),
           ),
-          focusedBorder: OutlineInputBorder(
+            focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.amber, width: 2),
           ),
@@ -126,28 +126,23 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 2; // 0: Coach, 1: Exercices, 2: Accueil, 3: Historique, 4: Paramètres
 
-  final List<Widget> _pages = [
-    CoachScreen(),
-    ExercicesScreen(),
-    HomeScreen(),
-    const SessionsHistoryScreen(),
-    SettingsScreen(),
-  ];
-
-  // Pour rafraîchir SessionsHistoryScreen
   final GlobalKey<SessionsHistoryScreenState> _historyKey = GlobalKey<SessionsHistoryScreenState>();
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    final int safeIndex = (_selectedIndex >= 0 && _selectedIndex < _pages.length) ? _selectedIndex : 0;
+    final pages = <Widget>[
+      CoachScreen(),
+      ExercicesScreen(),
+      HomeScreen(),
+      SessionsHistoryScreen(key: _historyKey),
+      SettingsScreen(),
+    ];
+    final safeIndex = (_selectedIndex >= 0 && _selectedIndex < pages.length) ? _selectedIndex : 0;
 
-    // Historique : AppBar + actions + contenu
     if (safeIndex == 3) {
       return Scaffold(
         appBar: AppBar(
@@ -173,25 +168,22 @@ class _MainNavigationState extends State<MainNavigation> {
             IconButton(
               icon: Icon(Icons.refresh),
               tooltip: 'Recharger',
-              onPressed: () {
-                _historyKey.currentState?.refreshSessions();
-              },
+              onPressed: () => _historyKey.currentState?.refreshSessions(),
             ),
           ],
         ),
         body: Stack(
           children: [
             SessionsHistoryScreen(key: _historyKey),
-            // FloatingActionButton positionné en bas à droite
             Positioned(
               bottom: 24,
               right: 24,
               child: FloatingActionButton(
                 heroTag: 'fab_create_session',
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (ctx) => CreateSessionScreen()),
-                  ).then((_) => _historyKey.currentState?.refreshSessions());
+                  Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (ctx) => CreateSessionScreen()))
+                      .then((_) => _historyKey.currentState?.refreshSessions());
                 },
                 child: Icon(Icons.add),
                 tooltip: 'Créer une session',
@@ -203,9 +195,8 @@ class _MainNavigationState extends State<MainNavigation> {
       );
     }
 
-    // Autres pages : Scaffold simple
     return Scaffold(
-      body: _pages[safeIndex],
+      body: pages[safeIndex],
       bottomNavigationBar: _buildBottomNavBar(safeIndex),
     );
   }
@@ -219,26 +210,11 @@ class _MainNavigationState extends State<MainNavigation> {
       currentIndex: safeIndex,
       onTap: _onItemTapped,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.school),
-          label: 'Coach',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.fitness_center),
-          label: 'Exercices',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart),
-          label: 'Accueil',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.track_changes),
-          label: 'Sessions',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings),
-          label: 'Paramètres',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Coach'),
+        BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Exercices'),
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Accueil'),
+        BottomNavigationBarItem(icon: Icon(Icons.track_changes), label: 'Sessions'),
+        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Paramètres'),
       ],
     );
   }
@@ -251,116 +227,6 @@ class _MainNavigationState extends State<MainNavigation> {
 
 // (getAllSessionsWithSeries est maintenant géré par LocalDatabaseHive)
 
-class SeriesFormData {
-  int shotCount;
-  double distance;
-  int points;
-  double groupSize;
-  String comment;
-  SeriesFormData({
-    this.shotCount = 5,
-    this.distance = 0,
-    this.points = 0,
-    this.groupSize = 0,
-    this.comment = '',
-  });
-}
-
-class SessionDetailScreen extends StatelessWidget {
-  final Map<String, dynamic> sessionData;
-  const SessionDetailScreen({super.key, required this.sessionData});
-
-  @override
-  Widget build(BuildContext context) {
-    final session = sessionData['session'];
-    final series = sessionData['series'] as List<dynamic>;
-    final date = DateTime.tryParse(session['date'] ?? '') ?? DateTime.now();
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Détail de la session'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            tooltip: 'Modifier',
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CreateSessionScreen(initialSessionData: sessionData),
-                ),
-              );
-              if (context.mounted) {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              }
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.delete),
-            tooltip: 'Supprimer',
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text('Supprimer la session ?'),
-                  content: Text('Cette action est irréversible.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text('Annuler'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text('Supprimer', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                await LocalDatabaseHive().deleteSession(session['id']);
-                if (context.mounted) {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                }
-              }
-            },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: EdgeInsets.all(16),
-        children: [
-          Text('Date : ${date.day}/${date.month}/${date.year}', style: TextStyle(fontSize: 16)),
-          Text('Arme : ${session['weapon']}'),
-          Text('Calibre : ${session['caliber']}'),
-          SizedBox(height: 16),
-          Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
-          ...series.asMap().entries.map((entry) {
-            int i = entry.key;
-            final s = entry.value;
-            return Card(
-              color: Colors.blueGrey[900],
-              margin: EdgeInsets.symmetric(vertical: 8),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Série ${i + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text('Nombre de coups : ${s['shot_count']}'),
-                    Text('Distance : ${s['distance']} m'),
-                    Text('Points : ${s['points']}'),
-                    Text('Groupement : ${s['group_size']} cm'),
-                    if ((s['comment'] ?? '').toString().isNotEmpty)
-                      Text('Commentaire : ${s['comment']}'),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-}
 
 class PointsLineChart extends StatelessWidget {
   @override
