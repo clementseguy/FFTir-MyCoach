@@ -29,29 +29,6 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     _currentSessionData = widget.sessionData;
   }
 
-  Future<void> _reloadSessionFromDb() async {
-    if (_currentSessionData?['session']?['id'] != null) {
-      final allSessions = await _sessionService.getAllSessions();
-      final sessionId = _currentSessionData!['session']['id'];
-      ShootingSession? found;
-      for (final s in allSessions) {
-        if (s.id == sessionId) {
-          found = s;
-          break;
-        }
-      }
-      if (found != null) {
-        final sessionMap = found.toMap();
-        final seriesList = found.series.map((s) => s.toMap()).toList();
-        setState(() {
-          _currentSessionData = {
-            'session': sessionMap,
-            'series': seriesList,
-          };
-        });
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,13 +137,13 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                             final buffer = StringBuffer();
                             buffer.writeln(promptTemplate.trim());
                             buffer.writeln('\nSession :');
-                            buffer.writeln('Arme : ${session.weapon}');
-                            buffer.writeln('Calibre : ${session.caliber}');
-                            buffer.writeln('Date : ${session.date?.toIso8601String() ?? "Non renseignée"}');
+                            buffer.writeln('Arme : ${session.weapon}');
+                            buffer.writeln('Calibre : ${session.caliber}');
+                            buffer.writeln('Date : ${session.date?.toIso8601String() ?? "Non renseignée"}');
                             buffer.writeln('Séries :');
                             for (var i = 0; i < session.series.length; i++) {
                               final s = session.series[i];
-                              buffer.writeln('- Série ${i + 1} : Coups=${s.shotCount}, Distance=${s.distance}m, Points=${s.points}, Groupement=${s.groupSize}cm, Commentaire=${s.comment ?? ""}');
+                              buffer.writeln('- Série ${i + 1} : Coups=${s.shotCount}, Distance=${s.distance}m, Points=${s.points}, Groupement=${s.groupSize}cm, Commentaire=${s.comment}');
                             }
                             final fullPrompt = buffer.toString();
 
