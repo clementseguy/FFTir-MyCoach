@@ -203,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           )),
                         ],
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
@@ -370,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   isCurved: true,
                                   color: Colors.amberAccent,
                                   barWidth: 3,
-                                  dotData: FlDotData(show: true),
+                                  dotData: FlDotData(show: false),
                                   belowBarData: BarAreaData(
                                     show: true,
                                     gradient: LinearGradient(
@@ -396,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           );
                         }),
                       ),
-                      SizedBox(height: 6),
+                      SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -649,16 +649,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Icon(Icons.center_focus_strong, size: 16, color: Colors.lightGreenAccent),
                         ],
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: 12),
                       SizedBox(
                         height: 200,
                         child: Builder(builder: (context) {
                           if (groupSizeSpots.isEmpty) return SizedBox.shrink();
                           final maxGroup = groupSizeSpots.map((e) => e.y).reduce((a,b)=> a>b?a:b);
-                          final minGroup = groupSizeSpots.map((e) => e.y).reduce((a,b)=> a<b?a:b);
                           double niceCeil(double v) => (v/5).ceil()*5.0;
                           final maxY = niceCeil(maxGroup + 1);
-                          final minIndex = groupSizeSpots.indexWhere((e)=> e.y == minGroup);
                           return LineChart(
                             LineChartData(
                               backgroundColor: Colors.transparent,
@@ -722,18 +720,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   isCurved: true,
                                   color: Colors.lightGreenAccent,
                                   barWidth: 3,
-                                  dotData: FlDotData(
-                                    show: true,
-                                    getDotPainter: (spot, percent, bar, index) {
-                                      final isRecord = index == minIndex;
-                                      return FlDotCirclePainter(
-                                        radius: isRecord ? 5 : 3.5,
-                                        color: isRecord ? Colors.deepOrangeAccent : Colors.lightGreenAccent,
-                                        strokeColor: Colors.black,
-                                        strokeWidth: 1,
-                                      );
-                                    },
-                                  ),
+                                  dotData: FlDotData(show: false),
                                   belowBarData: BarAreaData(
                                     show: true,
                                     gradient: LinearGradient(
