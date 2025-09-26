@@ -97,33 +97,24 @@ class _SessionFormState extends State<SessionForm> {
         comment: '',
       ));
     });
-    // Après le rebuild, positionner le focus sur le premier champ pertinent vide
+    // Après rebuild, focus précis via FocusNodes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final c = _seriesControllers.last;
-      // Ordre de priorité logique des champs à remplir
       final ordered = [
-        c.shotCountController,
-        c.distanceController,
-        c.pointsController,
-        c.groupSizeController,
-        c.commentController,
+        {'ctrl': c.shotCountController, 'focus': c.shotCountFocus},
+        {'ctrl': c.distanceController, 'focus': c.distanceFocus},
+        {'ctrl': c.pointsController, 'focus': c.pointsFocus},
+        {'ctrl': c.groupSizeController, 'focus': c.groupSizeFocus},
+        {'ctrl': c.commentController, 'focus': c.commentFocus},
       ];
-      for (final controller in ordered) {
-        if (controller.text.trim().isEmpty || controller.text == '0') {
-          // Utiliser un FocusNode temporaire via FocusScope pour demander le focus
-          FocusScope.of(context).requestFocus(FocusNode());
-          // Petite astuce: sélectionner le champ en assignant selection
-          controller.selection = TextSelection(baseOffset: 0, extentOffset: controller.text.length);
-          // Pour réellement donner le focus on utilise FocusScope.nextFocus après avoir inséré un TextField? Mieux: trouver le primaryFocus
-          // Simplicité: on définit autofocus dynamiquement n'est pas possible après build; on force en ouvrant le clavier via requestFocus sur un FocusNode attaché
-          // Solution pragmatique: Utiliser WidgetsBinding pour re-run requestFocus sur le EditableText correspondant
-          // On fait un hack minimal: si le champ est vide on insère un caractère puis on le retire pour déclencher le focus
-          // Mais pour rester sûr on ajoute un microtask pour tenter un focus direct sur primaryFocus.
-          Future.microtask(() {
-            // Tente de déplacer le focus vers le dernier champ modifié en utilisant FocusScope
-            FocusScope.of(context).requestFocus(FocusNode());
-          });
+      for (final item in ordered) {
+        final TextEditingController ctrl = item['ctrl'] as TextEditingController;
+        final FocusNode node = item['focus'] as FocusNode;
+        final text = ctrl.text.trim();
+        if (text.isEmpty || text == '0') {
+          FocusScope.of(context).requestFocus(node);
+          ctrl.selection = TextSelection(baseOffset: 0, extentOffset: text.length);
           break;
         }
       }
@@ -238,6 +229,7 @@ class _SessionFormState extends State<SessionForm> {
                         Expanded(
                           child: TextFormField(
                             controller: c.shotCountController,
+                            focusNode: c.shotCountFocus,
                             decoration: InputDecoration(labelText: 'Coups'),
                             keyboardType: TextInputType.number,
                           ),
@@ -246,6 +238,7 @@ class _SessionFormState extends State<SessionForm> {
                         Expanded(
                           child: TextFormField(
                             controller: c.distanceController,
+                            focusNode: c.distanceFocus,
                             decoration: InputDecoration(labelText: 'Distance (m)'),
                             keyboardType: TextInputType.numberWithOptions(decimal: true),
                           ),
@@ -259,6 +252,7 @@ class _SessionFormState extends State<SessionForm> {
                         Expanded(
                           child: TextFormField(
                             controller: c.pointsController,
+                            focusNode: c.pointsFocus,
                             decoration: InputDecoration(labelText: 'Points'),
                             keyboardType: TextInputType.number,
                           ),
@@ -267,6 +261,7 @@ class _SessionFormState extends State<SessionForm> {
                         Expanded(
                           child: TextFormField(
                             controller: c.groupSizeController,
+                            focusNode: c.groupSizeFocus,
                             decoration: InputDecoration(labelText: 'Groupement (cm)'),
                             keyboardType: TextInputType.numberWithOptions(decimal: true),
                           ),
@@ -277,6 +272,7 @@ class _SessionFormState extends State<SessionForm> {
                     // Commentaire multi-ligne
                     TextFormField(
                       controller: c.commentController,
+                      focusNode: c.commentFocus,
                       decoration: InputDecoration(labelText: 'Commentaire'),
                       keyboardType: TextInputType.multiline,
                       minLines: 3,
