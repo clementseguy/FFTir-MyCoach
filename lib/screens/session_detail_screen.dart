@@ -177,19 +177,24 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                               );
                             }
                           } catch (e) {
-                            await showDialog(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Erreur'),
-                                content: const Text('Une erreur est survenue lors de l\'analyse, veuillez réesayer ultérieurement.'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(ctx).pop(),
-                                    child: const Text('Fermer'),
-                                  ),
-                                ],
-                              ),
-                            );
+                            final msg = (e is CoachAnalysisException)
+                                ? e.message
+                                : 'Une erreur est survenue lors de l\'analyse, veuillez réessayer ultérieurement.';
+                            if (context.mounted) {
+                              await showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Erreur'),
+                                  content: Text(msg),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(),
+                                      child: const Text('Fermer'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
                           } finally {
                             setState(() => _isAnalysing = false);
                           }

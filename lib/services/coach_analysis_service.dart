@@ -64,28 +64,28 @@ class CoachAnalysisService {
           )
           .timeout(const Duration(seconds: 25));
     } on TimeoutException {
-      throw Exception('Timeout: le serveur ne répond pas.');
+      throw CoachAnalysisException('Le serveur ne répond pas (timeout).');
     } catch (e) {
-      throw Exception('Erreur réseau inattendue: $e');
+      throw CoachAnalysisException('Erreur réseau inattendue: $e');
     }
 
     if (response.statusCode == 401) {
-      throw Exception('Clé API invalide (401).');
+      throw CoachAnalysisException('Clé API invalide (401).');
     }
     if (response.statusCode == 429) {
-      throw Exception('Trop de requêtes (429), réessayez plus tard.');
+      throw CoachAnalysisException('Trop de requêtes (429), réessayez plus tard.');
     }
     if (response.statusCode >= 500) {
-      throw Exception('Erreur serveur (${response.statusCode}).');
+      throw CoachAnalysisException('Erreur serveur (${response.statusCode}).');
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Erreur HTTP ${response.statusCode}.');
+      throw CoachAnalysisException('Erreur HTTP ${response.statusCode}.');
     }
 
     final data = jsonDecode(response.body);
     final content = data['choices']?[0]?['message']?['content']?.toString();
     if (content == null || content.trim().isEmpty) {
-      throw Exception('Réponse vide du modèle.');
+      throw CoachAnalysisException('Réponse vide du modèle.');
     }
     return content;
   }
@@ -111,4 +111,12 @@ class CoachAnalysisService {
       promptTemplate: promptTemplate,
     );
   }
+}
+
+/// Exception dédiée pour distinguer les erreurs d'analyse.
+class CoachAnalysisException implements Exception {
+  final String message;
+  CoachAnalysisException(this.message);
+  @override
+  String toString() => 'CoachAnalysisException: $message';
 }
