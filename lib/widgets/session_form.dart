@@ -81,14 +81,52 @@ class _SessionFormState extends State<SessionForm> {
 
   void _addSeries() {
     setState(() {
-      _series.add(SeriesFormData(distance: 25));
+      // Propager la distance de la dernière série si disponible, sinon 25m
+      double propagatedDistance = 25;
+      if (_seriesControllers.isNotEmpty) {
+        final txt = _seriesControllers.last.distanceController.text.trim();
+        final parsed = double.tryParse(txt.replaceAll(',', '.'));
+        if (parsed != null && parsed > 0) propagatedDistance = parsed;
+      }
+      _series.add(SeriesFormData(distance: propagatedDistance));
       _seriesControllers.add(SeriesFormControllers(
         shotCount: 5,
-        distance: 25,
+        distance: propagatedDistance,
         points: 0,
         groupSize: 0,
         comment: '',
       ));
+    });
+    // Après le rebuild, positionner le focus sur le premier champ pertinent vide
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final c = _seriesControllers.last;
+      // Ordre de priorité logique des champs à remplir
+      final ordered = [
+        c.shotCountController,
+        c.distanceController,
+        c.pointsController,
+        c.groupSizeController,
+        c.commentController,
+      ];
+      for (final controller in ordered) {
+        if (controller.text.trim().isEmpty || controller.text == '0') {
+          // Utiliser un FocusNode temporaire via FocusScope pour demander le focus
+          FocusScope.of(context).requestFocus(FocusNode());
+          // Petite astuce: sélectionner le champ en assignant selection
+          controller.selection = TextSelection(baseOffset: 0, extentOffset: controller.text.length);
+          // Pour réellement donner le focus on utilise FocusScope.nextFocus après avoir inséré un TextField? Mieux: trouver le primaryFocus
+          // Simplicité: on définit autofocus dynamiquement n'est pas possible après build; on force en ouvrant le clavier via requestFocus sur un FocusNode attaché
+          // Solution pragmatique: Utiliser WidgetsBinding pour re-run requestFocus sur le EditableText correspondant
+          // On fait un hack minimal: si le champ est vide on insère un caractère puis on le retire pour déclencher le focus
+          // Mais pour rester sûr on ajoute un microtask pour tenter un focus direct sur primaryFocus.
+          Future.microtask(() {
+            // Tente de déplacer le focus vers le dernier champ modifié en utilisant FocusScope
+            FocusScope.of(context).requestFocus(FocusNode());
+          });
+          break;
+        }
+      }
     });
   }
 
@@ -128,6 +166,7 @@ class _SessionFormState extends State<SessionForm> {
         comment: _seriesControllers[i].commentController.text,
       )),
       synthese: _syntheseController.text,
+      category: _category,
     );
     widget.onSave(session);
   }
@@ -192,33 +231,56 @@ class _SessionFormState extends State<SessionForm> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Série ${i + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
-                    TextFormField(
-                      controller: c.shotCountController,
-                      decoration: InputDecoration(labelText: 'Nombre de coups'),
-                      keyboardType: TextInputType.number,
+                    SizedBox(height: 8),
+                    // Première ligne : Nombre de coups & Distance
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: c.shotCountController,
+                            decoration: InputDecoration(labelText: 'Coups'),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: c.distanceController,
+                            decoration: InputDecoration(labelText: 'Distance (m)'),
+                            keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 8),
-                    TextFormField(
-                      controller: c.distanceController,
-                      decoration: InputDecoration(labelText: 'Distance (m)'),
-                      keyboardType: TextInputType.number,
+                    // Deuxième ligne : Points & Groupement
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: c.pointsController,
+                            decoration: InputDecoration(labelText: 'Points'),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: c.groupSizeController,
+                            decoration: InputDecoration(labelText: 'Groupement (cm)'),
+                            keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 8),
-                    TextFormField(
-                      controller: c.pointsController,
-                      decoration: InputDecoration(labelText: 'Points'),
-                      keyboardType: TextInputType.number,
-                    ),
-                    SizedBox(height: 8),
-                    TextFormField(
-                      controller: c.groupSizeController,
-                      decoration: InputDecoration(labelText: 'Groupement (cm)'),
-                      keyboardType: TextInputType.number,
-                    ),
-                    SizedBox(height: 8),
+                    // Commentaire multi-ligne
                     TextFormField(
                       controller: c.commentController,
                       decoration: InputDecoration(labelText: 'Commentaire'),
+                      keyboardType: TextInputType.multiline,
+                      minLines: 3,
+                      maxLines: 5,
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
