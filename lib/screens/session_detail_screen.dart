@@ -189,8 +189,14 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                                   ],
                                 ),
                               );
-                              // Enregistrer la réponse dans la session (champ analyse)
-                              final updatedSession = session..analyse = coachReply;
+                              // Enregistrer la réponse dans la session (champ analyse) AVEC les séries
+                              final sessionMap = _currentSessionData!['session'];
+                              final seriesList = (_currentSessionData!['series'] as List<dynamic>)
+                                  .map((s) => Series.fromMap(Map<String, dynamic>.from(s)))
+                                  .toList();
+                              final updatedSession = ShootingSession.fromMap(sessionMap)
+                                ..series = seriesList
+                                ..analyse = coachReply;
                               await SessionService().updateSession(updatedSession);
                               setState(() {
                                 _currentSessionData!['session']['analyse'] = coachReply;
