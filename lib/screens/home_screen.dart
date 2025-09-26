@@ -20,8 +20,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final SessionService _sessionService = SessionService();
   late Future<List<ShootingSession>> _sessionsFuture;
-  double? _filterDistance; // distance sélectionnée (null = toutes)
-  String? _filterCategory; // catégorie sélectionnée (null = toutes)
 
   @override
   void didChangeDependencies() {
@@ -120,87 +118,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   final bestGroup = stats.bestGroupSize();
 
                   // Distances & catégories uniques pour filtres (basées sur toutes les séries)
-                  final allDistances = (stats.distanceDistribution(last30: false).keys.toList()..sort());
-                  final allCategories = catDistrib.keys.toList();
+                  // Anciennes listes pour filtres supprimées
 
                   // Appliquer filtres aux séries pour graphes dynamiques
-                  final filteredSeries = stats.filteredSeries(
-                    distance: _filterDistance,
-                    category: _filterCategory,
-                  );
-                  final filteredLast = filteredSeries.length > 40 ? filteredSeries.sublist(filteredSeries.length - 40) : filteredSeries;
-                  final bool filtersActive = _filterDistance != null || _filterCategory != null;
-
-                  // Préparation des séries pour les line charts (points & groupement) basées sur les filtres
-                  // Fenêtre choisie: 20 dernières séries filtrées (option B)
-                  final List<SeriesStat> chartSeries = List<SeriesStat>.from(filteredSeries)
-                    ..sort((a,b)=> a.date.compareTo(b.date));
-                  final List<SeriesStat> lastForCharts = chartSeries.length > 20
-                    ? chartSeries.sublist(chartSeries.length - 20)
-                    : chartSeries;
-
+                  // Construction globale des données séries (retour à l'ancienne logique simplifiée)
                   final List<DateTime> dates = [];
                   final List<FlSpot> pointsSpots = [];
                   final List<FlSpot> groupSizeSpots = [];
-                  for (int i=0; i<lastForCharts.length; i++) {
-                    final s = lastForCharts[i];
-                    dates.add(s.date);
-                    pointsSpots.add(FlSpot(i.toDouble(), s.points.toDouble()));
-                    groupSizeSpots.add(FlSpot(i.toDouble(), s.groupSize.toDouble()));
-                  }
-
-                  // Moyenne mobile (SMA3) recalculée sur l'échantillon filtré
-                  List<FlSpot> trendSpots = [];
-                  if (pointsSpots.length >= 3) {
-                    final values = lastForCharts.map((e)=> e.points.toDouble()).toList();
-                    for (int i=0; i<values.length; i++) {
-                      final start = (i - 2) < 0 ? 0 : i - 2; // fenêtre 3
-                      final subset = values.sublist(start, i+1);
-                      final avg = subset.reduce((a,b)=> a+b) / subset.length;
-                      trendSpots.add(FlSpot(i.toDouble(), avg));
+                  final List<ShootingSession> sortedSessions = List<ShootingSession>.from(allSessions);
+                  sortedSessions.sort((a, b) {
+                    final dateA = a.date ?? DateTime.now();
+                    final dateB = b.date ?? DateTime.now();
+                    return dateB.compareTo(dateA);
+                  });
+                  final List<ShootingSession> lastSessions = sortedSessions.take(10).toList();
+                  final List<Map<String, dynamic>> allSeriesFlat = [];
+                  for (final session in lastSessions) {
+                    final sessionDate = session.date ?? DateTime.now();
+                    for (final serie in session.series) {
+                      allSeriesFlat.add({
+                        'date': sessionDate,
+                        'points': (serie.points).toDouble(),
+                        'group_size': (serie.groupSize).toDouble(),
+                      });
                     }
                   }
-
-                  // Distributions filtrées (si filtres actifs) sinon globales
-                  Map<double,int> distDistribToShow;
-                  Map<String,int> catDistribToShow;
-                  List<dynamic> pointBucketsToShow; // garde la structure d'origine (_PointBucket)
-
-                  if (filtersActive) {
-                    // Distance (30j) sur séries filtrées
-                    final cutoff = DateTime.now().subtract(const Duration(days:30));
-                    final Map<double,int> dd = {};
-                    for (final s in filteredSeries) {
-                      if (s.date.isAfter(cutoff)) {
-                        final d = double.parse(s.distance.toStringAsFixed(0));
-                        dd[d] = (dd[d] ?? 0) + 1;
-                      }
-                    }
-                    distDistribToShow = dd;
-                    // Catégories basées sur séries filtrées
-                    final Map<String,int> cd = {};
-                    for (final s in filteredSeries) {
-                      cd[s.category] = (cd[s.category] ?? 0) + 1;
-                    }
-                    catDistribToShow = cd;
-                    // Buckets points (30j) filtrés
-                    final fps = filteredSeries.where((s)=> s.date.isAfter(cutoff)).toList();
-                    if (fps.isEmpty) {
-                      pointBucketsToShow = [];
-                    } else {
-                      final maxP = fps.map((e)=> e.points).reduce((a,b)=> a>b?a:b);
-                      final List<dynamic> buckets = [];
-                      for (int start=0; start<=maxP; start+=10) {
-                        final end = start + 10 -1;
-                        final count = fps.where((e)=> e.points >= start && e.points <= end).length;
-                        buckets.add(_TmpPointBucket(start: start, end: end, count: count));
-                      }
-                      pointBucketsToShow = buckets;
-                    }
-                  } else {
-                    distDistribToShow = distDistrib;
-                    catDistribToShow = catDistrib;
-                    pointBucketsToShow = pointBuckets; // type _PointBucket original
+                  allSeriesFlat.sort((a, b) => a['date'].compareTo(b['date']));
+                  final List<Map<String, dynamic>> lastSeries = allSeriesFlat.length > 10
+                      ? allSeriesFlat.sublist(allSeriesFlat.length - 10)
+                      : allSeriesFlat;
+                  for (int i = 0; i < lastSeries.length; i++) {
+                    final serie = lastSeries[i];
+                    dates.add(serie['date']);
+                    pointsSpots.add(FlSpot(i.toDouble(), serie['points']));
+                    groupSizeSpots.add(FlSpot(i.toDouble(), serie['group_size']));
+                  }
+                  // Trend spots global via StatsService complet
+                  final moving = stats.movingAveragePoints(window: 3);
+                  final List<FlSpot> trendSpots = [];
+                  for (int i = 0; i < moving.length && i < pointsSpots.length; i++) {
+                    trendSpots.add(FlSpot(pointsSpots[i].x, moving[i]));
                   }
 
                   // Bandeau KPI (Grid 2x2)
@@ -229,53 +186,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Filtres
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          ChoiceChip(
-                            label: Text('Toutes distances'),
-                            selected: _filterDistance == null,
-                            onSelected: (_) => setState(()=> _filterDistance = null),
-                          ),
-                          ...allDistances.map((d) => ChoiceChip(
-                            label: Text('${d.toStringAsFixed(0)}m'),
-                            selected: _filterDistance != null && _filterDistance!.round() == d.round(),
-                            onSelected: (_) => setState(()=> _filterDistance = d),
-                          )),
-                        ],
-                      ),
-                      SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          ChoiceChip(
-                            label: Text('Toutes catégories'),
-                            selected: _filterCategory == null,
-                            onSelected: (_) => setState(()=> _filterCategory = null),
-                          ),
-                          ...allCategories.map((c) => ChoiceChip(
-                            label: Text(c),
-                            selected: _filterCategory == c,
-                            onSelected: (_) => setState(()=> _filterCategory = c),
-                          )),
-                        ],
-                      ),
-                      if (filtersActive) ...[
-                        SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: InputChip(
-                            avatar: Icon(Icons.filter_alt, size: 18, color: Colors.amberAccent),
-                            label: Text('Filtres actifs'),
-                            onDeleted: () => setState(() { _filterDistance = null; _filterCategory = null; }),
-                            deleteIcon: Icon(Icons.close, size: 18),
-                            backgroundColor: Colors.white.withOpacity(0.08),
-                          ),
-                        ),
-                      ],
+                      // Filtres retirés (UI supprimée)
                       SizedBox(height: 16),
                       // KPI banner
                       kpiGrid,
@@ -293,17 +204,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ],
                       ),
                       SizedBox(height: 16),
-                      if (filteredSeries.isEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white10,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(child: Text('Aucune série pour ces filtres', style: TextStyle(fontSize: 14))),
-                        ),
-                        SizedBox(height: 24),
-                      ],
+                      // Avertissement filtrage supprimé (placeholder retiré)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -316,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       SizedBox(
                         height: 200,
                         child: Builder(builder: (context) {
-                          // Trend line (SMA3) déjà calculée via trendSpots (filtré)
+                          // Trend line (SMA3) calcul global
                           final maxPoints = pointsSpots.isNotEmpty
                               ? pointsSpots.map((e) => e.y).reduce((a, b) => a > b ? a : b)
                               : 10;
@@ -456,8 +357,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ],
                       ),
                       SizedBox(height: 24),
-                      // Scatter corrélation points vs groupement (séries filtrées)
-                      if (filteredLast.isNotEmpty) ...[
+                      // Scatter corrélation points vs groupement (global dernières séries)
+                      if (lastSeries.isNotEmpty) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -474,11 +375,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               gridData: FlGridData(show: true, drawHorizontalLine: true, drawVerticalLine: true, horizontalInterval: 5, verticalInterval: 5),
                               borderData: FlBorderData(show: false),
                               minX: 0,
-                              maxX: () {
-                                final maxG = filteredLast.isEmpty ? 0.0 : filteredLast.map((e)=> e.groupSize).reduce((a,b)=> b>a? b:a);
-                                final v = maxG + 5.0;
-                                return (v > 10.0 ? v : 10.0).toDouble();
-                              }(),
+                                  maxX: () {
+                                    // Approximation: utiliser max groupement observé dans lastSeries (si présent)
+                                    final maxG = lastSeries.isEmpty ? 0.0 : lastSeries.map((e)=> e['group_size'] as double).reduce((a,b)=> b>a? b:a);
+                                    final v = maxG + 5.0;
+                                    return (v > 10.0 ? v : 10.0).toDouble();
+                                  }(),
                               minY: 0,
                               maxY: 55,
                               titlesData: FlTitlesData(
@@ -487,9 +389,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                 rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                               ),
-                              scatterSpots: filteredLast.map((s) => ScatterSpot(
-                                s.groupSize,
-                                s.points.toDouble(),
+                              scatterSpots: lastSeries.map((s) => ScatterSpot(
+                                s['group_size'],
+                                (s['points']).toDouble(),
                               )).toList(),
                               scatterTouchData: ScatterTouchData(enabled: true),
                             ),
@@ -546,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     getTitlesWidget: (value, meta) {
-                                      final keys = distDistribToShow.keys.toList()..sort();
+                                      final keys = distDistrib.keys.toList()..sort();
                                       final idx = value.toInt();
                                       if (idx < 0 || idx >= keys.length) return SizedBox.shrink();
                                       return Text('${keys[idx].toStringAsFixed(0)}m', style: TextStyle(fontSize: 11));
@@ -555,10 +457,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 ),
                               ),
                               barGroups: () {
-                                final keys = distDistribToShow.keys.toList()..sort();
+                                final keys = distDistrib.keys.toList()..sort();
                                 return List.generate(keys.length, (i) {
                                   final k = keys[i];
-                                  final v = distDistribToShow[k]!.toDouble();
+                                  final v = distDistrib[k]!.toDouble();
                                   return BarChartGroupData(
                                     x: i,
                                     barRods: [
@@ -585,19 +487,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         SizedBox(height: 28),
                       ],
-                      if (catDistribToShow.isNotEmpty) ...[
+                      if (catDistrib.isNotEmpty) ...[
                         Text('Répartition catégories', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         SizedBox(height: 12),
-                        _CategoryStackedBar(distribution: catDistribToShow),
+                        _CategoryStackedBar(distribution: catDistrib),
                         SizedBox(height: 10),
                         Wrap(
                           spacing: 12,
                           runSpacing: 4,
-                          children: _CategoryStackedBar.legend(catDistribToShow),
+                          children: _CategoryStackedBar.legend(catDistrib),
                         ),
                         SizedBox(height: 28),
                       ],
-                      if (pointBucketsToShow.isNotEmpty) ...[
+                      if (pointBuckets.isNotEmpty) ...[
                         Text('Distribution points (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         SizedBox(height: 8),
                         SizedBox(
@@ -616,15 +518,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     showTitles: true,
                                     getTitlesWidget: (value, meta) {
                                       final idx = value.toInt();
-                                      if (idx < 0 || idx >= pointBucketsToShow.length) return SizedBox.shrink();
-                                      final b = pointBucketsToShow[idx];
+                                      if (idx < 0 || idx >= pointBuckets.length) return SizedBox.shrink();
+                                      final b = pointBuckets[idx];
                                       return Text('${b.start}-${b.end}', style: TextStyle(fontSize: 10));
                                     },
                                   ),
                                 ),
                               ),
-                              barGroups: List.generate(pointBucketsToShow.length, (i) {
-                                final b = pointBucketsToShow[i];
+                              barGroups: List.generate(pointBuckets.length, (i) {
+                                final b = pointBuckets[i];
                                 return BarChartGroupData(x: i, barRods: [
                                   BarChartRodData(
                                     toY: b.count.toDouble(),
@@ -1025,9 +927,3 @@ class _CategorySegment extends StatelessWidget {
 }
 
 // Bucket temporaire pour affichage filtré (évite d'exposer la classe privée de StatsService)
-class _TmpPointBucket {
-  final int start;
-  final int end;
-  final int count;
-  _TmpPointBucket({required this.start, required this.end, required this.count});
-}

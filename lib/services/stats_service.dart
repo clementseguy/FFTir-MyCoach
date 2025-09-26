@@ -244,16 +244,7 @@ class StatsService {
   }
 
   // Filtered series for charts (distance & category optional)
-  List<SeriesStat> filteredSeries({double? distance, String? category}) {
-    Iterable<SeriesStat> list = _series;
-    if (distance != null) {
-      list = list.where((s)=> s.distance.round() == distance.round());
-    }
-    if (category != null) {
-      list = list.where((s)=> s.category == category);
-    }
-    return list.toList();
-  }
+  // filteredSeries supprimé (filtres retirés de l'UI)
 }
 
 extension _SqrtExt on double {
