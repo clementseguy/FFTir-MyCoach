@@ -38,31 +38,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Sessions'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            tooltip: 'Rafraîchir',
-            onPressed: refreshSessions,
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: Icon(Icons.add),
-        label: Text('Nouvelle'),
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (c) => const CreateSessionScreen(),
-            ),
-          );
-          refreshSessions();
-        },
-      ),
-      body: FutureBuilder<List<ShootingSession>>(
+    return FutureBuilder<List<ShootingSession>>(
         future: _sessionsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -99,7 +75,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
             return RefreshIndicator(
               onRefresh: () async { refreshSessions(); await Future.delayed(Duration(milliseconds:300)); },
               child: ListView.builder(
-                padding: EdgeInsets.only(bottom: 96),
+                padding: EdgeInsets.only(bottom: 24, top: 8),
                 itemCount: 1 + orderedKeys.length,
                 itemBuilder: (context, index) {
                   if (index == 0) {
@@ -112,8 +88,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
               ),
             );
         },
-      ),
-    );
+      );
   }
 }
 
