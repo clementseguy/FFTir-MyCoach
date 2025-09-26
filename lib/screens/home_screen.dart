@@ -104,6 +104,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   final avgGroup30 = stats.averageGroupSizeLast30Days();
                   final best = stats.bestSeriesByPoints();
                   final sessionsMonth = stats.sessionsCountCurrentMonth();
+                  final consistency = stats.consistencyIndexLast30Days();
+                  final progression = stats.progressionPercent30Days();
+                  final distDistrib = stats.distanceDistribution();
+                  final mostPlayedDistance = distDistrib.isEmpty ? null : distDistrib.entries.reduce((a,b)=> a.value>=b.value? a : b);
+                  final catDistrib = stats.categoryDistribution();
+                  final pointBuckets = stats.pointBuckets();
 
                   // Bandeau KPI (Grid 2x2)
                   Widget kpiCard(String title, String value, {IconData icon = Icons.insights}) => _KpiCard(title: title, value: value, icon: icon);
@@ -305,6 +311,200 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ],
                       ),
                       SizedBox(height: 24),
+                      // Analyse avancée (KPIs supplémentaires)
+                      Text('Analyse avancée', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _MiniStatChip(
+                            label: 'Consistency',
+                            value: (consistency == 0) ? '-' : '${consistency.toStringAsFixed(0)}%',
+                            color: consistency == 0 ? Colors.grey : (consistency >= 70 ? Colors.greenAccent : (consistency >= 40 ? Colors.orangeAccent : Colors.redAccent)),
+                          ),
+                          _MiniStatChip(
+                            label: 'Progression',
+                            value: progression.isNaN ? '-' : '${progression >= 0 ? '+' : ''}${progression.toStringAsFixed(1)}%',
+                            color: progression.isNaN ? Colors.grey : (progression >= 0 ? Colors.lightBlueAccent : Colors.deepOrangeAccent),
+                          ),
+                          _MiniStatChip(
+                            label: 'Distance fréquente',
+                            value: mostPlayedDistance == null ? '-' : '${mostPlayedDistance.key.toStringAsFixed(0)}m (${mostPlayedDistance.value})',
+                            color: Colors.purpleAccent,
+                          ),
+                          _MiniStatChip(
+                            label: 'Catégorie dominante',
+                            value: catDistrib.isEmpty ? '-' : catDistrib.entries.reduce((a,b)=> a.value>=b.value? a:b).key,
+                            color: Colors.tealAccent,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 32),
+                      // Graphiques complémentaires
+                      if (distDistrib.isNotEmpty) ...[
+                        Text('Répartition distances (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        SizedBox(height: 8),
+                        SizedBox(
+                          height: 160,
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceAround,
+                              gridData: FlGridData(show: false),
+                              borderData: FlBorderData(show: false),
+                              titlesData: FlTitlesData(
+                                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      final keys = distDistrib.keys.toList()..sort();
+                                      final idx = value.toInt();
+                                      if (idx < 0 || idx >= keys.length) return SizedBox.shrink();
+                                      return Text('${keys[idx].toStringAsFixed(0)}m', style: TextStyle(fontSize: 11));
+                                    },
+                                  ),
+                                ),
+                              ),
+                              barGroups: () {
+                                final keys = distDistrib.keys.toList()..sort();
+                                return List.generate(keys.length, (i) {
+                                  final k = keys[i];
+                                  final v = distDistrib[k]!.toDouble();
+                                  return BarChartGroupData(
+                                    x: i,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: v,
+                                        color: Colors.purpleAccent,
+                                        width: 18,
+                                        borderRadius: BorderRadius.circular(4),
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.purpleAccent,
+                                            Colors.purpleAccent.withOpacity(0.1),
+                                          ],
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                });
+                              }(),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 28),
+                      ],
+                      if (catDistrib.isNotEmpty) ...[
+                        Text('Répartition catégories', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        SizedBox(height: 8),
+                        SizedBox(
+                          height: 180,
+                          child: PieChart(
+                            PieChartData(
+                              centerSpaceRadius: 40,
+                              sectionsSpace: 2,
+                              sections: () {
+                                final total = catDistrib.values.fold<int>(0, (a,b)=> a+b).toDouble();
+                                final colors = [
+                                  Colors.amberAccent,
+                                  Colors.lightBlueAccent,
+                                  Colors.lightGreenAccent,
+                                  Colors.pinkAccent,
+                                  Colors.tealAccent,
+                                ];
+                                int ci = 0;
+                                return catDistrib.entries.map((e) {
+                                  final pct = total == 0 ? 0 : (e.value / total) * 100;
+                                  final section = PieChartSectionData(
+                                    value: e.value.toDouble(),
+                                    color: colors[ci % colors.length],
+                                    title: pct < 8 ? '' : '${pct.toStringAsFixed(0)}%',
+                                    radius: 60,
+                                    titleStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                                  );
+                                  ci++;
+                                  return section;
+                                }).toList();
+                              }(),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 4,
+                          children: () {
+                            final colors = [
+                              Colors.amberAccent,
+                              Colors.lightBlueAccent,
+                              Colors.lightGreenAccent,
+                              Colors.pinkAccent,
+                              Colors.tealAccent,
+                            ];
+                            int ci = 0;
+                            return catDistrib.entries.map((e){
+                              final color = colors[ci++ % colors.length];
+                              return _LegendDot(color: color, label: '${e.key} (${e.value})');
+                            }).toList();
+                          }(),
+                        ),
+                        SizedBox(height: 28),
+                      ],
+                      if (pointBuckets.isNotEmpty) ...[
+                        Text('Distribution points (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        SizedBox(height: 8),
+                        SizedBox(
+                          height: 160,
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceBetween,
+                              gridData: FlGridData(show: false),
+                              borderData: FlBorderData(show: false),
+                              titlesData: FlTitlesData(
+                                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      final idx = value.toInt();
+                                      if (idx < 0 || idx >= pointBuckets.length) return SizedBox.shrink();
+                                      final b = pointBuckets[idx];
+                                      return Text('${b.start}-${b.end}', style: TextStyle(fontSize: 10));
+                                    },
+                                  ),
+                                ),
+                              ),
+                              barGroups: List.generate(pointBuckets.length, (i) {
+                                final b = pointBuckets[i];
+                                return BarChartGroupData(x: i, barRods: [
+                                  BarChartRodData(
+                                    toY: b.count.toDouble(),
+                                    color: Colors.orangeAccent,
+                                    width: 14,
+                                    borderRadius: BorderRadius.circular(3),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.orangeAccent,
+                                        Colors.orangeAccent.withOpacity(0.15),
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                  )
+                                ]);
+                              }),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                      ],
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -534,6 +734,43 @@ class _KpiCard extends StatelessWidget {
           ),
           const Spacer(),
           Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _MiniStatChip({required this.label, required this.value, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+            SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: TextStyle(fontSize: 11, color: Colors.white70)),
+              Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            ],
+          ),
         ],
       ),
     );
