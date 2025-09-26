@@ -20,6 +20,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final SessionService _sessionService = SessionService();
   late Future<List<ShootingSession>> _sessionsFuture;
+  double? _filterDistance; // distance sélectionnée (null = toutes)
+  String? _filterCategory; // catégorie sélectionnée (null = toutes)
 
   @override
   void didChangeDependencies() {
@@ -110,6 +112,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   final mostPlayedDistance = distDistrib.isEmpty ? null : distDistrib.entries.reduce((a,b)=> a.value>=b.value? a : b);
                   final catDistrib = stats.categoryDistribution();
                   final pointBuckets = stats.pointBuckets();
+                  final streak = stats.currentDayStreak();
+                  final recordPoints = stats.lastSeriesIsRecordPoints();
+                  final recordGroup = stats.lastSeriesIsRecordGroup();
+                  final loadDelta = stats.weeklyLoadDelta();
+                  final currentWeek = stats.sessionsThisWeek();
+                  final bestGroup = stats.bestGroupSize();
+
+                  // Distances & catégories uniques pour filtres (basées sur toutes les séries)
+                  final allDistances = (stats.distanceDistribution(last30: false).keys.toList()..sort());
+                  final allCategories = catDistrib.keys.toList();
+
+                  // Appliquer filtres aux séries pour graphes dynamiques
+                  final filteredSeries = stats.filteredSeries(
+                    distance: _filterDistance,
+                    category: _filterCategory,
+                  );
+                  final filteredLast = filteredSeries.length > 40 ? filteredSeries.sublist(filteredSeries.length - 40) : filteredSeries;
 
                   // Bandeau KPI (Grid 2x2)
                   Widget kpiCard(String title, String value, {IconData icon = Icons.insights}) => _KpiCard(title: title, value: value, icon: icon);
@@ -161,12 +180,74 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     pointsSpots.add(FlSpot(i.toDouble(), serie['points']));
                     groupSizeSpots.add(FlSpot(i.toDouble(), serie['group_size']));
                   }
+
+                  // OBJECTIF points (45 sur 50) pour la ligne de référence
+                  const objectifPoints = 45.0;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Filtres
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          ChoiceChip(
+                            label: Text('Toutes distances'),
+                            selected: _filterDistance == null,
+                            onSelected: (_) => setState(()=> _filterDistance = null),
+                          ),
+                          ...allDistances.map((d) => ChoiceChip(
+                            label: Text('${d.toStringAsFixed(0)}m'),
+                            selected: _filterDistance != null && _filterDistance!.round() == d.round(),
+                            onSelected: (_) => setState(()=> _filterDistance = d),
+                          )),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          ChoiceChip(
+                            label: Text('Toutes catégories'),
+                            selected: _filterCategory == null,
+                            onSelected: (_) => setState(()=> _filterCategory = null),
+                          ),
+                          ...allCategories.map((c) => ChoiceChip(
+                            label: Text(c),
+                            selected: _filterCategory == c,
+                            onSelected: (_) => setState(()=> _filterCategory = c),
+                          )),
+                        ],
+                      ),
+                      SizedBox(height: 16),
                       // KPI banner
                       kpiGrid,
                       SizedBox(height: 20),
+                      // Badges performance
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          _PerfBadge(icon: Icons.local_fire_department, color: Colors.indigoAccent, label: 'Streak', value: streak <=1 ? '1 jour' : '${streak}j'),
+                          _PerfBadge(icon: Icons.fitness_center, color: loadDelta >=0 ? Colors.cyanAccent : Colors.deepOrangeAccent, label: 'Charge', value: '${currentWeek} (${loadDelta>=0?'+':''}${loadDelta})'),
+                          if (recordPoints) _PerfBadge(icon: Icons.star, color: Colors.amber, label: 'Record', value: 'Points'),
+                          if (recordGroup) _PerfBadge(icon: Icons.adjust, color: Colors.greenAccent, label: 'Record', value: 'Groupement'),
+                          if (bestGroup > 0) _PerfBadge(icon: Icons.center_focus_strong, color: Colors.lightGreenAccent, label: 'Best grp', value: '${bestGroup.toStringAsFixed(1)}cm'),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      if (filteredSeries.isEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(child: Text('Aucune série pour ces filtres', style: TextStyle(fontSize: 14))),
+                        ),
+                        SizedBox(height: 24),
+                      ],
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -269,6 +350,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   },
                                 ),
                               ),
+                              extraLinesData: ExtraLinesData(horizontalLines: [
+                                HorizontalLine(
+                                  y: objectifPoints,
+                                  color: Colors.redAccent.withOpacity(0.6),
+                                  strokeWidth: 2,
+                                  dashArray: [6,4],
+                                  label: HorizontalLineLabel(
+                                    show: true,
+                                    alignment: Alignment.topRight,
+                                    style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                                    labelResolver: (_) => 'Objectif 45',
+                                  ),
+                                ),
+                              ]),
                               lineBarsData: [
                                 LineChartBarData(
                                   spots: pointsSpots,
@@ -311,6 +406,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ],
                       ),
                       SizedBox(height: 24),
+                      // Scatter corrélation points vs groupement (séries filtrées)
+                      if (filteredLast.isNotEmpty) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Corrélation Points / Groupement', textAlign: TextAlign.center),
+                            SizedBox(width: 8),
+                            Icon(Icons.scatter_plot, size: 16, color: Colors.orangeAccent),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        SizedBox(
+                          height: 220,
+                          child: ScatterChart(
+                            ScatterChartData(
+                              gridData: FlGridData(show: true, drawHorizontalLine: true, drawVerticalLine: true, horizontalInterval: 5, verticalInterval: 5),
+                              borderData: FlBorderData(show: false),
+                              minX: 0,
+                              maxX: () {
+                                final maxG = filteredLast.isEmpty ? 0.0 : filteredLast.map((e)=> e.groupSize).reduce((a,b)=> b>a? b:a);
+                                final v = maxG + 5.0;
+                                return (v > 10.0 ? v : 10.0).toDouble();
+                              }(),
+                              minY: 0,
+                              maxY: 55,
+                              titlesData: FlTitlesData(
+                                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28)),
+                                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 24)),
+                                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              ),
+                              scatterSpots: filteredLast.map((s) => ScatterSpot(
+                                s.groupSize,
+                                s.points.toDouble(),
+                              )).toList(),
+                              scatterTouchData: ScatterTouchData(enabled: true),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 24),
+                      ],
                       // Analyse avancée (KPIs supplémentaires)
                       Text('Analyse avancée', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       SizedBox(height: 12),
@@ -734,6 +870,35 @@ class _KpiCard extends StatelessWidget {
           ),
           const Spacer(),
           Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PerfBadge extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+  const _PerfBadge({required this.icon, required this.color, required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          SizedBox(width: 6),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.white70)),
+          SizedBox(width: 4),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
         ],
       ),
     );
