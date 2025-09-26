@@ -51,4 +51,9 @@ class ShootingSession {
       synthese: map['synthese'] as String?,
     );
   }
+
+  /// Indique si une analyse coach est disponible
+  bool get hasAnalysis => (analyse != null && analyse!.trim().isNotEmpty);
+  /// Indique si une synthèse tireur est disponible
+  bool get hasSynthese => (synthese != null && synthese!.trim().isNotEmpty);
 }

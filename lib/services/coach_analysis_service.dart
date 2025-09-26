@@ -1,8 +1,14 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 import '../models/shooting_session.dart';
 
+/// Service responsable de :
+///  - Charger la configuration d'API (clé, modèle, url) via fromAssets
+///  - Construire le prompt d'analyse à partir d'une session
+///  - Appeler le modèle distant pour obtenir l'analyse du coach
+///  - Fournir une gestion d'erreurs basique et un timeout
 class CoachAnalysisService {
   final String apiKey;
   final String apiUrl;
@@ -16,7 +22,8 @@ class CoachAnalysisService {
     required this.promptTemplate,
   });
 
-  /// Construit le prompt complet à partir du template et de la session
+  /// Construit le prompt complet à partir du template et de la session.
+  /// Idempotent / sans effet de bord.
   String buildPrompt(ShootingSession session) {
     final buffer = StringBuffer();
     buffer.writeln(promptTemplate.trim());
@@ -37,28 +44,54 @@ class CoachAnalysisService {
   }
 
   /// Appelle l'API Mistral (ou compatible) et retourne le texte d'analyse.
+  /// Lève une Exception avec un message user-friendly en cas d'erreur.
   Future<String> fetchAnalysis(String fullPrompt) async {
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      headers: {
-        'Authorization': 'Bearer $apiKey',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'model': model,
-        'messages': [
-          {'role': 'user', 'content': fullPrompt}
-        ]
-      }),
-    );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('HTTP ${response.statusCode}');
+    http.Response response;
+    try {
+      response = await http
+          .post(
+            Uri.parse(apiUrl),
+            headers: {
+              'Authorization': 'Bearer $apiKey',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'model': model,
+              'messages': [
+                {'role': 'user', 'content': fullPrompt}
+              ]
+            }),
+          )
+          .timeout(const Duration(seconds: 25));
+    } on TimeoutException {
+      throw Exception('Timeout: le serveur ne répond pas.');
+    } catch (e) {
+      throw Exception('Erreur réseau inattendue: $e');
     }
+
+    if (response.statusCode == 401) {
+      throw Exception('Clé API invalide (401).');
+    }
+    if (response.statusCode == 429) {
+      throw Exception('Trop de requêtes (429), réessayez plus tard.');
+    }
+    if (response.statusCode >= 500) {
+      throw Exception('Erreur serveur (${response.statusCode}).');
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Erreur HTTP ${response.statusCode}.');
+    }
+
     final data = jsonDecode(response.body);
-    return data['choices']?[0]?['message']?['content']?.toString() ?? '';
+    final content = data['choices']?[0]?['message']?['content']?.toString();
+    if (content == null || content.trim().isEmpty) {
+      throw Exception('Réponse vide du modèle.');
+    }
+    return content;
   }
 
-  /// Helper statique pour charger la config et instancier le service
+  /// Helper statique pour charger la config et instancier le service.
+  /// Permet d'injecter un loader custom (utile pour tests plus tard).
   static Future<CoachAnalysisService> fromAssets({required Future<String> Function(String path) loadAsset}) async {
     final configStr = await loadAsset('assets/config.yaml');
     final config = loadYaml(configStr);

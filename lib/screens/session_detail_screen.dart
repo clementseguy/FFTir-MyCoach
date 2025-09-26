@@ -6,6 +6,8 @@ import '../services/coach_analysis_service.dart';
 import 'create_session_screen.dart';
 import '../models/shooting_session.dart';
 import '../models/series.dart';
+import '../widgets/coach_analysis_card.dart';
+import '../widgets/series_list.dart';
 
 
 class SessionDetailScreen extends StatefulWidget {
@@ -195,61 +197,13 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                       : null,
                 ),
                 if (analyse != null && analyse.trim().isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 24.0),
-                    child: Card(
-                      color: Colors.green[900],
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Analyse du coach', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                            SizedBox(height: 8),
-                            MarkdownBody(
-                              data: analyse,
-                              styleSheet: MarkdownStyleSheet(
-                                p: TextStyle(color: Colors.white),
-                                strong: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                h1: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                                h2: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                                h3: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                                code: TextStyle(color: Colors.yellow[200]),
-                                blockquote: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
-                                listBullet: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 24),
+                if (analyse != null && analyse.trim().isNotEmpty)
+                  CoachAnalysisCard(analyse: analyse),
               ],
             ),
           Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
-          ...series.asMap().entries.map((entry) {
-            int i = entry.key;
-            final s = entry.value;
-            return Card(
-              color: Colors.blueGrey[900],
-              margin: EdgeInsets.symmetric(vertical: 8),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Série ${i + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text('Nombre de coups : ${s.shotCount}'),
-                    Text('Distance : ${s.distance} m'),
-                    Text('Points : ${s.points}'),
-                    Text('Groupement : ${s.groupSize} cm'),
-                    if ((s.comment).toString().isNotEmpty)
-                      Text('Commentaire : ${s.comment}'),
-                  ],
-                ),
-              ),
-            );
-          }),
+          SeriesList(series: series),
           if (session.synthese != null && session.synthese!.trim().isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 24.0),
