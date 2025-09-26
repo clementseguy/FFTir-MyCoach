@@ -145,6 +145,10 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                               final s = session.series[i];
                               buffer.writeln('- Série ${i + 1} : Coups=${s.shotCount}, Distance=${s.distance}m, Points=${s.points}, Groupement=${s.groupSize}cm, Commentaire=${s.comment}');
                             }
+                            if (session.synthese != null && session.synthese!.trim().isNotEmpty) {
+                              buffer.writeln('\nSynthèse du tireur :');
+                              buffer.writeln(session.synthese);
+                            }
                             final fullPrompt = buffer.toString();
 
                             // 4. Appel API Mistral
