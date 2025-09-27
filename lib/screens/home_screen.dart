@@ -178,8 +178,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   );
                   // Ancienne construction des séries supprimée (remplacée par logique filtrée ci-dessus)
 
-                  // OBJECTIF points (45 sur 50) pour la ligne de référence
-                  const objectifPoints = 45.0;
+                  // Ligne objectif supprimée; constante objectifPoints retirée.
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -298,20 +297,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   },
                                 ),
                               ),
-                              extraLinesData: ExtraLinesData(horizontalLines: [
-                                HorizontalLine(
-                                  y: objectifPoints,
-                                  color: Colors.redAccent.withOpacity(0.6),
-                                  strokeWidth: 2,
-                                  dashArray: [6,4],
-                                  label: HorizontalLineLabel(
-                                    show: true,
-                                    alignment: Alignment.topRight,
-                                    style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold),
-                                    labelResolver: (_) => 'Objectif 45',
-                                  ),
-                                ),
-                              ]),
+                              // Ligne objectif supprimée (plus de repère horizontal rouge pointillé)
+                              extraLinesData: const ExtraLinesData(horizontalLines: []),
                               lineBarsData: [
                                 LineChartBarData(
                                   spots: pointsSpots,
