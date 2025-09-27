@@ -69,6 +69,22 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
     }
   }
 
+  String _shortMetricName(GoalMetric m) {
+    switch (m) {
+      case GoalMetric.averagePoints: return 'Avg';
+      case GoalMetric.sessionCount: return 'Sess';
+      case GoalMetric.totalPoints: return 'Total';
+      case GoalMetric.groupSize: return 'Grp';
+    }
+  }
+
+  String _shortComparatorName(GoalComparator c) {
+    switch (c) {
+      case GoalComparator.greaterOrEqual: return '≥';
+      case GoalComparator.lessOrEqual: return '≤';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,7 +116,8 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                         Expanded(
                           child: DropdownButtonFormField<GoalMetric>(
                             value: _metric,
-                            items: GoalMetric.values.map((m) => DropdownMenuItem(value: m, child: Text(m.name))).toList(),
+                            isExpanded: true,
+                            items: GoalMetric.values.map((m) => DropdownMenuItem(value: m, child: Text(_shortMetricName(m)))).toList(),
                             onChanged: (v) => setState(() => _metric = v ?? _metric),
                             decoration: const InputDecoration(labelText: 'Métrique'),
                           ),
@@ -109,9 +126,10 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                         Expanded(
                           child: DropdownButtonFormField<GoalComparator>(
                             value: _comparator,
-                            items: GoalComparator.values.map((m) => DropdownMenuItem(value: m, child: Text(m.name))).toList(),
+                            isExpanded: true,
+                            items: GoalComparator.values.map((m) => DropdownMenuItem(value: m, child: Text(_shortComparatorName(m)))).toList(),
                             onChanged: (v) => setState(() => _comparator = v ?? _comparator),
-                            decoration: const InputDecoration(labelText: 'Comparateur'),
+                            decoration: const InputDecoration(labelText: 'Cmp'),
                           ),
                         ),
                       ],
