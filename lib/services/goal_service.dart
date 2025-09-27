@@ -132,6 +132,29 @@ class GoalService {
             if (count > 0) value = sum / count;
         }
         break;
+      case GoalMetric.bestSeriesPoints:
+        final allSeries = filtered.expand((s)=> s.series).toList();
+        if (allSeries.isNotEmpty) {
+          value = allSeries.map((s)=> s.points.toDouble()).reduce((a,b)=> a>b?a:b);
+        }
+        break;
+      case GoalMetric.bestSessionPoints:
+        if (filtered.isNotEmpty) {
+          double best = 0;
+          for (final s in filtered) {
+            if (s.series.isEmpty) continue;
+            final total = s.series.map((e)=> e.points.toDouble()).reduce((a,b)=> a+b);
+            if (total > best) best = total;
+          }
+          value = best;
+        }
+        break;
+      case GoalMetric.bestGroupSize:
+        final allSeries2 = filtered.expand((s)=> s.series).toList();
+        if (allSeries2.isNotEmpty) {
+          value = allSeries2.map((s)=> s.groupSize).reduce((a,b)=> a<b?a:b);
+        }
+        break;
     }
 
     double? progress;

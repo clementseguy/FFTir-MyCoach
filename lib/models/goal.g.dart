@@ -19,6 +19,12 @@ class GoalMetricAdapter extends TypeAdapter<GoalMetric> {
         return GoalMetric.groupSize;
       case 4:
         return GoalMetric.averageSessionPoints;
+      case 5:
+        return GoalMetric.bestSeriesPoints;
+      case 6:
+        return GoalMetric.bestSessionPoints;
+      case 7:
+        return GoalMetric.bestGroupSize;
       default:
         return GoalMetric.averagePoints;
     }
@@ -41,6 +47,15 @@ class GoalMetricAdapter extends TypeAdapter<GoalMetric> {
         break;
       case GoalMetric.averageSessionPoints:
         writer.writeByte(4);
+        break;
+      case GoalMetric.bestSeriesPoints:
+        writer.writeByte(5);
+        break;
+      case GoalMetric.bestSessionPoints:
+        writer.writeByte(6);
+        break;
+      case GoalMetric.bestGroupSize:
+        writer.writeByte(7);
         break;
     }
   }

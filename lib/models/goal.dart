@@ -16,6 +16,15 @@ enum GoalMetric {
   // Nouvelle métrique: moyenne des points par session (somme points séries / nb séries par session, moyennée sur les sessions filtrées)
   @HiveField(4)
   averageSessionPoints,
+  // Haut fait: meilleure série atteinte (valeur maximale d'une série unique)
+  @HiveField(5)
+  bestSeriesPoints,
+  // Haut fait: meilleur score total d'une session
+  @HiveField(6)
+  bestSessionPoints,
+  // Haut fait: meilleur (plus petit) groupement atteint une fois (min)
+  @HiveField(7)
+  bestGroupSize,
 }
 
 @HiveType(typeId: 41)

@@ -116,6 +116,9 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       case GoalMetric.sessionCount: return 'Nombre de sessions';
       case GoalMetric.totalPoints: return '(Ancien) Points cumulés';
       case GoalMetric.groupSize: return 'Taille groupement';
+      case GoalMetric.bestSeriesPoints: return 'Haut fait: meilleure série';
+      case GoalMetric.bestSessionPoints: return 'Haut fait: meilleure session';
+      case GoalMetric.bestGroupSize: return 'Haut fait: meilleur groupement';
     }
   }
 
@@ -126,6 +129,9 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       case GoalMetric.sessionCount: return 'Sessions';
       case GoalMetric.totalPoints: return 'Cumul';
       case GoalMetric.groupSize: return 'Groupement';
+      case GoalMetric.bestSeriesPoints: return 'HF série';
+      case GoalMetric.bestSessionPoints: return 'HF session';
+      case GoalMetric.bestGroupSize: return 'HF grp';
     }
   }
 
@@ -148,6 +154,12 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
         return '(Ancien) cumul de tous les points; utiliser de préférence une moyenne.';
       case GoalMetric.groupSize:
         return 'Taille moyenne du groupement (objectif: descendre sous une valeur).';
+      case GoalMetric.bestSeriesPoints:
+        return 'Haut fait: atteindre une fois un score de série donné (ex: 49 ou 50).';
+      case GoalMetric.bestSessionPoints:
+        return 'Haut fait: atteindre une fois un score total de session (somme points séries) donné.';
+      case GoalMetric.bestGroupSize:
+        return 'Haut fait: réaliser au moins une série avec un groupement inférieur ou égal à la cible.';
     }
   }
 
@@ -184,9 +196,18 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                             value: _metric,
                             isExpanded: true,
                             items: GoalMetric.values
-                                .where((m) => m != GoalMetric.totalPoints) // masquer métrique obsolète
+                                .where((m) => m != GoalMetric.totalPoints) // masquer métrique obsolète création
                                 .map((m) => DropdownMenuItem(value: m, child: Text(_shortMetricName(m)))).toList(),
-                            onChanged: (v) => setState(() => _metric = v ?? _metric),
+                            onChanged: (v) => setState(() {
+                              if (v == null) return;
+                              _metric = v;
+                              // Forcer comparateur cohérent pour hauts faits
+                              if (v == GoalMetric.bestSeriesPoints || v == GoalMetric.bestSessionPoints) {
+                                _comparator = GoalComparator.greaterOrEqual; // atteindre au moins cette valeur
+                              } else if (v == GoalMetric.bestGroupSize) {
+                                _comparator = GoalComparator.lessOrEqual; // groupement <= cible
+                              }
+                            }),
                             decoration: const InputDecoration(labelText: 'Métrique'),
                           ),
                         ),
@@ -196,7 +217,17 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                             value: _comparator,
                             isExpanded: true,
                             items: GoalComparator.values.map((m) => DropdownMenuItem(value: m, child: Text(_shortComparatorName(m)))).toList(),
-                            onChanged: (v) => setState(() => _comparator = v ?? _comparator),
+                            onChanged: (v) => setState(() {
+                              if (v == null) return;
+                              // Empêcher sélection d'un comparateur incohérent avec un haut fait
+                              if (_metric == GoalMetric.bestSeriesPoints || _metric == GoalMetric.bestSessionPoints) {
+                                _comparator = GoalComparator.greaterOrEqual;
+                              } else if (_metric == GoalMetric.bestGroupSize) {
+                                _comparator = GoalComparator.lessOrEqual;
+                              } else {
+                                _comparator = v;
+                              }
+                            }),
                             decoration: const InputDecoration(labelText: 'Cmp'),
                           ),
                         ),
