@@ -1,3 +1,5 @@
+# Local secret config (API keys, not committed)
+assets/config.local.yaml
 # Miscellaneous
 *.class
 *.log

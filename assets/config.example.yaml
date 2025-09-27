@@ -1,0 +1,9 @@
+# Exemple de configuration (ne pas mettre de secrets dans ce fichier)
+api:
+  mistral_key: "__MISTRAL_API_KEY_PLACEHOLDER__"
+  mistral_url: "https://api.mistral.ai/v1/chat/completions"
+  mistral_model: "mistral-tiny"
+
+splash:
+  min_display_ms: 1500
+  fade_duration_ms: 450

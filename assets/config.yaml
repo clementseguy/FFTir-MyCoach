@@ -1,5 +1,9 @@
 api:
-  mistral_key: "l84H8vdQ8ppOVxSDEZ09ByJhoMnTgM9M"
+  # Renseigner la clé Mistral via:
+  # 1. Fichier local non versionné assets/config.local.yaml (mêmes champs)
+  # 2. Ou variable --dart-define=MISTRAL_API_KEY=...
+  # 3. Ou variable d'environnement MISTRAL_API_KEY (en fallback)
+  mistral_key: "__MISTRAL_API_KEY_PLACEHOLDER__"
   mistral_url: "https://api.mistral.ai/v1/chat/completions"
   mistral_model: "mistral-tiny"
 
