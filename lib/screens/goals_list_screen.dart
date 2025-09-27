@@ -115,10 +115,10 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       case GoalMetric.averageSessionPoints: return 'Score moyen par session';
       case GoalMetric.sessionCount: return 'Nombre de sessions';
       case GoalMetric.totalPoints: return '(Ancien) Points cumulés';
-      case GoalMetric.groupSize: return 'Taille groupement';
-      case GoalMetric.bestSeriesPoints: return 'Haut fait: meilleure série';
-      case GoalMetric.bestSessionPoints: return 'Haut fait: meilleure session';
-      case GoalMetric.bestGroupSize: return 'Haut fait: meilleur groupement';
+      case GoalMetric.groupSize: return 'Moy/groupement';
+      case GoalMetric.bestSeriesPoints: return 'Score d\'une série';
+      case GoalMetric.bestSessionPoints: return 'Score d\'une session';
+      case GoalMetric.bestGroupSize: return 'Taille du groupement';
     }
   }
 
@@ -128,10 +128,10 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       case GoalMetric.averageSessionPoints: return 'Moy/session';
       case GoalMetric.sessionCount: return 'Sessions';
       case GoalMetric.totalPoints: return 'Cumul';
-      case GoalMetric.groupSize: return 'Groupement';
-      case GoalMetric.bestSeriesPoints: return 'HF série';
-      case GoalMetric.bestSessionPoints: return 'HF session';
-      case GoalMetric.bestGroupSize: return 'HF grp';
+      case GoalMetric.groupSize: return 'Moy grp';
+      case GoalMetric.bestSeriesPoints: return 'Score série';
+      case GoalMetric.bestSessionPoints: return 'Score sess';
+      case GoalMetric.bestGroupSize: return 'Grp min';
     }
   }
 
@@ -153,13 +153,13 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       case GoalMetric.totalPoints:
         return '(Ancien) cumul de tous les points; utiliser de préférence une moyenne.';
       case GoalMetric.groupSize:
-        return 'Taille moyenne du groupement (objectif: descendre sous une valeur).';
+        return 'Groupement moyen (objectif: descendre sous une valeur).';
       case GoalMetric.bestSeriesPoints:
-        return 'Haut fait: atteindre une fois un score de série donné (ex: 49 ou 50).';
+        return 'Atteindre au moins une fois un score de série (ex: 49 ou 50).';
       case GoalMetric.bestSessionPoints:
-        return 'Haut fait: atteindre une fois un score total de session (somme points séries) donné.';
+        return 'Atteindre au moins une fois un score total de session donné.';
       case GoalMetric.bestGroupSize:
-        return 'Haut fait: réaliser au moins une série avec un groupement inférieur ou égal à la cible.';
+        return 'Réaliser au moins une série avec un groupement ≤ cible.';
     }
   }
 
@@ -188,7 +188,6 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                       controller: _titleCtrl,
                       decoration: const InputDecoration(labelText: 'Titre'),
                     ),
-                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
