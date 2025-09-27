@@ -11,6 +11,8 @@ import 'services/session_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'config/app_config.dart';
 
 // Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
@@ -126,9 +128,21 @@ class SettingsScreen extends StatelessWidget {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  final start = DateTime.now();
+  await AppConfig.load();
   await Hive.initFlutter();
   await Hive.openBox(SessionConstants.hiveBoxSessions);
+
+  final minSplash = Duration(milliseconds: AppConfig.I.splashMinDisplayMs);
+  final elapsed = DateTime.now().difference(start);
+  if (elapsed < minSplash) {
+    await Future.delayed(minSplash - elapsed);
+  }
+
+  FlutterNativeSplash.remove();
   runApp(const MyApp());
 }
 
@@ -204,7 +218,45 @@ class MyApp extends StatelessWidget {
         ),
         dividerColor: Colors.grey[800],
       ),
-      home: MainNavigation(),
+      home: FadeInWrapper(
+        duration: Duration(milliseconds: AppConfig.I.splashFadeDurationMs),
+        child: MainNavigation(),
+      ),
+    );
+  }
+}
+
+class FadeInWrapper extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+  final Curve curve;
+  const FadeInWrapper({super.key, required this.child, this.duration = const Duration(milliseconds: 450), this.curve = Curves.easeOut});
+
+  @override
+  State<FadeInWrapper> createState() => _FadeInWrapperState();
+}
+
+class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProviderStateMixin {
+  double _opacity = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Démarre le fade sur la prochaine frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() => _opacity = 1.0);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _opacity,
+      duration: widget.duration,
+      curve: widget.curve,
+      child: widget.child,
     );
   }
 }

@@ -2,3 +2,9 @@ api:
   mistral_key: "l84H8vdQ8ppOVxSDEZ09ByJhoMnTgM9M"
   mistral_url: "https://api.mistral.ai/v1/chat/completions"
   mistral_model: "mistral-tiny"
+
+splash:
+  # Durée minimale d'affichage du splash (en millisecondes)
+  min_display_ms: 1500
+  # Durée du fade-in de l'application après le splash (en millisecondes)
+  fade_duration_ms: 450
