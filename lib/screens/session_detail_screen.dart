@@ -6,6 +6,9 @@ import '../services/coach_analysis_service.dart';
 import 'create_session_screen.dart';
 import '../models/shooting_session.dart';
 import '../models/series.dart';
+import '../widgets/coach_analysis_card.dart';
+import '../widgets/series_list.dart';
+import 'package:flutter/services.dart';
 
 
 class SessionDetailScreen extends StatefulWidget {
@@ -37,15 +40,26 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    final session = ShootingSession.fromMap(_currentSessionData!['session']);
-    final series = (_currentSessionData!['series'] as List<dynamic>).map((s) => Series.fromMap(Map<String, dynamic>.from(s))).toList();
-    final date = session.date ?? DateTime.now();
+  final session = ShootingSession.fromMap(_currentSessionData!['session']);
+  final series = (_currentSessionData!['series'] as List<dynamic>).map((s) => Series.fromMap(Map<String, dynamic>.from(s))).toList();
   final isRealisee = session.status == SessionConstants.statusRealisee;
     String? analyse = _currentSessionData!['session']['analyse'];
     return Scaffold(
       appBar: AppBar(
-        title: Text('Détail de la session'),
+        title: Text('Session'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.copy_all_outlined),
+            tooltip: 'Copier résumé',
+            onPressed: () async {
+              final resume = _buildClipboardSummary(session, series);
+              await Clipboard.setData(ClipboardData(text: resume));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Résumé copié')),);
+              }
+            },
+          ),
           IconButton(
             icon: Icon(Icons.edit),
             tooltip: 'Modifier',
@@ -62,7 +76,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
             },
           ),
           IconButton(
-            icon: Icon(Icons.delete),
+            icon: Icon(Icons.delete_outline),
             tooltip: 'Supprimer',
             onPressed: () async {
               final confirm = await showDialog<bool>(
@@ -71,14 +85,8 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                   title: Text('Supprimer la session ?'),
                   content: Text('Cette action est irréversible.'),
                   actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text('Annuler'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text('Supprimer', style: TextStyle(color: Colors.red)),
-                    ),
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Annuler')),
+                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Supprimer', style: TextStyle(color: Colors.red))),
                   ],
                 ),
               );
@@ -95,27 +103,42 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [
-          Text('Date : ${date.day}/${date.month}/${date.year}', style: TextStyle(fontSize: 16)),
-          Text('Arme : ${session.weapon}'),
-          Text('Calibre : ${session.caliber}'),
-          SizedBox(height: 16),
+          _SessionHeaderCard(session: session, series: series),
           if (_isAnalysing) ...[
+            SizedBox(height: 16),
             LinearProgressIndicator(),
             SizedBox(height: 12),
             Text('Le coach analyse votre session, merci de patienter...', style: TextStyle(fontStyle: FontStyle.italic)),
             SizedBox(height: 16),
           ],
           if (isRealisee)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ElevatedButton.icon(
-                  icon: Icon(Icons.analytics),
-                  label: Text((analyse != null && analyse.trim().isNotEmpty)
-                      ? 'La session a été analysée'
-                      : 'Analyser la session'),
-                  onPressed: (!_isAnalysing && (analyse == null || analyse.trim().isEmpty))
-                      ? () async {
+            Card(
+              color: Colors.white.withOpacity(0.05),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              child: ExpansionTile(
+                initiallyExpanded: analyse != null && analyse.trim().isNotEmpty,
+                leading: Icon(Icons.analytics, color: Colors.amberAccent),
+                title: Text('Analyse Coach', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(
+                  (analyse != null && analyse.trim().isNotEmpty)
+                      ? 'Analyse disponible'
+                      : 'Aucune analyse générée',
+                  style: TextStyle(fontSize: 12),
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.play_arrow),
+                        label: Text(
+                          (analyse != null && analyse.trim().isNotEmpty)
+                              ? 'Re-générer'
+                              : 'Lancer analyse',
+                        ),
+                        onPressed: (!_isAnalysing && (analyse == null || analyse.trim().isEmpty))
+                            ? () async {
                           setState(() => _isAnalysing = true);
                           try {
                             // Charger service et construire prompt
@@ -175,81 +198,55 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                               );
                             }
                           } catch (e) {
-                            await showDialog(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Erreur'),
-                                content: const Text('Une erreur est survenue lors de l\'analyse, veuillez réesayer ultérieurement.'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(ctx).pop(),
-                                    child: const Text('Fermer'),
-                                  ),
-                                ],
-                              ),
-                            );
+                            final msg = (e is CoachAnalysisException)
+                                ? e.message
+                                : 'Une erreur est survenue lors de l\'analyse, veuillez réessayer ultérieurement.';
+                            if (context.mounted) {
+                              await showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Erreur'),
+                                  content: Text(msg),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(),
+                                      child: const Text('Fermer'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
                           } finally {
                             setState(() => _isAnalysing = false);
                           }
                         }
-                      : null,
-                ),
-                if (analyse != null && analyse.trim().isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 24.0),
-                    child: Card(
-                      color: Colors.green[900],
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Analyse du coach', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                            SizedBox(height: 8),
-                            MarkdownBody(
-                              data: analyse,
-                              styleSheet: MarkdownStyleSheet(
-                                p: TextStyle(color: Colors.white),
-                                strong: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                h1: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                                h2: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                                h3: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                                code: TextStyle(color: Colors.yellow[200]),
-                                blockquote: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
-                                listBullet: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
+                            : null,
                       ),
                     ),
                   ),
-              ],
-            ),
-          Text('Séries', style: TextStyle(fontWeight: FontWeight.bold)),
-          ...series.asMap().entries.map((entry) {
-            int i = entry.key;
-            final s = entry.value;
-            return Card(
-              color: Colors.blueGrey[900],
-              margin: EdgeInsets.symmetric(vertical: 8),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Série ${i + 1}', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text('Nombre de coups : ${s.shotCount}'),
-                    Text('Distance : ${s.distance} m'),
-                    Text('Points : ${s.points}'),
-                    Text('Groupement : ${s.groupSize} cm'),
-                    if ((s.comment).toString().isNotEmpty)
-                      Text('Commentaire : ${s.comment}'),
+                  if (analyse != null && analyse.trim().isNotEmpty) ...[
+                    SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: CoachAnalysisCard(analyse: analyse),
+                    ),
+                    SizedBox(height: 12),
                   ],
-                ),
+                ],
               ),
-            );
-          }),
+            ),
+          SizedBox(height: 28),
+          Row(
+            children: [
+              Icon(Icons.list_alt, size: 18, color: Colors.amberAccent),
+              SizedBox(width: 8),
+              Text('Séries', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Spacer(),
+              Text('${series.length} au total', style: TextStyle(fontSize: 12, color: Colors.white70)),
+            ],
+          ),
+          SizedBox(height: 8),
+          SeriesList(series: series),
           if (session.synthese != null && session.synthese!.trim().isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 24.0),
@@ -279,5 +276,137 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         ],
       ),
     );
+  }
+}
+
+String _buildClipboardSummary(ShootingSession s, List<Series> series) {
+  final buf = StringBuffer();
+  buf.writeln('Session ${s.date != null ? '${s.date!.day}/${s.date!.month}/${s.date!.year}' : ''}');
+  buf.writeln('Arme: ${s.weapon} | Calibre: ${s.caliber}');
+  if (s.category.isNotEmpty) buf.writeln('Catégorie: ${s.category}');
+  buf.writeln('Séries (${series.length}):');
+  for (int i=0;i<series.length;i++) {
+    final se = series[i];
+    buf.writeln('- #${i+1}: ${se.points} pts, group. ${se.groupSize} cm, dist ${se.distance}m');
+  }
+  if (s.synthese != null && s.synthese!.trim().isNotEmpty) {
+    buf.writeln('Synthèse: ${s.synthese}');
+  }
+  if (s.analyse != null && s.analyse!.trim().isNotEmpty) {
+    buf.writeln('Analyse Coach: ${s.analyse}');
+  }
+  return buf.toString();
+}
+
+class _SessionHeaderCard extends StatelessWidget {
+  final ShootingSession session;
+  final List<Series> series;
+  const _SessionHeaderCard({required this.session, required this.series});
+
+  int get totalPoints => series.fold(0, (a,b)=> a + b.points);
+  double get avgPoints => series.isEmpty ? 0 : totalPoints / series.length;
+  double get avgGroup => () {
+    final vals = series.where((s)=> s.groupSize > 0).map((e)=> e.groupSize).toList();
+    if (vals.isEmpty) return 0.0;
+    return vals.reduce((a,b)=> a+b) / vals.length;
+  }();
+
+  @override
+  Widget build(BuildContext context) {
+    final date = session.date;
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 18, color: Colors.amberAccent),
+                SizedBox(width: 8),
+                Text(date != null ? '${date.day}/${date.month}/${date.year}' : 'Date inconnue', style: TextStyle(fontWeight: FontWeight.w600)),
+                Spacer(),
+                _Chip(text: session.status, icon: Icons.flag, color: Colors.lightBlueAccent),
+              ],
+            ),
+            SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _Chip(text: session.weapon.isEmpty ? 'Arme ?' : session.weapon, icon: Icons.security),
+                _Chip(text: session.caliber.isEmpty ? 'Calibre ?' : session.caliber, icon: Icons.bolt),
+                if (session.category.isNotEmpty) _Chip(text: session.category, icon: Icons.category, color: Colors.purpleAccent),
+                _Chip(text: '${series.length} séries', icon: Icons.list_alt, color: Colors.tealAccent),
+              ],
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                _StatBlock(label: 'Total', value: '$totalPoints pts'),
+                _DividerVert(),
+                _StatBlock(label: 'Moy. série', value: avgPoints.toStringAsFixed(1)),
+                _DividerVert(),
+                _StatBlock(label: 'Group. moy', value: avgGroup>0? '${avgGroup.toStringAsFixed(1)} cm':'-'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final Color? color;
+  const _Chip({required this.text, required this.icon, this.color});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: (color ?? Colors.white70).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color ?? Colors.white70),
+          SizedBox(width: 4),
+          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatBlock extends StatelessWidget {
+  final String label;
+  final String value;
+  const _StatBlock({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.white70)),
+          SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class _DividerVert extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: 32, color: Colors.white12);
   }
 }

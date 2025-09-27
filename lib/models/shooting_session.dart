@@ -9,6 +9,7 @@ class ShootingSession {
   String status; // "prévue" ou "réalisée"
   String? analyse;
   String? synthese;
+  String category; // entraînement / match / test matériel
 
   ShootingSession({
     this.id,
@@ -19,6 +20,7 @@ class ShootingSession {
     this.status = 'réalisée',
     this.analyse,
     this.synthese,
+    this.category = 'entraînement',
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +33,7 @@ class ShootingSession {
       'status': status,
       'analyse': analyse,
       'synthese': synthese,
+      'category': category,
     };
   }
 
@@ -49,6 +52,12 @@ class ShootingSession {
       status: map['status'] as String? ?? 'réalisée',
       analyse: map['analyse'] as String?,
       synthese: map['synthese'] as String?,
+      category: map['category'] as String? ?? 'entraînement',
     );
   }
+
+  /// Indique si une analyse coach est disponible
+  bool get hasAnalysis => (analyse != null && analyse!.trim().isNotEmpty);
+  /// Indique si une synthèse tireur est disponible
+  bool get hasSynthese => (synthese != null && synthese!.trim().isNotEmpty);
 }
