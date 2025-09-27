@@ -47,7 +47,7 @@ flutter_native_splash:
     image: assets/app_logo.png
     icon_background_color: "#181A20"
     icon_background_color_dark: "#000000"
-  web: false
+  web: true
   fullscreen: true
 
 flutter:
