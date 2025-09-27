@@ -115,7 +115,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       case GoalMetric.averageSessionPoints: return 'Score moyen par session';
       case GoalMetric.sessionCount: return 'Nombre de sessions';
       case GoalMetric.totalPoints: return '(Ancien) Points cumulés';
-      case GoalMetric.groupSize: return 'Score moyen groupement';
+  case GoalMetric.groupSize: return 'Groupement moyen';
       case GoalMetric.bestSeriesPoints: return 'Score série';
       case GoalMetric.bestSessionPoints: return 'Score session';
       case GoalMetric.bestGroupSize: return 'Taille du groupement';
@@ -128,7 +128,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       case GoalMetric.averageSessionPoints: return 'Score moyen par session';
       case GoalMetric.sessionCount: return 'Nombre de sessions';
       case GoalMetric.totalPoints: return 'Points cumulés';
-      case GoalMetric.groupSize: return 'Score moyen groupement';
+  case GoalMetric.groupSize: return 'Groupement moyen';
       case GoalMetric.bestSeriesPoints: return 'Score série';
       case GoalMetric.bestSessionPoints: return 'Score session';
       case GoalMetric.bestGroupSize: return 'Taille du groupement';
@@ -183,11 +183,12 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Nouvel objectif', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: _titleCtrl,
                       decoration: const InputDecoration(labelText: 'Titre'),
                     ),
+                    const SizedBox(height: 20),
                     Row(
                       children: [
                         Expanded(
@@ -232,7 +233,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 20),
                     DropdownButtonFormField<GoalPeriod>(
                       value: _period,
                       isExpanded: true,
@@ -244,13 +245,13 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                       ],
                       onChanged: (v) => setState(() => _period = v ?? _period),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 16),
                     Text(
                       _metricExplanation(_metric),
                       style: const TextStyle(fontSize: 12, color: Colors.white70),
                     ),
                     if (_period != GoalPeriod.none) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         _period == GoalPeriod.rollingWeek
                             ? 'Calcul limité aux 7 derniers jours.'
@@ -258,13 +259,13 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                         style: const TextStyle(fontSize: 11, color: Colors.white54),
                       )
                     ],
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 20),
                     TextField(
                       controller: _targetCtrl,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(labelText: 'Valeur cible'),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     Align(
                       alignment: Alignment.centerRight,
                       child: ElevatedButton.icon(
