@@ -13,6 +13,8 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'config/app_config.dart';
+import 'models/goal.dart';
+import 'screens/goals_list_screen.dart';
 
 // Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
@@ -43,6 +45,18 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
+          // Section Objectifs
+          Text('Objectifs', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.flag, color: Colors.amber),
+              title: Text('Gérer mes objectifs'),
+              subtitle: Text('Créer, suivre et visualiser la progression'),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen())),
+            ),
+          ),
+          SizedBox(height: 28),
           Text('Sauvegarde & Portabilité', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           SizedBox(height: 12),
           Card(
@@ -53,7 +67,7 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   Text('Exporter toutes les sessions', style: TextStyle(fontWeight: FontWeight.w600)),
                   SizedBox(height: 6),
-                  Text('Génère un fichier JSON contenant toutes les sessions (séries, synthèse, analyse).'),
+                  Text('Génère un JSON: sessions (séries, synthèse, analyse) + objectifs.'),
                   SizedBox(height: 12),
                   ElevatedButton.icon(
                     icon: Icon(Icons.file_download),
@@ -134,6 +148,13 @@ Future<void> main() async {
   final start = DateTime.now();
   await AppConfig.load();
   await Hive.initFlutter();
+  // Register adapters goals
+  if (!Hive.isAdapterRegistered(40)) Hive.registerAdapter(GoalMetricAdapter());
+  if (!Hive.isAdapterRegistered(41)) Hive.registerAdapter(GoalComparatorAdapter());
+  if (!Hive.isAdapterRegistered(42)) Hive.registerAdapter(GoalStatusAdapter());
+  if (!Hive.isAdapterRegistered(43)) Hive.registerAdapter(GoalPeriodAdapter());
+  if (!Hive.isAdapterRegistered(44)) Hive.registerAdapter(GoalAdapter());
+
   await Hive.openBox(SessionConstants.hiveBoxSessions);
 
   final minSplash = Duration(milliseconds: AppConfig.I.splashMinDisplayMs);

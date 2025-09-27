@@ -3,7 +3,7 @@ api:
   # 1. Fichier local non versionné assets/config.local.yaml (mêmes champs)
   # 2. Ou variable --dart-define=MISTRAL_API_KEY=...
   # 3. Ou variable d'environnement MISTRAL_API_KEY (en fallback)
-  mistral_key: "__MISTRAL_API_KEY_PLACEHOLDER__"
+  mistral_key: "$MISTRAL_API_KEY_PLACEHOLDER"
   mistral_url: "https://api.mistral.ai/v1/chat/completions"
   mistral_model: "mistral-tiny"
 
@@ -12,3 +12,17 @@ splash:
   min_display_ms: 1500
   # Durée du fade-in de l'application après le splash (en millisecondes)
   fade_duration_ms: 450
+
+goals:
+  # Valeur cible par défaut si l'utilisateur ne précise rien
+  defaults:
+    average_points_target: 48
+    session_count_target: 8
+    total_points_target: 1500
+    group_size_target: 25.0
+  # Limites pour validation formulaire (facile à ajuster)
+  validation:
+    max_average_points: 60
+    max_session_count: 100
+    max_total_points: 100000
+    max_group_size: 200

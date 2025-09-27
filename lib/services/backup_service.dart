@@ -3,6 +3,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../models/shooting_session.dart';
 import '../services/session_service.dart';
+import '../models/goal.dart';
+import '../services/goal_service.dart';
 
 /// Service pour exporter / importer toutes les sessions sous forme JSON plat
 /// Structure de fichier:
@@ -15,15 +17,33 @@ import '../services/session_service.dart';
 /// }
 class BackupService {
   final SessionService _sessionService = SessionService();
+  final GoalService _goalService = GoalService();
 
   Future<File> exportAllSessionsToJsonFile() async {
     final sessions = await _sessionService.getAllSessions();
+    await _goalService.init();
+    final goals = await _goalService.listAll();
     final data = {
-      'format': 'mycoach-sessions',
-      'version': 1,
+      'format': 'mycoach-data',
+      'version': 2,
       'exported_at': DateTime.now().toUtc().toIso8601String(),
-      'count': sessions.length,
+      'sessions_count': sessions.length,
+      'goals_count': goals.length,
       'sessions': sessions.map((s) => s.toMap()).toList(),
+      'goals': goals.map((g) => {
+        'id': g.id,
+        'title': g.title,
+        'description': g.description,
+        'metric': g.metric.index,
+        'comparator': g.comparator.index,
+        'targetValue': g.targetValue,
+        'status': g.status.index,
+        'period': g.period.index,
+        'createdAt': g.createdAt.toIso8601String(),
+        'updatedAt': g.updatedAt.toIso8601String(),
+        'lastProgress': g.lastProgress,
+        'lastMeasuredValue': g.lastMeasuredValue,
+      }).toList(),
     };
     final jsonString = const JsonEncoder.withIndent('  ').convert(data);
     final dir = await getTemporaryDirectory();
@@ -40,7 +60,7 @@ class BackupService {
     if (decoded is! Map<String, dynamic>) {
       throw FormatException('Fichier invalide (structure racine).');
     }
-    if (decoded['format'] != 'mycoach-sessions') {
+    if (decoded['format'] != 'mycoach-data') {
       throw FormatException('Format non reconnu.');
     }
     final sessionsRaw = decoded['sessions'];
@@ -66,6 +86,35 @@ class BackupService {
         // ignorer session invalide
       }
     }
+    // Import goals (facultatif si absent - compat ascendante)
+    try {
+      await _goalService.init();
+      final goalsRaw = decoded['goals'];
+      if (goalsRaw is List) {
+        for (final g in goalsRaw) {
+          if (g is! Map) continue;
+          try {
+            final goal = Goal(
+              id: g['id']?.toString(),
+              title: g['title']?.toString() ?? 'Sans titre',
+              description: g['description']?.toString(),
+              metric: GoalMetric.values[(g['metric'] as num?)?.toInt() ?? 0],
+              comparator: GoalComparator.values[(g['comparator'] as num?)?.toInt() ?? 0],
+              targetValue: (g['targetValue'] as num?)?.toDouble() ?? 0,
+              status: GoalStatus.values[(g['status'] as num?)?.toInt() ?? 0],
+              period: GoalPeriod.values[(g['period'] as num?)?.toInt() ?? 0],
+              createdAt: DateTime.tryParse(g['createdAt'] ?? '') ?? DateTime.now(),
+              updatedAt: DateTime.tryParse(g['updatedAt'] ?? '') ?? DateTime.now(),
+              lastProgress: (g['lastProgress'] as num?)?.toDouble(),
+              lastMeasuredValue: (g['lastMeasuredValue'] as num?)?.toDouble(),
+            );
+            await _goalService.addGoal(goal);
+          } catch (_) {
+            // ignore invalid goal
+          }
+        }
+      }
+    } catch (_) {}
     return imported;
   }
 }
