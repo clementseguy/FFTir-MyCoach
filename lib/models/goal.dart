@@ -86,6 +86,15 @@ class Goal extends HiveObject {
   // Plus la valeur est petite, plus l'objectif est prioritaire (0 = top / plus haut dans la liste)
   @HiveField(12)
   int priority;
+  // Date à laquelle l'objectif a été atteint (pour la première fois). Null si pas encore atteint.
+  @HiveField(13)
+  DateTime? achievementDate;
+  // Valeur précédente (période précédente) pour calcul de tendance
+  @HiveField(14)
+  double? previousMeasuredValue;
+  // Delta d'amélioration (positif = amélioration) en valeur absolue (value - previous ajusté selon comparateur)
+  @HiveField(15)
+  double? improvementDelta;
 
   Goal({
     String? id,
@@ -100,7 +109,10 @@ class Goal extends HiveObject {
     DateTime? updatedAt,
     this.lastProgress,
     this.lastMeasuredValue,
-  int? priority,
+    int? priority,
+    this.achievementDate,
+    this.previousMeasuredValue,
+    this.improvementDelta,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
     updatedAt = updatedAt ?? DateTime.now(),
@@ -118,6 +130,9 @@ class Goal extends HiveObject {
     double? lastProgress,
     double? lastMeasuredValue,
     int? priority,
+    DateTime? achievementDate,
+    double? previousMeasuredValue,
+    double? improvementDelta,
   }) {
     return Goal(
       id: id,
@@ -133,6 +148,9 @@ class Goal extends HiveObject {
       lastProgress: lastProgress ?? this.lastProgress,
       lastMeasuredValue: lastMeasuredValue ?? this.lastMeasuredValue,
       priority: priority ?? this.priority,
+      achievementDate: achievementDate ?? this.achievementDate,
+      previousMeasuredValue: previousMeasuredValue ?? this.previousMeasuredValue,
+      improvementDelta: improvementDelta ?? this.improvementDelta,
     );
   }
 }

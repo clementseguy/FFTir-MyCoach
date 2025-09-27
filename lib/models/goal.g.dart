@@ -185,13 +185,16 @@ class GoalAdapter extends TypeAdapter<Goal> {
       lastMeasuredValue: (fields[11] as num?)?.toDouble(),
       // Backward compat: si champ absent (anciennes données), valeur par défaut élevée.
       priority: (fields[12] as num?)?.toInt() ?? 9999,
+      achievementDate: fields[13] as DateTime?,
+      previousMeasuredValue: (fields[14] as num?)?.toDouble(),
+      improvementDelta: (fields[15] as num?)?.toDouble(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Goal obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -217,6 +220,12 @@ class GoalAdapter extends TypeAdapter<Goal> {
       ..writeByte(11)
       ..write(obj.lastMeasuredValue)
       ..writeByte(12)
-      ..write(obj.priority);
+      ..write(obj.priority)
+      ..writeByte(13)
+      ..write(obj.achievementDate)
+      ..writeByte(14)
+      ..write(obj.previousMeasuredValue)
+      ..writeByte(15)
+      ..write(obj.improvementDelta);
   }
 }

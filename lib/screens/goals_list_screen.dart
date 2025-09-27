@@ -15,9 +15,13 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
 
   final _titleCtrl = TextEditingController();
   final _targetCtrl = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   GoalMetric _metric = GoalMetric.averagePoints;
   GoalComparator _comparator = GoalComparator.greaterOrEqual;
   GoalPeriod _period = GoalPeriod.none;
+  Goal? _editingGoal;
+  final _scrollCtrl = ScrollController();
+  String? _recentAddedGoalId;
 
   @override
   void initState() {
@@ -39,22 +43,54 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
     final title = _titleCtrl.text.trim();
     final target = double.tryParse(_targetCtrl.text.trim());
     if (title.isEmpty || target == null) return;
-    final goal = Goal(
-      title: title,
-      metric: _metric,
-      comparator: _comparator,
-      targetValue: target,
-      period: _period,
-    );
-    await _service.addGoal(goal);
-    await _assignDefaultPriorityIfNeeded(goal);
+    if (_editingGoal == null) {
+      final goal = Goal(
+        title: title,
+        metric: _metric,
+        comparator: _comparator,
+        targetValue: target,
+        period: _period,
+      );
+      await _service.addGoal(goal);
+      await _assignDefaultPriorityIfNeeded(goal);
+      _recentAddedGoalId = goal.id;
+    } else {
+      // Mise à jour
+      final updated = _editingGoal!.copyWith(
+        title: title,
+        metric: _metric,
+        comparator: _comparator,
+        targetValue: target,
+        period: _period,
+      );
+      await _service.updateGoal(updated);
+    }
     await _service.recomputeAllProgress();
     final g = await _service.listAll();
     setState(() {
       _goals = g;
       _titleCtrl.clear();
       _targetCtrl.clear();
+      _editingGoal = null;
     });
+    if (_recentAddedGoalId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final idx = _goals.indexWhere((goal) => goal.id == _recentAddedGoalId);
+        if (idx >= 0) {
+          final offset = 380 + (idx * 130);
+          if (_scrollCtrl.hasClients) {
+            _scrollCtrl.animateTo(
+              offset.toDouble(),
+              duration: const Duration(milliseconds: 450),
+              curve: Curves.easeInOut,
+            );
+          }
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) setState(() => _recentAddedGoalId = null);
+          });
+        }
+      });
+    }
   }
 
   Future<void> _assignDefaultPriorityIfNeeded(Goal goal) async {
@@ -163,6 +199,27 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
     }
   }
 
+  String? _metricExample(GoalMetric m) {
+    switch (m) {
+      case GoalMetric.averagePoints:
+        return 'Ex: moyenne des séries des 7 derniers jours: (45 + 47 + 46 + 44) / 4 = 45.';
+      case GoalMetric.averageSessionPoints:
+        return 'Ex: Session A moy=45, Session B moy=46 → moyenne session = (45 + 46)/2 = 45.';
+      case GoalMetric.sessionCount:
+        return 'Ex: 5 sessions effectuées sur les 30 derniers jours.';
+      case GoalMetric.totalPoints:
+        return 'Ex: Somme de tous les points (obsolète, préférer les moyennes).';
+      case GoalMetric.groupSize:
+        return 'Ex: Séries groupements: 32mm, 28mm, 30mm → moyenne = 30mm.';
+      case GoalMetric.bestSeriesPoints:
+        return 'Ex: Série maximale atteinte: 50.';
+      case GoalMetric.bestSessionPoints:
+        return 'Ex: Meilleure session totale: 548.';
+      case GoalMetric.bestGroupSize:
+        return 'Ex: Meilleur (plus petit) groupement atteint: 22mm.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -174,110 +231,179 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
           setState(() => _goals = g);
         },
         child: ListView(
+          controller: _scrollCtrl,
           padding: const EdgeInsets.all(16),
           children: [
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Nouvel objectif', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _titleCtrl,
-                      decoration: const InputDecoration(labelText: 'Titre'),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<GoalMetric>(
-                            value: _metric,
-                            isExpanded: true,
-                            items: GoalMetric.values
-                                .where((m) => m != GoalMetric.totalPoints) // masquer métrique obsolète création
-                                .map((m) => DropdownMenuItem(value: m, child: Text(_shortMetricName(m)))).toList(),
-                            onChanged: (v) => setState(() {
-                              if (v == null) return;
-                              _metric = v;
-                              // Forcer comparateur cohérent pour hauts faits
-                              if (v == GoalMetric.bestSeriesPoints || v == GoalMetric.bestSessionPoints) {
-                                _comparator = GoalComparator.greaterOrEqual; // atteindre au moins cette valeur
-                              } else if (v == GoalMetric.bestGroupSize) {
-                                _comparator = GoalComparator.lessOrEqual; // groupement <= cible
-                              }
-                            }),
-                            decoration: const InputDecoration(labelText: 'Métrique'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<GoalComparator>(
-                            value: _comparator,
-                            isExpanded: true,
-                            items: GoalComparator.values.map((m) => DropdownMenuItem(value: m, child: Text(_shortComparatorName(m)))).toList(),
-                            onChanged: (v) => setState(() {
-                              if (v == null) return;
-                              // Empêcher sélection d'un comparateur incohérent avec un haut fait
-                              if (_metric == GoalMetric.bestSeriesPoints || _metric == GoalMetric.bestSessionPoints) {
-                                _comparator = GoalComparator.greaterOrEqual;
-                              } else if (_metric == GoalMetric.bestGroupSize) {
-                                _comparator = GoalComparator.lessOrEqual;
-                              } else {
-                                _comparator = v;
-                              }
-                            }),
-                            decoration: const InputDecoration(labelText: 'Cmp'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    DropdownButtonFormField<GoalPeriod>(
-                      value: _period,
-                      isExpanded: true,
-                      decoration: const InputDecoration(labelText: 'Période'),
-                      items: [
-                        DropdownMenuItem(value: GoalPeriod.none, child: Text('Aucune (objectif absolu)')),
-                        DropdownMenuItem(value: GoalPeriod.rollingWeek, child: Text('7 derniers jours')),
-                        DropdownMenuItem(value: GoalPeriod.rollingMonth, child: Text('30 derniers jours')),
-                      ],
-                      onChanged: (v) => setState(() => _period = v ?? _period),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _metricExplanation(_metric),
-                      style: const TextStyle(fontSize: 12, color: Colors.white70),
-                    ),
-                    if (_period != GoalPeriod.none) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        _period == GoalPeriod.rollingWeek
-                            ? 'Calcul limité aux 7 derniers jours.'
-                            : 'Calcul limité aux 30 derniers jours.',
-                        style: const TextStyle(fontSize: 11, color: Colors.white54),
-                      )
-                    ],
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _targetCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Valeur cible'),
-                    ),
-                    const SizedBox(height: 24),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton.icon(
-                        onPressed: _addGoal,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Ajouter'),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Nouvel objectif', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _titleCtrl,
+                        decoration: const InputDecoration(labelText: 'Titre'),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Titre requis';
+                          if (v.trim().length < 3) return 'Minimum 3 caractères';
+                          return null;
+                        },
+                        onChanged: (_) => setState(() {}),
                       ),
-                    )
-                  ],
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<GoalMetric>(
+                              value: _metric,
+                              isExpanded: true,
+                              items: GoalMetric.values.where((m) => m != GoalMetric.totalPoints)
+                                  .map((m) => DropdownMenuItem(value: m, child: Text(_shortMetricName(m)))).toList(),
+                              onChanged: (v) => setState(() {
+                                if (v == null) return;
+                                _metric = v;
+                                if (v == GoalMetric.bestSeriesPoints || v == GoalMetric.bestSessionPoints) {
+                                  _comparator = GoalComparator.greaterOrEqual;
+                                } else if (v == GoalMetric.bestGroupSize) {
+                                  _comparator = GoalComparator.lessOrEqual;
+                                }
+                              }),
+                              decoration: InputDecoration(
+                                labelText: 'Métrique',
+                                suffixIcon: IconButton(
+                                  tooltip: 'Explication',
+                                  icon: const Icon(Icons.info_outline),
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      showDragHandle: true,
+                                      backgroundColor: Colors.grey[900],
+                                      builder: (_) => Padding(
+                                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(_shortMetricName(_metric), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                              const SizedBox(height: 12),
+                                              Text(_metricExplanation(_metric), style: const TextStyle(fontSize: 13, height: 1.3)),
+                                              const SizedBox(height: 16),
+                                              if (_metricExample(_metric) != null) ...[
+                                                const Text('Exemples', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                const SizedBox(height: 8),
+                                                Text(_metricExample(_metric)!, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                                              ],
+                                              const SizedBox(height: 12),
+                                              Text('Comparateur utilisé: ${_shortComparatorName(_comparator)}', style: const TextStyle(fontSize: 12, color: Colors.white54)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<GoalComparator>(
+                              value: _comparator,
+                              isExpanded: true,
+                              items: GoalComparator.values
+                                  .map((m) => DropdownMenuItem(value: m, child: Text(_shortComparatorName(m)))).toList(),
+                              onChanged: (v) => setState(() {
+                                if (v == null) return;
+                                if (_metric == GoalMetric.bestSeriesPoints || _metric == GoalMetric.bestSessionPoints) {
+                                  _comparator = GoalComparator.greaterOrEqual;
+                                } else if (_metric == GoalMetric.bestGroupSize) {
+                                  _comparator = GoalComparator.lessOrEqual;
+                                } else {
+                                  _comparator = v;
+                                }
+                              }),
+                              decoration: const InputDecoration(labelText: 'Cmp'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      DropdownButtonFormField<GoalPeriod>(
+                        value: _period,
+                        isExpanded: true,
+                        decoration: const InputDecoration(labelText: 'Période'),
+                        items: const [
+                          DropdownMenuItem(value: GoalPeriod.none, child: Text('Aucune (objectif absolu)')),
+                          DropdownMenuItem(value: GoalPeriod.rollingWeek, child: Text('7 derniers jours')),
+                          DropdownMenuItem(value: GoalPeriod.rollingMonth, child: Text('30 derniers jours')),
+                        ],
+                        onChanged: (v) => setState(() => _period = v ?? _period),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(_metricExplanation(_metric), style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                      if (_period != GoalPeriod.none) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _period == GoalPeriod.rollingWeek
+                              ? 'Calcul limité aux 7 derniers jours.'
+                              : 'Calcul limité aux 30 derniers jours.',
+                          style: const TextStyle(fontSize: 11, color: Colors.white54),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _targetCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Valeur cible'),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Valeur requise';
+                          final d = double.tryParse(v.replaceAll(',', '.'));
+                          if (d == null) return 'Nombre invalide';
+                          if (d <= 0) return 'Doit être > 0';
+                          return null;
+                        },
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton.icon(
+                          onPressed: _formKey.currentState?.validate() == true ? _addGoal : null,
+                          icon: Icon(_editingGoal == null ? Icons.add : Icons.save),
+                          label: Text(_editingGoal == null ? 'Ajouter' : 'Mettre à jour'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
+            if (_editingGoal != null)
+              Padding(
+                padding: const EdgeInsets.only(top:8.0,bottom:16),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _editingGoal = null;
+                        _titleCtrl.clear();
+                        _targetCtrl.clear();
+                        _metric = GoalMetric.averagePoints;
+                        _comparator = GoalComparator.greaterOrEqual;
+                        _period = GoalPeriod.none;
+                      });
+                    },
+                    icon: const Icon(Icons.close),
+                    label: const Text('Annuler modification'),
+                  ),
+                ),
+              ),
+            // Fin carte formulaire + éventuel bouton annuler
             const SizedBox(height: 16),
             if (_goals.isNotEmpty) ...[
               Padding(
@@ -318,7 +444,15 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
 
   Widget _buildReorderableTile(Goal g, int index) {
     final p = g.lastProgress ?? 0;
-    final valueStr = g.lastMeasuredValue?.toStringAsFixed(1) ?? '-';
+  final valueStr = g.lastMeasuredValue != null
+    ? g.lastMeasuredValue!.round().toString()
+    : '-';
+    final achieved = g.status == GoalStatus.achieved;
+    String achievedDateLabel = '';
+    if (achieved && g.achievementDate != null) {
+      final d = g.achievementDate!;
+      achievedDateLabel = 'Atteint le ${d.day.toString().padLeft(2,'0')}/${d.month.toString().padLeft(2,'0')}/${d.year}';
+    }
     String periodLabel = '';
     switch (g.period) {
       case GoalPeriod.none:
@@ -331,45 +465,127 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
         periodLabel = ' (30j)';
         break;
     }
-    return Card(
+    final isNew = g.id == _recentAddedGoalId;
+    return AnimatedContainer(
       key: ValueKey(g.id),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: achieved
+            ? Colors.green.withOpacity(0.08)
+            : (isNew ? Colors.amber.withOpacity(0.18) : Theme.of(context).cardColor),
+        borderRadius: BorderRadius.circular(8),
+        border: isNew ? Border.all(color: Colors.amberAccent, width: 1.2) : null,
+      ),
       child: ListTile(
-        leading: ReorderableDragStartListener(
-          index: index,
-          child: Column(
+        leading: achieved ?
+          Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.drag_handle, size: 20),
-              Text('#${index+1}', style: const TextStyle(fontSize: 11)),
+            children: const [
+              Icon(Icons.check_circle, color: Colors.green, size: 24),
             ],
-          ),
+          )
+          : ReorderableDragStartListener(
+              index: index,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.drag_handle, size: 20),
+                  Text('#${index+1}', style: const TextStyle(fontSize: 11)),
+                ],
+              ),
+            ),
+        title: Row(
+          children: [
+            Expanded(child: Text(g.title)),
+            if (g.improvementDelta != null && g.period != GoalPeriod.none)
+              _buildTrendChip(g),
+          ],
         ),
-        title: Text(g.title),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${_metricLabel(g)}$periodLabel: $valueStr / cible ${g.targetValue}'),
+            Text('${_metricLabel(g)}$periodLabel: $valueStr / cible ${g.targetValue.round()}',
+              style: achieved ? const TextStyle(decoration: TextDecoration.lineThrough, color: Colors.white70) : null,
+            ),
+            if (achievedDateLabel.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top:4.0),
+                child: Text(achievedDateLabel, style: const TextStyle(fontSize: 11, color: Colors.greenAccent)),
+              ),
             const SizedBox(height: 6),
             LinearProgressIndicator(
               value: p,
-              color: _progressColor(p),
-              backgroundColor: Colors.grey[800],
+              color: achieved ? Colors.green : _progressColor(p),
+              backgroundColor: achieved ? Colors.green.withOpacity(0.2) : Colors.grey[800],
               minHeight: 6,
             ),
           ],
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('${(p*100).toStringAsFixed(0)}%'),
-            const SizedBox(height: 4),
-            InkWell(
-              onTap: () => _deleteGoal(g),
-              child: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+        trailing: achieved ? Text('${(p*100).toStringAsFixed(0)}%', style: const TextStyle(color: Colors.green)) :
+          SizedBox(
+            width: 72,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('${(p*100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 12)),
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _editingGoal = g;
+                      _titleCtrl.text = g.title;
+                      _targetCtrl.text = g.targetValue.round().toString();
+                      _metric = g.metric;
+                      _comparator = g.comparator;
+                      _period = g.period;
+                    });
+                    // Scroll vers le haut après petit délai
+                    Future.delayed(const Duration(milliseconds: 150), () {
+                      Scrollable.ensureVisible(_formKey.currentContext!, duration: const Duration(milliseconds: 300));
+                    });
+                  },
+                  child: const Icon(Icons.edit, size: 20, color: Colors.amber),
+                ),
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: () => _deleteGoal(g),
+                  child: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
       ),
+    );
+  }
+
+  Widget _buildTrendChip(Goal g) {
+    final delta = g.improvementDelta ?? 0;
+    if (delta == 0) {
+      return const Icon(Icons.horizontal_rule, size: 16, color: Colors.grey);
+    }
+    final positive = delta > 0;
+    // Pour comparateur lessOrEqual un delta positif signifie diminution (amélioration) => flèche verte vers le bas.
+    bool lessIsBetter = g.comparator == GoalComparator.lessOrEqual;
+    IconData icon;
+    Color color;
+    if (lessIsBetter) {
+      if (positive) { // previous - value > 0 => value plus basse
+        icon = Icons.arrow_downward; color = Colors.green;}
+      else { icon = Icons.arrow_upward; color = Colors.redAccent; }
+    } else {
+      if (positive) { icon = Icons.arrow_upward; color = Colors.green; }
+      else { icon = Icons.arrow_downward; color = Colors.redAccent; }
+    }
+    final magnitude = delta.abs();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 2),
+        Text(magnitude.toStringAsFixed(0), style: TextStyle(fontSize: 11, color: color)),
+      ],
     );
   }
 }
