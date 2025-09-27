@@ -27,7 +27,20 @@ class CoachScreen extends StatelessWidget {
   }
 }
 
-class ExercicesScreen extends StatelessWidget {
+class ExercicesScreen extends StatefulWidget {
+  @override
+  State<ExercicesScreen> createState() => _ExercicesScreenState();
+}
+
+class _ExercicesScreenState extends State<ExercicesScreen> {
+  final GlobalKey<GoalsSummaryCardState> _summaryKey = GlobalKey<GoalsSummaryCardState>();
+
+  Future<void> _openGoals() async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen()));
+    // Au retour, recharger la carte (pour refléter nouveau tri / priorités)
+    _summaryKey.currentState?.refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +48,7 @@ class ExercicesScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const GoalsSummaryCard(),
+          GoalsSummaryCard(key: _summaryKey),
           const SizedBox(height: 16),
           Card(
             child: ListTile(
@@ -43,7 +56,7 @@ class ExercicesScreen extends StatelessWidget {
               title: const Text('Tous les objectifs'),
               subtitle: const Text('Créer ou modifier vos objectifs'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen())),
+              onTap: _openGoals,
             ),
           ),
           const SizedBox(height: 24),

@@ -6,10 +6,10 @@ import '../screens/goals_list_screen.dart';
 class GoalsSummaryCard extends StatefulWidget {
   const GoalsSummaryCard({super.key});
   @override
-  State<GoalsSummaryCard> createState() => _GoalsSummaryCardState();
+  GoalsSummaryCardState createState() => GoalsSummaryCardState();
 }
 
-class _GoalsSummaryCardState extends State<GoalsSummaryCard> {
+class GoalsSummaryCardState extends State<GoalsSummaryCard> {
   final _service = GoalService();
   bool _loading = true;
   Goal? _top;
@@ -24,7 +24,10 @@ class _GoalsSummaryCardState extends State<GoalsSummaryCard> {
     await _service.init();
     await _service.recomputeAllProgress();
     final all = await _service.listAll();
+    // listAll est déjà trié par priority asc, pour stabilité on re-trie par priority puis progress desc
     all.sort((a,b){
+      final pr = a.priority.compareTo(b.priority);
+      if (pr != 0) return pr;
       final pa = a.lastProgress ?? 0;
       final pb = b.lastProgress ?? 0;
       return pb.compareTo(pa);
@@ -34,6 +37,9 @@ class _GoalsSummaryCardState extends State<GoalsSummaryCard> {
       _loading = false;
     });
   }
+
+  // Méthode publique pour rafraîchir depuis l'extérieur
+  Future<void> refresh() => _load();
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +74,16 @@ class _GoalsSummaryCardState extends State<GoalsSummaryCard> {
                           const Icon(Icons.flag, color: Colors.amber),
                           const SizedBox(width: 8),
                           const Text('Objectif prioritaire', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.amber.withOpacity(0.4))
+                            ),
+                            child: Text('#${(_top?.priority ?? 0)+1}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.amber)),
+                          )
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -76,14 +92,7 @@ class _GoalsSummaryCardState extends State<GoalsSummaryCard> {
                       _ProgressBar(progress: _top!.lastProgress ?? 0),
                       const SizedBox(height: 4),
                       Text(_subtitleFor(_top!), style: TextStyle(color: Colors.white70, fontSize: 12)),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen())),
-                          child: const Text('Tous les objectifs'),
-                        ),
-                      )
+                      // Bouton "Tous les objectifs" supprimé pour éviter le doublon avec le raccourci déjà présent ailleurs.
                     ],
                   ),
       ),

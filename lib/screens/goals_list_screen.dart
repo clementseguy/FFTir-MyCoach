@@ -45,6 +45,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       targetValue: target,
     );
     await _service.addGoal(goal);
+    await _assignDefaultPriorityIfNeeded(goal);
     await _service.recomputeAllProgress();
     final g = await _service.listAll();
     setState(() {
@@ -52,6 +53,52 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       _titleCtrl.clear();
       _targetCtrl.clear();
     });
+  }
+
+  Future<void> _assignDefaultPriorityIfNeeded(Goal goal) async {
+    // Si l'objectif vient d'être créé avec priorité par défaut élevée, on lui attribue la dernière position.
+    if (goal.priority >= 9999) {
+      final maxPriority = _goals.isEmpty ? -1 : _goals.map((g) => g.priority).fold<int>(-1, (p, c) => c > p ? c : p);
+      final updated = goal.copyWith(priority: maxPriority + 1);
+      await _service.updateGoal(updated);
+    }
+  }
+
+  Future<void> _persistOrder() async {
+    for (int i = 0; i < _goals.length; i++) {
+      final g = _goals[i];
+      if (g.priority != i) {
+        final updated = g.copyWith(priority: i);
+        await _service.updateGoal(updated);
+      }
+    }
+  }
+
+  Future<void> _deleteGoal(Goal g) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer l\'objectif?'),
+        content: Text('"${g.title}" sera définitivement supprimé.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Annuler')),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.delete),
+            label: const Text('Supprimer'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _service.deleteGoal(g.id);
+    // Retirer localement et réindexer priorités restantes
+    setState(() => _goals.removeWhere((e) => e.id == g.id));
+    await _persistOrder();
+    // Recharger depuis service pour cohérence
+    final refreshed = await _service.listAll();
+    setState(() => _goals = refreshed);
   }
 
   Color _progressColor(double p) {
@@ -154,29 +201,82 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            ..._goals.map((g) {
-              final p = g.lastProgress ?? 0;
-              final valueStr = g.lastMeasuredValue?.toStringAsFixed(1) ?? '-';
-              return Card(
-                child: ListTile(
-                  title: Text(g.title),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${_metricLabel(g)}: $valueStr / cible ${g.targetValue}'),
-                      const SizedBox(height: 6),
-                      LinearProgressIndicator(
-                        value: p,
-                        color: _progressColor(p),
-                        backgroundColor: Colors.grey[800],
-                        minHeight: 6,
-                      ),
-                    ],
-                  ),
-                  trailing: Text('${(p*100).toStringAsFixed(0)}%'),
+            if (_goals.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4),
+                child: Row(
+                  children: const [
+                    Icon(Icons.drag_indicator, size: 18, color: Colors.white70),
+                    SizedBox(width: 6),
+                    Expanded(child: Text('Priorité: faites glisser pour réordonner (haut = plus prioritaire).', style: TextStyle(fontSize: 12, color: Colors.white70))),
+                  ],
                 ),
-              );
-            })
+              ),
+              ReorderableListView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                buildDefaultDragHandles: false,
+                onReorder: (oldIndex, newIndex) async {
+                  setState(() {
+                    if (newIndex > oldIndex) newIndex -= 1;
+                    final item = _goals.removeAt(oldIndex);
+                    _goals.insert(newIndex, item);
+                  });
+                  await _persistOrder();
+                  // recharger pour garantir tri propre
+                  final g = await _service.listAll();
+                  setState(() => _goals = g);
+                },
+                children: [
+                  for (int i = 0; i < _goals.length; i++) _buildReorderableTile(_goals[i], i)
+                ],
+              ),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReorderableTile(Goal g, int index) {
+    final p = g.lastProgress ?? 0;
+    final valueStr = g.lastMeasuredValue?.toStringAsFixed(1) ?? '-';
+    return Card(
+      key: ValueKey(g.id),
+      child: ListTile(
+        leading: ReorderableDragStartListener(
+          index: index,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.drag_handle, size: 20),
+              Text('#${index+1}', style: const TextStyle(fontSize: 11)),
+            ],
+          ),
+        ),
+        title: Text(g.title),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${_metricLabel(g)}: $valueStr / cible ${g.targetValue}'),
+            const SizedBox(height: 6),
+            LinearProgressIndicator(
+              value: p,
+              color: _progressColor(p),
+              backgroundColor: Colors.grey[800],
+              minHeight: 6,
+            ),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('${(p*100).toStringAsFixed(0)}%'),
+            const SizedBox(height: 4),
+            InkWell(
+              onTap: () => _deleteGoal(g),
+              child: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+            ),
           ],
         ),
       ),

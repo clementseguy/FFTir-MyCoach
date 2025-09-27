@@ -9,6 +9,20 @@ class GoalService {
 
   Future<void> init() async {
     _box ??= await Hive.openBox<Goal>(goalsBoxName);
+    // Migration légère : attribuer des priorités séquentielles si absentes (9999) pour conserver ordre stable.
+    final b = _box!;
+    final goals = b.values.toList();
+    // Si tous ont priorité par défaut ou mélange -> réattribuer ordre actuel d'insertion.
+    final sorted = goals.toList();
+    int idx = 0;
+    for (final g in sorted) {
+      if (g.priority >= 9999) {
+        final updated = g.copyWith(priority: idx);
+        await b.put(updated.id, updated);
+        // priorité migrée
+      }
+      idx++;
+    }
   }
 
   Box<Goal> _ensureBox() {
@@ -21,7 +35,14 @@ class GoalService {
 
   Future<List<Goal>> listAll() async {
     final b = _ensureBox();
-    return b.values.toList();
+    final list = b.values.toList();
+    list.sort((a,b){
+      final pa = a.priority;
+      final pb = b.priority;
+      if (pa != pb) return pa.compareTo(pb);
+      return a.createdAt.compareTo(b.createdAt);
+    });
+    return list;
   }
 
   Future<void> addGoal(Goal goal) async {

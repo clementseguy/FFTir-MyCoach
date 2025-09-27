@@ -43,6 +43,7 @@ class BackupService {
         'updatedAt': g.updatedAt.toIso8601String(),
         'lastProgress': g.lastProgress,
         'lastMeasuredValue': g.lastMeasuredValue,
+        'priority': g.priority,
       }).toList(),
     };
     final jsonString = const JsonEncoder.withIndent('  ').convert(data);
@@ -107,6 +108,7 @@ class BackupService {
               updatedAt: DateTime.tryParse(g['updatedAt'] ?? '') ?? DateTime.now(),
               lastProgress: (g['lastProgress'] as num?)?.toDouble(),
               lastMeasuredValue: (g['lastMeasuredValue'] as num?)?.toDouble(),
+              priority: (g['priority'] as num?)?.toInt(),
             );
             await _goalService.addGoal(goal);
           } catch (_) {

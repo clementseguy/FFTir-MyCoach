@@ -71,6 +71,9 @@ class Goal extends HiveObject {
   double? lastProgress; // 0..1
   @HiveField(11)
   double? lastMeasuredValue;
+  // Plus la valeur est petite, plus l'objectif est prioritaire (0 = top / plus haut dans la liste)
+  @HiveField(12)
+  int priority;
 
   Goal({
     String? id,
@@ -85,9 +88,12 @@ class Goal extends HiveObject {
     DateTime? updatedAt,
     this.lastProgress,
     this.lastMeasuredValue,
+  int? priority,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+    updatedAt = updatedAt ?? DateTime.now(),
+    // Assigner au champ avec this.priority (éviter auto-référence paramètre -> champ resté null)
+    priority = priority ?? 9999; // valeur élevée par défaut si pas encore ordonné
 
   Goal copyWith({
     String? title,
@@ -99,6 +105,7 @@ class Goal extends HiveObject {
     GoalPeriod? period,
     double? lastProgress,
     double? lastMeasuredValue,
+    int? priority,
   }) {
     return Goal(
       id: id,
@@ -113,6 +120,7 @@ class Goal extends HiveObject {
       updatedAt: DateTime.now(),
       lastProgress: lastProgress ?? this.lastProgress,
       lastMeasuredValue: lastMeasuredValue ?? this.lastMeasuredValue,
+      priority: priority ?? this.priority,
     );
   }
 }
