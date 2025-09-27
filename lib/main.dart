@@ -6,6 +6,11 @@ import 'data/local_db_hive.dart';
 import 'screens/home_screen.dart';
 import 'screens/sessions_history_screen.dart';
 import 'screens/create_session_screen.dart';
+import 'services/backup_service.dart';
+import 'services/session_service.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 
 // Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
@@ -29,8 +34,93 @@ class ExercicesScreen extends StatelessWidget {
 class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final backup = BackupService();
+    final sessionService = SessionService();
     return Scaffold(
-      body: Center(child: Text('Coming soon', style: TextStyle(fontSize: 24))),
+      appBar: AppBar(title: Text('Paramètres')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          Text('Sauvegarde & Portabilité', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Exporter toutes les sessions', style: TextStyle(fontWeight: FontWeight.w600)),
+                  SizedBox(height: 6),
+                  Text('Génère un fichier JSON contenant toutes les sessions (séries, synthèse, analyse).'),
+                  SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.file_download),
+                    label: Text('Exporter (.json)'),
+                    onPressed: () async {
+                      try {
+                        final file = await backup.exportAllSessionsToJsonFile();
+                        await Share.shareXFiles([XFile(file.path)], text: 'Export sessions MyCoach');
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur export: $e')));
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Importer des sessions', style: TextStyle(fontWeight: FontWeight.w600)),
+                  SizedBox(height: 6),
+                  Text('Sélectionne un fichier JSON exporté précédemment pour réintégrer les sessions.'),
+                  SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.file_upload),
+                    label: Text('Importer (.json)'),
+                    onPressed: () async {
+                      try {
+                        final result = await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['json'],
+                        );
+                        if (result == null || result.files.isEmpty) return;
+                        final path = result.files.single.path;
+                        if (path == null) return;
+                        final content = await File(path).readAsString();
+                        final imported = await backup.importSessionsFromJson(content);
+                        final total = (await sessionService.getAllSessions()).length;
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('$imported sessions importées. Total: $total')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erreur import: $e')),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 28),
+          Text('Avertissement', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          SizedBox(height: 6),
+          Text('Les exports ne chiffrent pas les données. Ne partage pas le fichier si tu ne fais pas confiance au destinataire.' , style: TextStyle(fontSize: 12, color: Colors.white70)),
+        ],
+      ),
     );
   }
 }
