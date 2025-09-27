@@ -17,6 +17,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
   final _targetCtrl = TextEditingController();
   GoalMetric _metric = GoalMetric.averagePoints;
   GoalComparator _comparator = GoalComparator.greaterOrEqual;
+  GoalPeriod _period = GoalPeriod.none;
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       metric: _metric,
       comparator: _comparator,
       targetValue: target,
+      period: _period,
     );
     await _service.addGoal(goal);
     await _assignDefaultPriorityIfNeeded(goal);
@@ -109,19 +111,21 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
 
   String _metricLabel(Goal g) {
     switch (g.metric) {
-      case GoalMetric.averagePoints: return 'Moy. points';
-      case GoalMetric.sessionCount: return 'Sessions';
-      case GoalMetric.totalPoints: return 'Total points';
-      case GoalMetric.groupSize: return 'Groupement';
+      case GoalMetric.averagePoints: return 'Score moyen par série';
+      case GoalMetric.averageSessionPoints: return 'Score moyen par session';
+      case GoalMetric.sessionCount: return 'Nombre de sessions';
+      case GoalMetric.totalPoints: return '(Ancien) Points cumulés';
+      case GoalMetric.groupSize: return 'Taille groupement';
     }
   }
 
   String _shortMetricName(GoalMetric m) {
     switch (m) {
-      case GoalMetric.averagePoints: return 'Avg';
-      case GoalMetric.sessionCount: return 'Sess';
-      case GoalMetric.totalPoints: return 'Total';
-      case GoalMetric.groupSize: return 'Grp';
+      case GoalMetric.averagePoints: return 'Moy/série';
+      case GoalMetric.averageSessionPoints: return 'Moy/session';
+      case GoalMetric.sessionCount: return 'Sessions';
+      case GoalMetric.totalPoints: return 'Cumul';
+      case GoalMetric.groupSize: return 'Groupement';
     }
   }
 
@@ -129,6 +133,21 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
     switch (c) {
       case GoalComparator.greaterOrEqual: return '≥';
       case GoalComparator.lessOrEqual: return '≤';
+    }
+  }
+
+  String _metricExplanation(GoalMetric m) {
+    switch (m) {
+      case GoalMetric.averagePoints:
+        return 'Score moyen par série (moyenne des points des séries dans la période).';
+      case GoalMetric.averageSessionPoints:
+        return 'Score moyen par session (moyenne des moyennes de chaque session).';
+      case GoalMetric.sessionCount:
+        return 'Nombre de sessions réalisées sur la période.';
+      case GoalMetric.totalPoints:
+        return '(Ancien) cumul de tous les points; utiliser de préférence une moyenne.';
+      case GoalMetric.groupSize:
+        return 'Taille moyenne du groupement (objectif: descendre sous une valeur).';
     }
   }
 
@@ -164,7 +183,9 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                           child: DropdownButtonFormField<GoalMetric>(
                             value: _metric,
                             isExpanded: true,
-                            items: GoalMetric.values.map((m) => DropdownMenuItem(value: m, child: Text(_shortMetricName(m)))).toList(),
+                            items: GoalMetric.values
+                                .where((m) => m != GoalMetric.totalPoints) // masquer métrique obsolète
+                                .map((m) => DropdownMenuItem(value: m, child: Text(_shortMetricName(m)))).toList(),
                             onChanged: (v) => setState(() => _metric = v ?? _metric),
                             decoration: const InputDecoration(labelText: 'Métrique'),
                           ),
@@ -181,6 +202,32 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<GoalPeriod>(
+                      value: _period,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Période'),
+                      items: [
+                        DropdownMenuItem(value: GoalPeriod.none, child: Text('Aucune (objectif absolu)')),
+                        DropdownMenuItem(value: GoalPeriod.rollingWeek, child: Text('7 derniers jours')),
+                        DropdownMenuItem(value: GoalPeriod.rollingMonth, child: Text('30 derniers jours')),
+                      ],
+                      onChanged: (v) => setState(() => _period = v ?? _period),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _metricExplanation(_metric),
+                      style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                    if (_period != GoalPeriod.none) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _period == GoalPeriod.rollingWeek
+                            ? 'Calcul limité aux 7 derniers jours.'
+                            : 'Calcul limité aux 30 derniers jours.',
+                        style: const TextStyle(fontSize: 11, color: Colors.white54),
+                      )
+                    ],
                     const SizedBox(height: 8),
                     TextField(
                       controller: _targetCtrl,
@@ -241,6 +288,18 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
   Widget _buildReorderableTile(Goal g, int index) {
     final p = g.lastProgress ?? 0;
     final valueStr = g.lastMeasuredValue?.toStringAsFixed(1) ?? '-';
+    String periodLabel = '';
+    switch (g.period) {
+      case GoalPeriod.none:
+        periodLabel = '';
+        break;
+      case GoalPeriod.rollingWeek:
+        periodLabel = ' (7j)';
+        break;
+      case GoalPeriod.rollingMonth:
+        periodLabel = ' (30j)';
+        break;
+    }
     return Card(
       key: ValueKey(g.id),
       child: ListTile(
@@ -258,7 +317,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${_metricLabel(g)}: $valueStr / cible ${g.targetValue}'),
+            Text('${_metricLabel(g)}$periodLabel: $valueStr / cible ${g.targetValue}'),
             const SizedBox(height: 6),
             LinearProgressIndicator(
               value: p,

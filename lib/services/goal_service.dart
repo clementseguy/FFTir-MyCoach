@@ -76,25 +76,61 @@ class GoalService {
   }
 
   Goal _computeProgress(Goal goal, List<ShootingSession> sessions) {
+    // Filtrer selon la période si définie
+    List<ShootingSession> filtered = sessions;
+    if (goal.period != GoalPeriod.none) {
+      final now = DateTime.now();
+      DateTime threshold;
+      switch (goal.period) {
+        case GoalPeriod.rollingWeek:
+          threshold = now.subtract(const Duration(days: 7));
+          break;
+        case GoalPeriod.rollingMonth:
+          threshold = now.subtract(const Duration(days: 30));
+          break;
+        case GoalPeriod.none:
+          threshold = DateTime.fromMillisecondsSinceEpoch(0);
+          break;
+      }
+      filtered = sessions.where((s) {
+        final d = s.date ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return d.isAfter(threshold);
+      }).toList();
+    }
+
     double? value;
     switch (goal.metric) {
       case GoalMetric.averagePoints:
-        final allSeries = sessions.expand((s) => s.series);
+        final allSeries = filtered.expand((s) => s.series);
         final points = allSeries.map((s) => s.points.toDouble()).toList();
         if (points.isNotEmpty) value = points.reduce((a,b)=>a+b) / points.length;
         break;
       case GoalMetric.sessionCount:
-        value = sessions.length.toDouble();
+        value = filtered.length.toDouble();
         break;
       case GoalMetric.totalPoints:
-        final allSeries = sessions.expand((s) => s.series);
+        final allSeries = filtered.expand((s) => s.series);
         final points = allSeries.map((s) => s.points.toDouble()).toList();
         value = points.isEmpty ? 0 : points.reduce((a,b)=>a+b);
         break;
       case GoalMetric.groupSize:
-        final allSeries = sessions.expand((s) => s.series);
+        final allSeries = filtered.expand((s) => s.series);
         final groups = allSeries.map((s) => s.groupSize).toList();
         if (groups.isNotEmpty) value = groups.reduce((a,b)=>a+b) / groups.length;
+        break;
+      case GoalMetric.averageSessionPoints:
+        // Moyenne des points moyens par session (chaque session: somme points séries / nb séries)
+        if (filtered.isNotEmpty) {
+          double sum = 0;
+            int count = 0;
+            for (final s in filtered) {
+              if (s.series.isEmpty) continue;
+              final pts = s.series.map((e) => e.points.toDouble()).reduce((a,b)=>a+b);
+              sum += pts / s.series.length;
+              count++;
+            }
+            if (count > 0) value = sum / count;
+        }
         break;
     }
 

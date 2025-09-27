@@ -13,6 +13,9 @@ enum GoalMetric {
   totalPoints,
   @HiveField(3)
   groupSize,
+  // Nouvelle métrique: moyenne des points par session (somme points séries / nb séries par session, moyennée sur les sessions filtrées)
+  @HiveField(4)
+  averageSessionPoints,
 }
 
 @HiveType(typeId: 41)
