@@ -115,23 +115,23 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       case GoalMetric.averageSessionPoints: return 'Score moyen par session';
       case GoalMetric.sessionCount: return 'Nombre de sessions';
       case GoalMetric.totalPoints: return '(Ancien) Points cumulés';
-      case GoalMetric.groupSize: return 'Moy/groupement';
-      case GoalMetric.bestSeriesPoints: return 'Score d\'une série';
-      case GoalMetric.bestSessionPoints: return 'Score d\'une session';
+      case GoalMetric.groupSize: return 'Score moyen groupement';
+      case GoalMetric.bestSeriesPoints: return 'Score série';
+      case GoalMetric.bestSessionPoints: return 'Score session';
       case GoalMetric.bestGroupSize: return 'Taille du groupement';
     }
   }
 
   String _shortMetricName(GoalMetric m) {
     switch (m) {
-      case GoalMetric.averagePoints: return 'Moy/série';
-      case GoalMetric.averageSessionPoints: return 'Moy/session';
-      case GoalMetric.sessionCount: return 'Sessions';
-      case GoalMetric.totalPoints: return 'Cumul';
-      case GoalMetric.groupSize: return 'Moy grp';
+      case GoalMetric.averagePoints: return 'Score moyen par série';
+      case GoalMetric.averageSessionPoints: return 'Score moyen par session';
+      case GoalMetric.sessionCount: return 'Nombre de sessions';
+      case GoalMetric.totalPoints: return 'Points cumulés';
+      case GoalMetric.groupSize: return 'Score moyen groupement';
       case GoalMetric.bestSeriesPoints: return 'Score série';
-      case GoalMetric.bestSessionPoints: return 'Score sess';
-      case GoalMetric.bestGroupSize: return 'Grp min';
+      case GoalMetric.bestSessionPoints: return 'Score session';
+      case GoalMetric.bestGroupSize: return 'Taille du groupement';
     }
   }
 
