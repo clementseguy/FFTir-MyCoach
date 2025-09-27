@@ -6,7 +6,6 @@ import '../models/shooting_session.dart';
 import '../services/stats_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'session_detail_screen.dart';
-import '../widgets/goals_summary_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -188,8 +187,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       SizedBox(height: 16),
                       // KPI banner
                       kpiGrid,
-                      SizedBox(height: 20),
-                      const GoalsSummaryCard(),
                       SizedBox(height: 20),
                       // Badges performance
                       Wrap(

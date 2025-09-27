@@ -15,6 +15,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'config/app_config.dart';
 import 'models/goal.dart';
 import 'screens/goals_list_screen.dart';
+import 'widgets/goals_summary_card.dart';
 
 // Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
@@ -30,7 +31,29 @@ class ExercicesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(child: Text('Coming soon', style: TextStyle(fontSize: 24))),
+      appBar: AppBar(title: const Text('Exercices & Objectifs')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const GoalsSummaryCard(),
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.flag),
+              title: const Text('Tous les objectifs'),
+              subtitle: const Text('Créer ou modifier vos objectifs'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen())),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text('Prochaines évolutions', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
+          const SizedBox(height: 8),
+          Text('- Bibliothèque d’exercices (à venir)', style: TextStyle(color: Colors.white54)),
+          Text('- Suggestions d’objectifs IA', style: TextStyle(color: Colors.white54)),
+          Text('- Suivi des routines', style: TextStyle(color: Colors.white54)),
+        ],
+      ),
     );
   }
 }
