@@ -7,7 +7,10 @@ class LocalDatabaseHive {
     await _box.clear();
   }
 
-  /// Génère et insère 25 sessions de tir aléatoires en base (pour démo/tests)
+  /// Génère et insère des sessions de tir aléatoires (test/démo) avec règles:
+  /// - Séries: entre 3 et 15
+  /// - shot_count: <=5 (rarement 6 ou 7 comme exception ~10%)
+  /// - points: borné à shot_count * 10
   Future<void> insertRandomSessions({int count = 25, String status = 'réalisée'}) async {
     final random = Random();
     final now = DateTime.now();
@@ -21,17 +24,28 @@ class LocalDatabaseHive {
         'caliber': caliber,
         'status': status,
       };
-      // 1 à 4 séries par session
-      final seriesCount = 1 + random.nextInt(4);
-      final List<Map<String, dynamic>> seriesList = List.generate(seriesCount, (j) {
-        return {
-          'shot_count': 5 + random.nextInt(6),
+
+      final seriesCount = 3 + random.nextInt(13); // 3..15
+      final List<Map<String, dynamic>> seriesList = [];
+      for (int j = 0; j < seriesCount; j++) {
+        // Base shot count 3-5
+        int shotCount = 3 + random.nextInt(3); // 3,4,5
+        // 10% chance small exception to 6 or 7
+        if (random.nextDouble() < 0.10) {
+          shotCount = 6 + random.nextInt(2); // 6 ou 7
+        }
+        final maxPoints = shotCount * 10;
+        // Générer une distribution réaliste: points autour de 65-95% du max
+        final base = (maxPoints * (0.65 + random.nextDouble() * 0.30)).round();
+        final points = base.clamp(0, maxPoints);
+        seriesList.add({
+          'shot_count': shotCount,
           'distance': [10, 25, 50][random.nextInt(3)],
-          'points': 40 + random.nextInt(61),
+          'points': points,
           'group_size': (5 + random.nextInt(26)).toDouble(),
           'comment': random.nextBool() ? 'RAS' : '',
-        };
-      });
+        });
+      }
       await insertSession(session, seriesList);
     }
   }
