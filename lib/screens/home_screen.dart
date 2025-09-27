@@ -1,10 +1,13 @@
 import '../widgets/session_card.dart';
 import 'package:flutter/material.dart';
-import '../local_db_hive.dart';
+import '../services/session_service.dart';
+import '../constants/session_constants.dart';
+import '../models/shooting_session.dart';
+// import '../models/series.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'session_detail_screen.dart';
-import 'create_session_screen.dart';
-import 'sessions_history_screen.dart';
+// import 'create_session_screen.dart';
+// import 'sessions_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,19 +17,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  final SessionService _sessionService = SessionService();
+  late Future<List<ShootingSession>> _sessionsFuture;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Rafraîchit la liste à chaque retour sur l'accueil
-    _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
-    setState(() {});
+    _refreshSessions();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
-      setState(() {});
+      _refreshSessions();
     }
   }
 
@@ -36,19 +39,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  late Future<List<Map<String, dynamic>>> _sessionsFuture;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+    _refreshSessions();
   }
 
-  Future<void> _addRandomSessions() async {
-    await LocalDatabaseHive().insertRandomSessions(count: 3);
+  void _refreshSessions() {
     setState(() {
-      _sessionsFuture = LocalDatabaseHive().getSessionsWithSeries();
+      _sessionsFuture = _sessionService.getAllSessions();
     });
   }
 
@@ -56,7 +56,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
               'assets/app_logo.png',
@@ -66,52 +69,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const Text('Accueil'),
           ],
         ),
-        actions: [],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.black),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    'assets/app_logo.png',
-                    height: 56,
-                  ),
-                  SizedBox(height: 8),
-                  Text('Tir Sportif', style: TextStyle(color: Colors.white, fontSize: 20)),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Accueil'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.add),
-              title: Text('Nouvelle session'),
-              onTap: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => CreateSessionScreen()));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.list),
-              title: Text('Historique'),
-              onTap: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => SessionsHistoryScreen()));
-              },
-            ),
-          ],
-        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            tooltip: 'Rafraîchir',
+            onPressed: _refreshSessions,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -119,42 +83,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Statistiques', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Mes Stats', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 16),
-              FutureBuilder<List<Map<String, dynamic>>>(
+              FutureBuilder<List<ShootingSession>>(
                 future: _sessionsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   }
                   final allSessions = (snapshot.data ?? [])
-                    .where((s) {
-                      final session = s['session'];
-                      return session != null && (session['status'] ?? 'réalisée') == 'réalisée' && session['date'] != null;
-                    })
-                    .toList();
+                      .where((s) => s.status == SessionConstants.statusRealisee && s.date != null)
+                      .toList();
                   if (allSessions.isEmpty) {
                     return Center(child: Text('Aucune donnée pour les graphes.'));
                   }
                   final List<DateTime> dates = [];
                   final List<FlSpot> pointsSpots = [];
                   final List<FlSpot> groupSizeSpots = [];
-                  final List<Map<String, dynamic>> sortedSessions = List<Map<String, dynamic>>.from(allSessions);
+                  final List<ShootingSession> sortedSessions = List<ShootingSession>.from(allSessions);
                   sortedSessions.sort((a, b) {
-                    final dateA = DateTime.tryParse(a['session']['date'] ?? '') ?? DateTime.now();
-                    final dateB = DateTime.tryParse(b['session']['date'] ?? '') ?? DateTime.now();
+                    final dateA = a.date ?? DateTime.now();
+                    final dateB = b.date ?? DateTime.now();
                     return dateB.compareTo(dateA);
                   });
-                  final List<Map<String, dynamic>> lastSessions = sortedSessions.take(10).toList();
+                  final List<ShootingSession> lastSessions = sortedSessions.take(10).toList();
                   final List<Map<String, dynamic>> allSeries = [];
                   for (final session in lastSessions) {
-                    final sessionDate = DateTime.tryParse(session['session']['date'] ?? '') ?? DateTime.now();
-                    final List<dynamic> series = session['series'] ?? [];
-                    for (final serie in series) {
+                    final sessionDate = session.date ?? DateTime.now();
+                    for (final serie in session.series) {
                       allSeries.add({
                         'date': sessionDate,
-                        'points': (serie['points'] ?? 0).toDouble(),
-                        'group_size': (serie['group_size'] ?? 0).toDouble(),
+                        'points': (serie.points).toDouble(),
+                        'group_size': (serie.groupSize).toDouble(),
                       });
                     }
                   }
@@ -190,7 +150,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   showTitles: true,
                                   reservedSize: 36,
                                   getTitlesWidget: (value, meta) {
-                                    // Affiche les scores (axe Y)
                                     if (value % 1 != 0) return SizedBox.shrink();
                                     return Text(
                                       value.toInt().toString(),
@@ -206,7 +165,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   showTitles: true,
                                   reservedSize: 32,
                                   getTitlesWidget: (value, meta) {
-                                    // Affiche la date de la série (axe X)
                                     final i = value.toInt();
                                     if (value % 1 != 0 || i < 0 || i >= dates.length) return SizedBox.shrink();
                                     final d = dates[i];
@@ -300,44 +258,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
               ),
               SizedBox(height: 24),
-              Text('Dernières sessions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              FutureBuilder<List<Map<String, dynamic>>>(
+              Text('Mes dernières sessions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              FutureBuilder<List<ShootingSession>>(
                 future: _sessionsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   }
                   final sessions = (snapshot.data ?? [])
-                    .where((s) {
-                      final session = s['session'];
-                      return session != null && (session['status'] ?? 'réalisée') == 'réalisée' && session['date'] != null;
-                    })
-                    .toList();
+                      .where((s) => s.status == 'réalisée' && s.date != null)
+                      .toList();
                   if (sessions.isEmpty) {
                     return Center(child: Text('Aucune session enregistrée.'));
                   }
-                  final List<Map<String, dynamic>> sortedSessions = List<Map<String, dynamic>>.from(sessions);
+                  final List<ShootingSession> sortedSessions = List<ShootingSession>.from(sessions);
                   sortedSessions.sort((a, b) {
-                    final dateA = DateTime.tryParse(a['session']['date'] ?? '') ?? DateTime.now();
-                    final dateB = DateTime.tryParse(b['session']['date'] ?? '') ?? DateTime.now();
+                    final dateA = a.date ?? DateTime.now();
+                    final dateB = b.date ?? DateTime.now();
                     return dateB.compareTo(dateA);
                   });
-                  final List<Map<String, dynamic>> last3 = sortedSessions.take(3).toList();
+                  final List<ShootingSession> last3 = sortedSessions.take(3).toList();
                   return ListView.builder(
                     shrinkWrap: true,
                     physics: NeverScrollableScrollPhysics(),
                     itemCount: last3.length,
                     itemBuilder: (context, index) {
-                      final session = last3[index]['session'];
-                      final series = last3[index]['series'] as List<dynamic>? ?? [];
+                      final session = last3[index];
                       return SessionCard(
-                        session: session,
-                        series: series,
+                        session: session.toMap(),
+                        series: session.series.map((s) => s.toMap()).toList(),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => SessionDetailScreen(sessionData: last3[index]),
+                              builder: (context) => SessionDetailScreen(sessionData: {
+                                'session': session.toMap(),
+                                'series': session.series.map((s) => s.toMap()).toList(),
+                              }),
                             ),
                           );
                         },
