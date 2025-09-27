@@ -81,18 +81,6 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          // Section Objectifs
-          Text('Objectifs', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.flag, color: Colors.amber),
-              title: Text('Gérer mes objectifs'),
-              subtitle: Text('Créer, suivre et visualiser la progression'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen())),
-            ),
-          ),
-          SizedBox(height: 28),
           Text('Sauvegarde & Portabilité', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           SizedBox(height: 12),
           Card(
