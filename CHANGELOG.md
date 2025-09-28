@@ -2,6 +2,29 @@
 
 Toutes les modifications notables de ce projet seront listées ici.
 
+## [Unreleased - 0.3.0]
+### Planned / Scope
+- Gestion des Exercices (création, catégories, association aux sessions)
+- Suivi amélioré des Objectifs (types, statut enrichi, progression)
+- Amélioration UI saisie des Séries (mode rapide, numpad, navigation optimisée)
+- Améliorations mineures: calibres normalisés, UX micro-ajustements
+- Stats étendues: moyennes glissantes 30j / 60j (1M / 2M), delta progression
+
+### Added (prévisionnel)
+- (À compléter au fil des merges)
+
+### Changed (prévisionnel)
+- (À compléter)
+
+### Fixed (prévisionnel)
+- (À compléter)
+
+### Technical (prévisionnel)
+- Migration BDD: tables/colonnes Exercices + enrichissement Objectifs
+- Cache stats agrégées (si implémenté)
+
+---
+
 ## [0.2.0] - 2025-09-28
 ### Added
 - Bottom sheet "Rappels Essentiels" (Accueil) avec onglets Sécurité / Tir.
