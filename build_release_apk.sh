@@ -12,7 +12,7 @@ set -euo pipefail
 # Sortie:
 #   Génère build/app/outputs/flutter-apk/app-release.apk
 
-ASK_KEY=false
+ASK_KEY=true
 FLAVOR=""
 
 while [[ $# -gt 0 ]]; do
@@ -57,10 +57,14 @@ fi
 echo "==> Commande: ${CMD[*]}"
 "${CMD[@]}"
 
-APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+APK_DIR="build/app/outputs/flutter-apk"
+APK_PATH="$APK_DIR/app-release.apk"
 if [[ -f "$APK_PATH" ]]; then
-  SIZE=$(du -h "$APK_PATH" | cut -f1)
-  echo "\nAPK généré: $APK_PATH ($SIZE)"
+  TS=$(date +%Y%m%d-%H%M)
+  TARGET_NAME="NexTarget-release-$TS.apk"
+  mv -f "$APK_PATH" "$APK_DIR/$TARGET_NAME"
+  SIZE=$(du -h "$APK_DIR/$TARGET_NAME" | cut -f1)
+  echo -e "\nAPK généré: $APK_DIR/$TARGET_NAME ($SIZE)"
 else
   echo "Échec: APK introuvable à $APK_PATH" >&2
   exit 4
