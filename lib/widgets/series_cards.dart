@@ -65,39 +65,36 @@ class SeriesDisplayCard extends StatelessWidget {
               final badges = <Widget>[];
               if (highlightBestPoints) badges.add(_Badge(label: 'Meilleurs points', icon: Icons.star, color: Colors.amberAccent));
               if (highlightBestGroup) badges.add(_Badge(label: 'Meilleur groupement', icon: Icons.bubble_chart, color: Colors.tealAccent));
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 15,
-                    backgroundColor: Colors.amberAccent.withOpacity(0.85),
-                    child: Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Série ${index + 1}',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 15,
+                        backgroundColor: Colors.amberAccent.withOpacity(0.85),
+                        child: Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Série ${index + 1}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        _PriseBadge(method: series.handMethod),
-                        if (badges.isNotEmpty)
-                          Flexible(
-                            child: Wrap(
-                              spacing: 4,
-                              runSpacing: 4,
-                              alignment: WrapAlignment.end,
-                              children: badges,
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
+                      _PriseBadge(method: series.handMethod),
+                    ],
                   ),
+                  if (badges.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: badges,
+                    ),
+                  ],
                 ],
               );
             }),
