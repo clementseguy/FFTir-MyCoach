@@ -82,8 +82,26 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
               return Card(
                 child: ListTile(
                   title: Text(ex.name),
-                  subtitle: Text('${ex.category} • ${ex.goalIds.length} objectif(s)'),
-                  leading: const Icon(Icons.fitness_center),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${ex.category} • ${ex.goalIds.length} objectif(s)'),
+                      if (ex.description != null && ex.description!.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top:4.0),
+                          child: Text(
+                            ex.description!.split('\n').first.trim(),
+                            style: const TextStyle(fontSize: 12, color: Colors.white70, fontStyle: FontStyle.italic),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
+                  leading: Icon(
+                    ex.description != null && ex.description!.trim().isNotEmpty ? Icons.description : Icons.fitness_center,
+                    color: ex.description != null && ex.description!.trim().isNotEmpty ? Colors.amberAccent : null,
+                  ),
                   trailing: const Icon(Icons.edit, size: 18),
                   onTap: () => _openEdit(ex),
                 ),
@@ -110,6 +128,7 @@ class ExerciseFormScreen extends StatefulWidget {
 class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
   String _category = ExerciseCategories.technique;
   final GoalService _goalService = GoalService();
   List<Goal> _allGoals = [];
@@ -131,6 +150,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
       _nameCtrl.text = widget.editing!.name;
       _category = widget.editing!.category;
       _selectedGoals.addAll(widget.editing!.goalIds);
+      _descCtrl.text = widget.editing!.description ?? '';
     }
     _initGoals();
   }
@@ -143,12 +163,14 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
         await _service.addExercise(
           name: _nameCtrl.text,
           category: _category,
+          description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
           goalIds: _selectedGoals.toList(),
         );
       } else {
         final updated = widget.editing!.copyWith(
           name: _nameCtrl.text,
           category: _category,
+          description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
           goalIds: _selectedGoals.toList(),
         );
         await _service.updateExercise(updated);
@@ -181,6 +203,17 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                 if (v == null || v.trim().isEmpty) return 'Nom requis';
                 return null;
               },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _descCtrl,
+              minLines: 3,
+              maxLines: 10,
+              decoration: const InputDecoration(
+                labelText: 'Consigne détaillée',
+                hintText: 'Décris étape par étape :\nSérie 1 : ...\nSérie 2 : ...',
+                alignLabelWithHint: true,
+              ),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
