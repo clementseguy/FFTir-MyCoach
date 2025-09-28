@@ -61,20 +61,45 @@ class SeriesDisplayCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 15,
-                  backgroundColor: Colors.amberAccent.withOpacity(0.85),
-                  child: Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                ),
-                const SizedBox(width: 10),
-                Text('Série ${index + 1}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                const Spacer(),
-                if (highlightBestPoints) _Badge(label: 'Meilleurs points', icon: Icons.star, color: Colors.amberAccent),
-                if (highlightBestGroup) _Badge(label: 'Meilleur groupement', icon: Icons.bubble_chart, color: Colors.tealAccent),
-              ],
-            ),
+            LayoutBuilder(builder: (context, constraints) {
+              final badges = <Widget>[];
+              if (highlightBestPoints) badges.add(_Badge(label: 'Meilleurs points', icon: Icons.star, color: Colors.amberAccent));
+              if (highlightBestGroup) badges.add(_Badge(label: 'Meilleur groupement', icon: Icons.bubble_chart, color: Colors.tealAccent));
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 15,
+                    backgroundColor: Colors.amberAccent.withOpacity(0.85),
+                    child: Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Série ${index + 1}',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (badges.isNotEmpty)
+                          Flexible(
+                            child: Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              alignment: WrapAlignment.end,
+                              children: badges,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
