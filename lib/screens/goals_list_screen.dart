@@ -479,39 +479,41 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
         border: isNew ? Border.all(color: Colors.amberAccent, width: 1.2) : null,
       ),
       child: ListTile(
-        leading: achieved ?
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.check_circle, color: Colors.green, size: 24),
-            ],
-          )
-          : ReorderableDragStartListener(
-              index: index,
-              child: Column(
+        leading: achieved
+            ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.drag_handle, size: 20),
-                  Text('#${index+1}', style: const TextStyle(fontSize: 11)),
+                children: const [
+                  Icon(Icons.check_circle, color: Colors.green, size: 24),
                 ],
+              )
+            : ReorderableDragStartListener(
+                index: index,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.drag_handle, size: 20),
+                    Text('#${index + 1}', style: const TextStyle(fontSize: 11)),
+                  ],
+                ),
               ),
-            ),
         title: Row(
           children: [
             Expanded(child: Text(g.title)),
-            if (g.improvementDelta != null && g.period != GoalPeriod.none)
-              _buildTrendChip(g),
+            if (g.improvementDelta != null && g.period != GoalPeriod.none) _buildTrendChip(g),
           ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${_metricLabel(g)}$periodLabel: $valueStr / cible ${g.targetValue.round()}',
-              style: achieved ? const TextStyle(decoration: TextDecoration.lineThrough, color: Colors.white70) : null,
+            Text(
+              '${_metricLabel(g)}$periodLabel: $valueStr / cible ${g.targetValue.round()}',
+              style: achieved
+                  ? const TextStyle(decoration: TextDecoration.lineThrough, color: Colors.white70)
+                  : null,
             ),
             if (achievedDateLabel.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top:4.0),
+                padding: const EdgeInsets.only(top: 4.0),
                 child: Text(achievedDateLabel, style: const TextStyle(fontSize: 11, color: Colors.greenAccent)),
               ),
             const SizedBox(height: 6),
@@ -523,14 +525,20 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
             ),
           ],
         ),
-        trailing: achieved ? Text('${(p*100).toStringAsFixed(0)}%', style: const TextStyle(color: Colors.green)) :
-          SizedBox(
-            width: 72,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text('${(p*100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 12)),
-                const SizedBox(width: 4),
+        trailing: IntrinsicWidth(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  '${(p * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(fontSize: 12, color: achieved ? Colors.green : null),
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                ),
+              ),
+              const SizedBox(width: 4),
+              if (!achieved)
                 InkWell(
                   onTap: () {
                     setState(() {
@@ -541,21 +549,20 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                       _comparator = g.comparator;
                       _period = g.period;
                     });
-                    // Scroll vers le haut après petit délai
                     Future.delayed(const Duration(milliseconds: 150), () {
                       Scrollable.ensureVisible(_formKey.currentContext!, duration: const Duration(milliseconds: 300));
                     });
                   },
                   child: const Icon(Icons.edit, size: 20, color: Colors.amber),
                 ),
-                const SizedBox(width: 4),
-                InkWell(
-                  onTap: () => _deleteGoal(g),
-                  child: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
-                ),
-              ],
-            ),
+              if (!achieved) const SizedBox(width: 4),
+              InkWell(
+                onTap: () => _deleteGoal(g),
+                child: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+              ),
+            ],
           ),
+        ),
       ),
     );
   }

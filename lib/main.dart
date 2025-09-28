@@ -144,6 +144,40 @@ class SettingsScreen extends StatelessWidget {
                       }
                     },
                   ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.save_alt),
+                    label: const Text('Enregistrer dans un dossier'),
+                    onPressed: () async {
+                      try {
+                        final file = await backup.exportAllSessionsToUserFolder();
+                        if (file == null) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Export annulé')),
+                          );
+                          return;
+                        }
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Fichier enregistré: ${file.path.split('/').last}')),
+                        );
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erreur sauvegarde: $e')),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '"Exporter (.json)" permet de partager directement (mail, messagerie).\n'
+                    '"Enregistrer dans un dossier" crée le fichier dans le dossier que tu sélectionnes. '
+                    'Conseil: crée un dossier "MyCoachExports" sur ton téléphone.',
+                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
                 ],
               ),
             ),
