@@ -72,11 +72,21 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
               // planned view: we won't group by day; treat each planned session as a flat list
               orderedKeys = [];
             }
-            // Stats header
+            // Stats header (different for planned vs realized)
             final int nbSessions = sessions.length;
             final int totalSeries = sessions.fold(0, (sum, s) => sum + (s.series.length));
             final double avgSeries = nbSessions > 0 ? totalSeries / nbSessions : 0;
             final int daysActive = grouped.length;
+            // Planned metrics
+            int plannedCount = planned.length;
+            int plannedWithDate = planned.where((p)=> p.date!=null).length;
+            int plannedWithoutDate = plannedCount - plannedWithDate;
+            DateTime? nextPlannedDate;
+            final datedPlanned = planned.where((p)=> p.date!=null).toList();
+            if (datedPlanned.isNotEmpty) {
+              datedPlanned.sort((a,b)=> a.date!.compareTo(b.date!));
+              nextPlannedDate = datedPlanned.first.date;
+            }
             return RefreshIndicator(
               onRefresh: () async { refreshSessions(); await Future.delayed(Duration(milliseconds:300)); },
               child: ListView.builder(
@@ -103,7 +113,15 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                             ],
                           ),
                         ),
-                        _SummaryHeader(nbSessions: nbSessions, totalSeries: totalSeries, avgSeries: avgSeries, daysActive: daysActive),
+                        if (_filter == 'realized')
+                          _SummaryHeader(nbSessions: nbSessions, totalSeries: totalSeries, avgSeries: avgSeries, daysActive: daysActive)
+                        else
+                          _PlannedHeader(
+                            totalPlanned: plannedCount,
+                            withDate: plannedWithDate,
+                            withoutDate: plannedWithoutDate,
+                            nextDate: nextPlannedDate,
+                          ),
                       ],
                     );
                   }
@@ -248,6 +266,56 @@ class _SummaryHeader extends StatelessWidget {
                   _Stat(label: 'Moy./session', value: avgSeries.toStringAsFixed(1), icon: Icons.stacked_line_chart, color: Colors.pinkAccent),
                   _VerticalDivider(),
                   _Stat(label: 'Jours actifs', value: daysActive.toString(), icon: Icons.event_available, color: Colors.tealAccent),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlannedHeader extends StatelessWidget {
+  final int totalPlanned;
+  final int withDate;
+  final int withoutDate;
+  final DateTime? nextDate;
+  const _PlannedHeader({required this.totalPlanned, required this.withDate, required this.withoutDate, required this.nextDate});
+  @override
+  Widget build(BuildContext context) {
+    String nextLabel = nextDate != null ? '${nextDate!.day}/${nextDate!.month}' : '-';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16,16,16,12),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.pending_actions, color: Colors.amberAccent),
+                  SizedBox(width: 8),
+                  Text('Résumé des prévues', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  _Stat(label: 'Total', value: totalPlanned.toString(), icon: Icons.list_alt, color: Colors.amberAccent),
+                  _VerticalDivider(),
+                  _Stat(label: 'Datées', value: withDate.toString(), icon: Icons.event, color: Colors.lightBlueAccent),
+                ],
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  _Stat(label: 'Sans date', value: withoutDate.toString(), icon: Icons.help_outline, color: Colors.pinkAccent),
+                  _VerticalDivider(),
+                  _Stat(label: 'Prochaine', value: nextLabel, icon: Icons.schedule, color: Colors.tealAccent),
                 ],
               ),
             ],
