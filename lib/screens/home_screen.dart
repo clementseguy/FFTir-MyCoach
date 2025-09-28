@@ -92,8 +92,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Mes Stats', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 16),
               // Choix prise retiré (on affichera plus tard stats comparatives dédiées)
               FutureBuilder<List<ShootingSession>>(
                 future: _sessionsFuture,
