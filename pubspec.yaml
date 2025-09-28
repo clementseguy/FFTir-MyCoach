@@ -38,17 +38,7 @@ flutter_icons:
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: assets/app_logo.png
 
-flutter_native_splash:
-  color: "#181A20"
-  color_dark: "#000000"
-  image: assets/app_logo.png
-  image_dark: assets/app_logo.png
-  android_12:
-    image: assets/app_logo.png
-    icon_background_color: "#181A20"
-    icon_background_color_dark: "#000000"
-  web: true
-  fullscreen: true
+## Ancien bloc flutter_native_splash supprimé (splash géré par overlay Flutter)
 
 flutter:
   uses-material-design: true
