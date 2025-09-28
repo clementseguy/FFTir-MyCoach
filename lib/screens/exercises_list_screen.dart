@@ -96,6 +96,20 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                      if (ex.durationMinutes != null || (ex.equipment != null && ex.equipment!.trim().isNotEmpty))
+                        Padding(
+                          padding: const EdgeInsets.only(top:6.0),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              if (ex.durationMinutes != null)
+                                _Badge(icon: Icons.timer, text: '${ex.durationMinutes} min'),
+                              if (ex.equipment != null && ex.equipment!.trim().isNotEmpty)
+                                _Badge(icon: Icons.build, text: ex.equipment!.trim(), maxWidth: 140),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                   leading: Icon(
@@ -129,6 +143,8 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _durationCtrl = TextEditingController();
+  final _equipmentCtrl = TextEditingController();
   String _category = ExerciseCategories.technique;
   final GoalService _goalService = GoalService();
   List<Goal> _allGoals = [];
@@ -151,6 +167,10 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
       _category = widget.editing!.category;
       _selectedGoals.addAll(widget.editing!.goalIds);
       _descCtrl.text = widget.editing!.description ?? '';
+      if (widget.editing!.durationMinutes != null) {
+        _durationCtrl.text = widget.editing!.durationMinutes.toString();
+      }
+      _equipmentCtrl.text = widget.editing!.equipment ?? '';
     }
     _initGoals();
   }
@@ -165,6 +185,8 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
           category: _category,
           description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
           goalIds: _selectedGoals.toList(),
+          durationMinutes: int.tryParse(_durationCtrl.text.trim()),
+          equipment: _equipmentCtrl.text.trim().isEmpty ? null : _equipmentCtrl.text.trim(),
         );
       } else {
         final updated = widget.editing!.copyWith(
@@ -172,6 +194,8 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
           category: _category,
           description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
           goalIds: _selectedGoals.toList(),
+          durationMinutes: int.tryParse(_durationCtrl.text.trim()),
+          equipment: _equipmentCtrl.text.trim().isEmpty ? null : _equipmentCtrl.text.trim(),
         );
         await _service.updateExercise(updated);
       }
@@ -214,6 +238,40 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                 hintText: 'Décris étape par étape :\nSérie 1 : ...\nSérie 2 : ...',
                 alignLabelWithHint: true,
               ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _durationCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Durée estimée (min)',
+                      hintText: 'ex: 15',
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (v) {
+                      if (v==null || v.trim().isEmpty) return null; // optional
+                      final n = int.tryParse(v.trim());
+                      if (n==null || n<=0) return 'Valeur invalide';
+                      if (n>600) return '>600 ?';
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _equipmentCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Matériel requis',
+                      hintText: 'ex: timer, cibles...',
+                    ),
+                    minLines: 1,
+                    maxLines: 3,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
@@ -265,6 +323,42 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final double? maxWidth;
+  const _Badge({required this.icon, required this.text, this.maxWidth});
+  @override
+  Widget build(BuildContext context) {
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: Colors.amberAccent),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 11),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+    final child = maxWidth != null
+        ? ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth!), child: content)
+        : content;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: child,
     );
   }
 }
