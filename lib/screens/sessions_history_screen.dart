@@ -58,15 +58,20 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
       }
             final bool noDataRealized = sessions.isEmpty && _filter == 'realized';
             final bool noDataPlannedOnly = _filter == 'planned' && planned.isEmpty;
-            // Tri et regroupement par jour
-            sessions.sort((a,b)=> b.date!.compareTo(a.date!));
+            List<DateTime> orderedKeys = [];
             final Map<DateTime,List<ShootingSession>> grouped = {};
-            for (final s in sessions) {
-              final d = s.date!;
-              final key = DateTime(d.year, d.month, d.day);
-              grouped.putIfAbsent(key, ()=> []); grouped[key]!.add(s);
+            if (_filter == 'realized') {
+              sessions.sort((a,b)=> b.date!.compareTo(a.date!));
+              for (final s in sessions) {
+                final d = s.date!;
+                final key = DateTime(d.year, d.month, d.day);
+                grouped.putIfAbsent(key, ()=> []); grouped[key]!.add(s);
+              }
+              orderedKeys = grouped.keys.toList()..sort((a,b)=> b.compareTo(a));
+            } else {
+              // planned view: we won't group by day; treat each planned session as a flat list
+              orderedKeys = [];
             }
-            final orderedKeys = grouped.keys.toList()..sort((a,b)=> b.compareTo(a));
             // Stats header
             final int nbSessions = sessions.length;
             final int totalSeries = sessions.fold(0, (sum, s) => sum + (s.series.length));
@@ -76,7 +81,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
               onRefresh: () async { refreshSessions(); await Future.delayed(Duration(milliseconds:300)); },
               child: ListView.builder(
                 padding: EdgeInsets.only(bottom: 24, top: 8),
-                itemCount: 1 + (noDataRealized ? 1 : 0) + (noDataPlannedOnly ? 1 : 0) + orderedKeys.length + (planned.isNotEmpty && _filter=='realized' ? 2 : 0),
+                itemCount: 1 + (noDataRealized ? 1 : 0) + (noDataPlannedOnly ? 1 : 0) + (_filter=='realized' ? orderedKeys.length : planned.length) + (planned.isNotEmpty && _filter=='realized' ? 2 : 0),
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return Column(
@@ -167,10 +172,35 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                     }
                     cursor++;
                   }
-                  final dayIndex = index - cursor;
-                  final day = orderedKeys[dayIndex];
-                  final list = grouped[day]!;
-                  return _DaySection(day: day, sessions: list, onChanged: refreshSessions, sessionService: _sessionService);
+                  if (_filter == 'planned') {
+                    final plannedIndex = index - cursor;
+                    if (plannedIndex < 0 || plannedIndex >= planned.length) return SizedBox.shrink();
+                    final p = planned[plannedIndex];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+                      child: SessionCard(
+                        session: p.toMap(),
+                        series: const [],
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SessionDetailScreen(sessionData: {
+                                'session': p.toMap(),
+                                'series': [],
+                              }),
+                            ),
+                          );
+                          refreshSessions();
+                        },
+                      ),
+                    );
+                  } else {
+                    final dayIndex = index - cursor;
+                    final day = orderedKeys[dayIndex];
+                    final list = grouped[day]!;
+                    return _DaySection(day: day, sessions: list, onChanged: refreshSessions, sessionService: _sessionService);
+                  }
                 },
               ),
             );
