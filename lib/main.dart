@@ -240,7 +240,6 @@ Future<void> main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  final start = DateTime.now();
   await AppConfig.load();
   await Hive.initFlutter();
   // Register adapters goals
@@ -255,12 +254,7 @@ Future<void> main() async {
     await Hive.openBox('app_preferences');
   }
 
-  final minSplash = Duration(milliseconds: AppConfig.I.splashMinDisplayMs);
-  final elapsed = DateTime.now().difference(start);
-  if (elapsed < minSplash) {
-    await Future.delayed(minSplash - elapsed);
-  }
-  // Retire le splash natif juste avant de lancer l'app Flutter (évite écran blanc).
+  // On lance immédiatement l'app, l'overlay gère min_display_ms.
   FlutterNativeSplash.remove();
   runApp(const MyApp());
 }
@@ -367,8 +361,9 @@ class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    final fadeDur = Duration(milliseconds: AppConfig.I.splashFadeDurationMs);
-    _controller = AnimationController(vsync: this, duration: fadeDur);
+  final fadeDur = Duration(milliseconds: AppConfig.I.splashFadeDurationMs);
+  final totalMin = Duration(milliseconds: AppConfig.I.splashMinDisplayMs);
+  _controller = AnimationController(vsync: this, duration: fadeDur);
     _logoFade = CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.55, curve: Curves.easeOutCubic));
     _titleFade = CurvedAnimation(parent: _controller, curve: const Interval(0.35, 1.0, curve: Curves.easeOut));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -377,7 +372,12 @@ class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProvider
       try { await precacheImage(const AssetImage('assets/app_logo.png'), context); } catch (_) {}
       setState(() => _opacity = 1.0);
       _controller.forward();
-      await Future.delayed(fadeDur);
+      final remaining = totalMin - fadeDur;
+      if (remaining.isNegative) {
+        await Future.delayed(fadeDur);
+      } else {
+        await Future.delayed(totalMin);
+      }
       if (mounted) setState(()=> _hideOverlay = true);
     });
   }
