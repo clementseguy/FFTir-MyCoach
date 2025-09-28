@@ -261,8 +261,111 @@ Future<void> main() async {
     await Future.delayed(minSplash - elapsed);
   }
 
-  FlutterNativeSplash.remove();
-  runApp(const MyApp());
+  runApp(const NexTargetBootstrap());
+}
+
+/// Bootstrap qui affiche un splash Flutter custom (logo + nom) avant l'app.
+class NexTargetBootstrap extends StatefulWidget {
+  const NexTargetBootstrap({super.key});
+  @override
+  State<NexTargetBootstrap> createState() => _NexTargetBootstrapState();
+}
+
+class _NexTargetBootstrapState extends State<NexTargetBootstrap> with SingleTickerProviderStateMixin {
+  bool _showApp = false;
+  late final AnimationController _controller;
+  late final Animation<double> _fadeLogo;
+  late final Animation<double> _fadeTitle;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    _fadeLogo = CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic));
+    _fadeTitle = CurvedAnimation(parent: _controller, curve: const Interval(0.35, 1.0, curve: Curves.easeOut));
+    // Lancer animations juste après build frame
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _controller.forward();
+      // Retirer le splash natif après l'apparition du logo
+      await Future.delayed(const Duration(milliseconds: 350));
+      FlutterNativeSplash.remove();
+      // Attendre fin animation avant d'afficher app
+      await Future.delayed(const Duration(milliseconds: 650));
+      if (mounted) setState(()=> _showApp = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showApp) return const MyApp();
+    final baseStyle = const TextStyle(
+      fontSize: 38,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.0,
+      color: Colors.white,
+      fontFamily: 'Roboto',
+    );
+    final accent = const Color(0xFF16FF8B);
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFF181A20),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FadeTransition(
+                opacity: _fadeLogo,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF23272F), Color(0xFF101215)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(color: accent.withOpacity(0.25), blurRadius: 18, spreadRadius: 2, offset: const Offset(0,6)),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Image.asset('assets/app_logo.png', width: 72, height: 72, fit: BoxFit.contain),
+                ),
+              ),
+              const SizedBox(height: 32),
+              FadeTransition(
+                opacity: _fadeTitle,
+                child: ShaderMask(
+                  shaderCallback: (rect) => const LinearGradient(
+                    colors: [Colors.white, Color(0xFF16FF8B)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ).createShader(rect),
+                  child: Text('NexTarget', style: baseStyle.copyWith(color: Colors.white)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              FadeTransition(
+                opacity: _fadeTitle,
+                child: Text(
+                  'Precision. Progress. Performance.',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70, letterSpacing: 0.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 
