@@ -17,7 +17,7 @@ class SessionsHistoryScreen extends StatefulWidget {
 class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
   final SessionService _sessionService = SessionService();
   late Future<List<ShootingSession>> _sessionsFuture;
-  String _filter = 'realized'; // realized | planned | all
+  String _filter = 'realized'; // realized | planned
 
   @override
   void initState() {
@@ -52,13 +52,11 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
       List<ShootingSession> sessions = realizedAll;
       List<ShootingSession> planned = plannedAll;
       if (_filter == 'planned') {
-        sessions = <ShootingSession>[]; // growable empty
-      } else if (_filter == 'realized') {
-        planned = <ShootingSession>[]; // growable empty
-      } else if (_filter == 'all') {
-        // keep both
+        sessions = <ShootingSession>[];
+      } else { // realized
+        planned = <ShootingSession>[];
       }
-            final bool noDataRealized = sessions.isEmpty && _filter != 'planned';
+            final bool noDataRealized = sessions.isEmpty && _filter == 'realized';
             final bool noDataPlannedOnly = _filter == 'planned' && planned.isEmpty;
             // Tri et regroupement par jour
             sessions.sort((a,b)=> b.date!.compareTo(a.date!));
@@ -78,7 +76,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
               onRefresh: () async { refreshSessions(); await Future.delayed(Duration(milliseconds:300)); },
               child: ListView.builder(
                 padding: EdgeInsets.only(bottom: 24, top: 8),
-                itemCount: 1 + (noDataRealized ? 1 : 0) + (noDataPlannedOnly ? 1 : 0) + orderedKeys.length + (planned.isNotEmpty ? 2 : 0),
+                itemCount: 1 + (noDataRealized ? 1 : 0) + (noDataPlannedOnly ? 1 : 0) + orderedKeys.length + (planned.isNotEmpty && _filter=='realized' ? 2 : 0),
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return Column(
@@ -90,9 +88,8 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                               Expanded(
                                 child: SegmentedButton<String>(
                                   segments: const [
-                                    ButtonSegment(value: 'realized', label: Text('Réalisées')), 
-                                    ButtonSegment(value: 'planned', label: Text('Prévues')), 
-                                    ButtonSegment(value: 'all', label: Text('Toutes')),
+                                    ButtonSegment(value: 'realized', label: Text('Réalisées')),
+                                    ButtonSegment(value: 'planned', label: Text('Prévues')),
                                   ],
                                   selected: {_filter},
                                   onSelectionChanged: (s)=> setState(()=> _filter = s.first),
@@ -137,7 +134,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                     }
                     cursor++;
                   }
-                  if (planned.isNotEmpty) {
+                  if (planned.isNotEmpty && _filter == 'realized') {
                     if (index == cursor) {
                       return Padding(
                         padding: const EdgeInsets.fromLTRB(16,8,16,4),
