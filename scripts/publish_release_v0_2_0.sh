@@ -7,7 +7,7 @@ set -euo pipefail
 
 REPO_SLUG="clementseguy/NexTarget-app"
 TAG="v0.2.0"
-TARGET_COMMIT="ba04d8d"   # Commit pointed to by the existing tag
+# We don't force TARGET_COMMIT if the tag already exists remotely; GitHub derives it.
 RELEASE_NAME="NexTarget v0.2.0"
 NOTES_FILE=".release_notes_${TAG}.md"
 
@@ -66,7 +66,11 @@ fi
 
 if command -v gh >/dev/null 2>&1; then
   echo "[INFO] Using GitHub CLI to create release ${TAG}" >&2
-  gh release create "${TAG}" -t "${RELEASE_NAME}" -F "${NOTES_FILE}" --target "${TARGET_COMMIT}"
+  # If the tag already exists (which it does), we do NOT pass --target.
+  gh release create "${TAG}" -t "${RELEASE_NAME}" -F "${NOTES_FILE}" || {
+    echo "[ERROR] gh release create failed." >&2
+    exit 1
+  }
   echo "[SUCCESS] Release created via gh." >&2
   exit 0
 fi
@@ -78,12 +82,24 @@ if [[ -z "${GITHUB_TOKEN:-}" ]]; then
   exit 1
 fi
 
-API_JSON=$(jq -n \
-  --arg tag "$TAG" \
-  --arg target "$TARGET_COMMIT" \
-  --arg name "$RELEASE_NAME" \
-  --arg body "$(cat ${NOTES_FILE})" \
-  '{tag_name:$tag, target_commitish:$target, name:$name, body:$body, draft:false, prerelease:false, generate_release_notes:false}')
+if ! command -v jq >/dev/null 2>&1; then
+  echo "[WARN] jq not installed; constructing minimal JSON manually." >&2
+  BODY_ESCAPED=$(python3 - <<'PY'
+import json,sys
+text=open(sys.argv[1],'r',encoding='utf-8').read()
+print(json.dumps(text))
+PY "${NOTES_FILE}")
+  API_JSON=$(cat <<JSON
+{"tag_name":"${TAG}","name":"${RELEASE_NAME}","body":${BODY_ESCAPED},"draft":false,"prerelease":false,"generate_release_notes":false}
+JSON
+  )
+else
+  API_JSON=$(jq -n \
+    --arg tag "$TAG" \
+    --arg name "$RELEASE_NAME" \
+    --arg body "$(cat ${NOTES_FILE})" \
+    '{tag_name:$tag, name:$name, body:$body, draft:false, prerelease:false, generate_release_notes:false}')
+fi
 
 curl -fsSL -X POST \
   -H "Authorization: Bearer ${GITHUB_TOKEN}" \
