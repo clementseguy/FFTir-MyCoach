@@ -261,112 +261,10 @@ Future<void> main() async {
     await Future.delayed(minSplash - elapsed);
   }
 
-  runApp(const NexTargetBootstrap());
+  runApp(const MyApp());
 }
 
-/// Bootstrap qui affiche un splash Flutter custom (logo + nom) avant l'app.
-class NexTargetBootstrap extends StatefulWidget {
-  const NexTargetBootstrap({super.key});
-  @override
-  State<NexTargetBootstrap> createState() => _NexTargetBootstrapState();
-}
-
-class _NexTargetBootstrapState extends State<NexTargetBootstrap> with SingleTickerProviderStateMixin {
-  bool _showApp = false;
-  late final AnimationController _controller;
-  late final Animation<double> _fadeLogo;
-  late final Animation<double> _fadeTitle;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
-    _fadeLogo = CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic));
-    _fadeTitle = CurvedAnimation(parent: _controller, curve: const Interval(0.35, 1.0, curve: Curves.easeOut));
-    // Lancer animations juste après build frame
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _controller.forward();
-      // Retirer le splash natif après l'apparition du logo
-      await Future.delayed(const Duration(milliseconds: 350));
-      FlutterNativeSplash.remove();
-      // Attendre fin animation avant d'afficher app
-      await Future.delayed(const Duration(milliseconds: 650));
-      if (mounted) setState(()=> _showApp = true);
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_showApp) return const MyApp();
-    final baseStyle = const TextStyle(
-      fontSize: 38,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 1.0,
-      color: Colors.white,
-      fontFamily: 'Roboto',
-    );
-    final accent = const Color(0xFF16FF8B);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: const Color(0xFF181A20),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FadeTransition(
-                opacity: _fadeLogo,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(28),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF23272F), Color(0xFF101215)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(color: accent.withOpacity(0.25), blurRadius: 18, spreadRadius: 2, offset: const Offset(0,6)),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Image.asset('assets/app_logo.png', width: 72, height: 72, fit: BoxFit.contain),
-                ),
-              ),
-              const SizedBox(height: 32),
-              FadeTransition(
-                opacity: _fadeTitle,
-                child: ShaderMask(
-                  shaderCallback: (rect) => const LinearGradient(
-                    colors: [Colors.white, Color(0xFF16FF8B)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ).createShader(rect),
-                  child: Text('NexTarget', style: baseStyle.copyWith(color: Colors.white)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              FadeTransition(
-                opacity: _fadeTitle,
-                child: Text(
-                  'Precision. Progress. Performance.',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70, letterSpacing: 0.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// Splash bootstrap supprimé; overlay fusionné dans FadeInWrapper
 
 
 class MyApp extends StatelessWidget {
@@ -460,25 +358,95 @@ class FadeInWrapper extends StatefulWidget {
 
 class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProviderStateMixin {
   double _opacity = 0.0;
+  bool _hideOverlay = false;
+  late final AnimationController _controller;
+  late final Animation<double> _logoFade;
+  late final Animation<double> _titleFade;
 
   @override
   void initState() {
     super.initState();
-    // Démarre le fade sur la prochaine frame.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() => _opacity = 1.0);
-      }
+    final fadeDur = Duration(milliseconds: AppConfig.I.splashFadeDurationMs);
+    _controller = AnimationController(vsync: this, duration: fadeDur + const Duration(milliseconds: 300));
+    _logoFade = CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.55, curve: Curves.easeOutCubic));
+    _titleFade = CurvedAnimation(parent: _controller, curve: const Interval(0.35, 1.0, curve: Curves.easeOut));
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      setState(() => _opacity = 1.0);
+      _controller.forward();
+      await Future.delayed(fadeDur + const Duration(milliseconds: 300));
+      if (mounted) setState(()=> _hideOverlay = true);
+      FlutterNativeSplash.remove();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _opacity,
-      duration: widget.duration,
-      curve: widget.curve,
-      child: widget.child,
+    return Stack(
+      children: [
+        AnimatedOpacity(
+          opacity: _opacity,
+          duration: widget.duration,
+          curve: widget.curve,
+          child: widget.child,
+        ),
+        if (!_hideOverlay)
+          Positioned.fill(
+            child: Container(
+              color: const Color(0xFF181A20),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FadeTransition(
+                      opacity: _logoFade,
+                      child: Container(
+                        width: 110,
+                        height: 110,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(26),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF23272F), Color(0xFF101215)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(color: const Color(0xFF16FF8B).withOpacity(0.25), blurRadius: 14, spreadRadius: 2, offset: const Offset(0,5)),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Image.asset('assets/app_logo.png', width: 66, height: 66, fit: BoxFit.contain),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    FadeTransition(
+                      opacity: _titleFade,
+                      child: ShaderMask(
+                        shaderCallback: (rect) => const LinearGradient(
+                          colors: [Colors.white, Color(0xFF16FF8B)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ).createShader(rect),
+                        child: const Text(
+                          'NexTarget',
+                          style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    FadeTransition(
+                      opacity: _titleFade,
+                      child: const Text(
+                        'Precision. Progress. Performance.',
+                        style: TextStyle(fontSize: 11, color: Colors.white70, letterSpacing: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
