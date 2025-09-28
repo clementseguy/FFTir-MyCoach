@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Permission Internet nécessaire pour les appels API (coach / Mistral) -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="NexTarget"
         android:name="${applicationName}"

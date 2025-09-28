@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 import '../models/shooting_session.dart';
@@ -66,6 +67,9 @@ class CoachAnalysisService {
           .timeout(const Duration(seconds: 25));
     } on TimeoutException {
       throw CoachAnalysisException('Le serveur ne répond pas (timeout).');
+    } on SocketException catch (e) {
+      // Résout notamment: Failed host lookup (DNS) ou absence réseau
+      throw CoachAnalysisException('Connexion impossible (réseau ou DNS): ${e.message}');
     } catch (e) {
       throw CoachAnalysisException('Erreur réseau inattendue: $e');
     }
