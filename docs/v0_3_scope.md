@@ -18,6 +18,7 @@ Introduire une entité "Exercice" distincte des sessions, permettant de définir
 ### Besoins
 - Modèle `Exercise` (id, nom, description courte, catégorie, paramètres optionnels selon type)
 - Association Session -> Liste d'exercices utilisés (ordre)
+- Association Exercice -> Objectifs
 - Possibilité de filtrer l’historique par exercice
 
 ### Détails fonctionnels
@@ -93,13 +94,16 @@ Ajout d’indicateurs de tendance courte/moyenne: 1M = 1 mois, 2M = 2 mois.
 - Pas d’export PDF avancé
 
 ## 7. Techniques / Architecture
-- Ajouter tests unitaires sur service stats & migration exercices
+- Rester sur Hive comme store principal (pas de bascule SQLite)
+- Introduire repository Exercise (abstraction au cas où future persistence)
+- Ajouter tests unitaires sur service stats & création exercices
 - Refactor si nécessaire: séparation `models/` vs `services/` plus stricte
-- Vérifier impact taille base locale (index si besoin)
+- Vérifier impact taille base locale (compaction périodique si besoin)
 
 ## 8. Migration & Compatibilité
-- Script/méthode de migration BDD locale: ajout tables / colonnes (exercices, enrichissement objectifs)
-- Stratégie fallback si corruption: log + skip migration + message utilisateur
+- Stratégie d'évolution Hive: nouvelle box ou extension schéma serialisé (compat ascendante)
+- Prévoir un utilitaire de mise à niveau (lecture anciennes entrées -> réécriture normalisée)
+- Stratégie fallback si corruption: log + nettoyage box + notification utilisateur
 
 ## 9. Suivi / Kanban interne (suggestion)
 Colonnes: Backlog | En cours | Test | Fini (0.3 scope)

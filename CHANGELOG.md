@@ -20,7 +20,7 @@ Toutes les modifications notables de ce projet seront listées ici.
 - (À compléter)
 
 ### Technical (prévisionnel)
-- Migration BDD: tables/colonnes Exercices + enrichissement Objectifs
+- Évolution Hive: nouvelle structure pour Exercices + Objectifs enrichis
 - Cache stats agrégées (si implémenté)
 
 ---
