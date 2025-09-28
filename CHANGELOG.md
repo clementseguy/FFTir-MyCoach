@@ -1,0 +1,32 @@
+# Changelog
+
+Toutes les modifications notables de ce projet seront listées ici.
+
+## [0.2.0] - 2025-09-28
+### Added
+- Bottom sheet "Rappels Essentiels" (Accueil) avec onglets Sécurité / Tir.
+- Lien direct vers les règles officielles de sécurité FFTir.
+- Export des sessions dans un dossier utilisateur (File Picker).
+- Suppression des objectifs atteints (icône poubelle activée quand status = atteint).
+- Animation splash overlay personnalisée (remplace l'ancien splash natif visuellement).
+- Script de build unique `build_apk.sh` avec support debug + renommage versionné.
+
+### Changed
+- Branding global: application renommée NexTarget (icônes / libellés).
+- Renommage APK: format `NexTarget-v<version>-<mode>-<timestamp>.apk`.
+- Splash natif neutralisé (android/iOS) pour éviter double affichage.
+- Amélioration messages d'erreur réseau (distinction SocketException / Timeout).
+
+### Fixed
+- Overflow layout sur la liste des objectifs.
+- Échecs réseau sur Android release (ajout permission INTERNET).
+
+### Technical
+- Injection clé Mistral via `--dart-define` + fallback config/local/env.
+- Stats améliorées (moyennes 30j, progression, distribution catégories, distances...).
+
+## [0.1.0] - 2025-09-XX
+- Version initiale (sessions, séries, objectifs de base, stats simples, export JSON initial).
+
+---
+Format inspiré de Keep a Changelog.
