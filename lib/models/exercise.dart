@@ -6,6 +6,7 @@ class Exercise {
   final String? description;
   final DateTime createdAt;
   final int priority; // ordering / future grouping
+  final List<String> goalIds; // Goals this exercise helps achieve
 
   Exercise({
     required this.id,
@@ -14,7 +15,8 @@ class Exercise {
     this.description,
     required this.createdAt,
     this.priority = 9999,
-  });
+    List<String>? goalIds,
+  }) : goalIds = goalIds ?? const [];
 
   Exercise copyWith({
     String? name,
@@ -22,6 +24,7 @@ class Exercise {
     String? description,
     DateTime? createdAt,
     int? priority,
+    List<String>? goalIds,
   }) => Exercise(
     id: id,
     name: name ?? this.name,
@@ -29,6 +32,7 @@ class Exercise {
     description: description ?? this.description,
     createdAt: createdAt ?? this.createdAt,
     priority: priority ?? this.priority,
+    goalIds: goalIds ?? this.goalIds,
   );
 
   Map<String, dynamic> toMap() => {
@@ -38,6 +42,7 @@ class Exercise {
     'description': description,
     'createdAt': createdAt.toIso8601String(),
     'priority': priority,
+    'goalIds': goalIds,
   };
 
   static Exercise fromMap(Map<String, dynamic> map) => Exercise(
@@ -47,5 +52,6 @@ class Exercise {
     description: map['description'] as String?,
     createdAt: DateTime.tryParse(map['createdAt'] as String? ?? '') ?? DateTime.now(),
     priority: (map['priority'] as int?) ?? 9999,
+    goalIds: (map['goalIds'] is List) ? (map['goalIds'] as List).whereType<String>().toList() : const [],
   );
 }

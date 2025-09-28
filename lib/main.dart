@@ -15,6 +15,7 @@ import 'config/app_config.dart';
 import 'models/goal.dart';
 import 'screens/goals_list_screen.dart';
 import 'widgets/goals_summary_card.dart';
+import 'screens/exercises_list_screen.dart';
 import 'widgets/series_cards.dart';
 import 'migrations/migration.dart';
 import 'migrations/migration_2_add_exercises_field.dart';
@@ -62,10 +63,22 @@ class _ExercicesScreenState extends State<ExercicesScreen> {
               onTap: _openGoals,
             ),
           ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.fitness_center),
+              title: const Text('Bibliothèque d’exercices'),
+              subtitle: const Text('Lister et créer des exercices'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ExercisesListScreen()),
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           Text('Prochaines évolutions', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
           const SizedBox(height: 8),
-          Text('- Bibliothèque d’exercices (à venir)', style: TextStyle(color: Colors.white54)),
+          Text('- Liaison exercices ↔ sessions', style: TextStyle(color: Colors.white54)),
           Text('- Suggestions d’objectifs IA', style: TextStyle(color: Colors.white54)),
           Text('- Suivi des routines', style: TextStyle(color: Colors.white54)),
         ],

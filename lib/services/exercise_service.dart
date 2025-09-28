@@ -21,6 +21,7 @@ class ExerciseService {
     required String category,
     String? description,
     int priority = 9999,
+    List<String>? goalIds,
   }) async {
     final ex = Exercise(
       id: generateId(),
@@ -29,6 +30,7 @@ class ExerciseService {
       description: (description?.trim().isEmpty ?? true) ? null : description!.trim(),
       createdAt: DateTime.now(),
       priority: priority,
+      goalIds: goalIds ?? const [],
     );
     await _repo.put(ex);
   }
