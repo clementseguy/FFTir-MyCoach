@@ -378,7 +378,7 @@ class _PriseBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOne = method == HandMethod.oneHand;
     final color = isOne ? Colors.deepOrangeAccent : Colors.lightGreenAccent;
-    final icon = isOne ? Icons.front_hand : Icons.pan_tool_alt;
+  final Widget icon = isOne ? const Icon(Icons.front_hand, size: 13, color: null) : const TwoFistsIcon(size: 15);
     return Container(
       margin: const EdgeInsets.only(left: 6),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -390,7 +390,7 @@ class _PriseBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          IconTheme(data: IconThemeData(color: color, size: 13), child: icon),
           const SizedBox(width: 3),
             Text(isOne ? '1 main' : '2 mains', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
         ],
@@ -421,8 +421,37 @@ class _PriseSelectorState extends State<_PriseSelector> {
       onPressed: (i) => _set(i == 0 ? 'one' : 'two'),
       children: const [
         Padding(padding: EdgeInsets.symmetric(horizontal:6), child: Icon(Icons.front_hand, size:16)),
-        Padding(padding: EdgeInsets.symmetric(horizontal:6), child: Icon(Icons.pan_tool_alt, size:16)),
+         Padding(padding: EdgeInsets.symmetric(horizontal:6), child: TwoFistsIcon(size:16)),
       ],
+    );
+  }
+}
+
+// Custom icon showing two fists (reusing front_hand glyph twice with slight offset)
+class TwoFistsIcon extends StatelessWidget {
+  final double size;
+  const TwoFistsIcon({super.key, required this.size});
+  @override
+  Widget build(BuildContext context) {
+    final color = IconTheme.of(context).color ?? Colors.white;
+    return SizedBox(
+      width: size + 6,
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            child: Icon(Icons.front_hand, size: size * 0.88, color: color.withOpacity(0.85)),
+          ),
+            Positioned(
+            left: size * 0.5,
+            top: 0,
+            child: Icon(Icons.front_hand, size: size, color: color),
+          ),
+        ],
+      ),
     );
   }
 }

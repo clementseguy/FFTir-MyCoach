@@ -16,6 +16,7 @@ import 'config/app_config.dart';
 import 'models/goal.dart';
 import 'screens/goals_list_screen.dart';
 import 'widgets/goals_summary_card.dart';
+import 'widgets/series_cards.dart';
 
 // Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
@@ -98,9 +99,9 @@ class SettingsScreen extends StatelessWidget {
                     builder: (context, box, _) {
                       final val = box.get('default_hand_method', defaultValue: current);
                       return SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'one', label: Text('1 main'), icon: Icon(Icons.front_hand)),
-                          ButtonSegment(value: 'two', label: Text('2 mains'), icon: Icon(Icons.pan_tool_alt)),
+                        segments: [
+                          const ButtonSegment(value: 'one', label: Text('1 main'), icon: Icon(Icons.front_hand)),
+                          ButtonSegment(value: 'two', label: const Text('2 mains'), icon: const TwoFistsIcon(size:18)),
                         ],
                         selected: {val},
                         onSelectionChanged: (s) async {
