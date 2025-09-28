@@ -473,8 +473,8 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: achieved
-            ? Colors.green.withOpacity(0.08)
-            : (isNew ? Colors.amber.withOpacity(0.18) : Theme.of(context).cardColor),
+            ? Colors.green.withValues(alpha: 0.08)
+            : (isNew ? Colors.amber.withValues(alpha: 0.18) : Theme.of(context).cardColor),
         borderRadius: BorderRadius.circular(8),
         border: isNew ? Border.all(color: Colors.amberAccent, width: 1.2) : null,
       ),
@@ -520,7 +520,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
             LinearProgressIndicator(
               value: p,
               color: achieved ? Colors.green : _progressColor(p),
-              backgroundColor: achieved ? Colors.green.withOpacity(0.2) : Colors.grey[800],
+              backgroundColor: achieved ? Colors.green.withValues(alpha: 0.2) : Colors.grey[800],
               minHeight: 6,
             ),
           ],

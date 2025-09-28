@@ -223,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: Colors.white12),
-                              color: Colors.white.withOpacity(0.05),
+                              color: Colors.white.withValues(alpha: 0.05),
                             ),
                             child: Row(
                               children: [
@@ -378,8 +378,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     show: true,
                                     gradient: LinearGradient(
                                       colors: [
-                                        Colors.amberAccent.withOpacity(0.35),
-                                        Colors.amberAccent.withOpacity(0.05),
+                                        Colors.amberAccent.withValues(alpha: 0.35),
+                                        Colors.amberAccent.withValues(alpha: 0.05),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -524,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         gradient: LinearGradient(
                                           colors: [
                                             Colors.purpleAccent,
-                                            Colors.purpleAccent.withOpacity(0.1),
+                                            Colors.purpleAccent.withValues(alpha: 0.1),
                                           ],
                                           begin: Alignment.topCenter,
                                           end: Alignment.bottomCenter,
@@ -588,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     gradient: LinearGradient(
                                       colors: [
                                         Colors.orangeAccent,
-                                        Colors.orangeAccent.withOpacity(0.15),
+                                        Colors.orangeAccent.withValues(alpha: 0.15),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -685,8 +685,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     show: true,
                                     gradient: LinearGradient(
                                       colors: [
-                                        Colors.lightGreenAccent.withOpacity(0.30),
-                                        Colors.lightGreenAccent.withOpacity(0.05),
+                                        Colors.lightGreenAccent.withValues(alpha: 0.30),
+                                        Colors.lightGreenAccent.withValues(alpha: 0.05),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -798,7 +798,7 @@ class _KpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+  color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white12),
       ),
@@ -834,7 +834,7 @@ class _PerfBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+  color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white12),
       ),
@@ -862,7 +862,7 @@ class _MiniStatChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+  color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white12),
       ),
@@ -961,7 +961,7 @@ class _CategorySegment extends StatelessWidget {
     return Expanded(
       flex: flex,
       child: Container(
-        color: color.withOpacity(0.85),
+  color: color.withValues(alpha: 0.85),
         child: label == null ? null : Center(
           child: Text(
             label!,

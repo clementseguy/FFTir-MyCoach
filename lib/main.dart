@@ -419,7 +419,7 @@ class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProvider
                             end: Alignment.bottomRight,
                           ),
                           boxShadow: [
-                            BoxShadow(color: const Color(0xFF16FF8B).withOpacity(0.25), blurRadius: 14, spreadRadius: 2, offset: const Offset(0,5)),
+                            BoxShadow(color: const Color(0xFF16FF8B).withValues(alpha: 0.25), blurRadius: 14, spreadRadius: 2, offset: const Offset(0,5)),
                           ],
                         ),
                         alignment: Alignment.center,

@@ -113,7 +113,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
           ],
           if (isRealisee)
             Card(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               child: ExpansionTile(
                 initiallyExpanded: analyse != null && analyse.trim().isNotEmpty,
@@ -370,7 +370,7 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: (color ?? Colors.white70).withOpacity(0.15),
+  color: (color ?? Colors.white70).withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white12),
       ),

@@ -307,7 +307,7 @@ class SessionFormState extends State<SessionForm> {
             label: Text('Ajouter une série'),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.amberAccent,
-              side: BorderSide(color: Colors.amberAccent.withOpacity(0.6)),
+              side: BorderSide(color: Colors.amberAccent.withValues(alpha: 0.6)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             ),
@@ -380,7 +380,7 @@ class _MiniStat extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.18),
+                  color: color.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(icon, size: 15, color: color),

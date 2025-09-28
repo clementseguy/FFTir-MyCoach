@@ -78,9 +78,9 @@ class GoalsSummaryCardState extends State<GoalsSummaryCard> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.amber.withOpacity(0.15),
+                              color: Colors.amber.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.amber.withOpacity(0.4))
+                              border: Border.all(color: Colors.amber.withValues(alpha: 0.4))
                             ),
                             child: Text('#${(_top?.priority ?? 0)+1}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.amber)),
                           )

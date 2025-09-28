@@ -160,7 +160,7 @@ class _Stat extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, size: 18, color: color),
@@ -204,7 +204,7 @@ class _DaySection extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.07),
+                    color: Colors.white.withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text('${sessions.length} session${sessions.length>1? 's':''}', style: TextStyle(fontSize: 11, color: Colors.white70)),

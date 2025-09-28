@@ -14,9 +14,9 @@ class ValueChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+  color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.35), width: 0.8),
+  border: Border.all(color: color.withValues(alpha: 0.35), width: 0.8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -50,7 +50,7 @@ class SeriesDisplayCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: borderColor.withOpacity(0.55), width: highlightBestPoints || highlightBestGroup ? 1.2 : 0.6),
+          border: Border.all(color: borderColor.withValues(alpha: 0.55), width: highlightBestPoints || highlightBestGroup ? 1.2 : 0.6),
           gradient: LinearGradient(
             colors: [Colors.blueGrey.shade900, Colors.blueGrey.shade800],
             begin: Alignment.topLeft,
@@ -72,7 +72,7 @@ class SeriesDisplayCard extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 15,
-                        backgroundColor: Colors.amberAccent.withOpacity(0.85),
+                        backgroundColor: Colors.amberAccent.withValues(alpha: 0.85),
                         child: Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                       ),
                       const SizedBox(width: 10),
@@ -129,9 +129,9 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       margin: const EdgeInsets.only(left: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.17),
+  color: color.withValues(alpha: 0.17),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.6), width: 0.8),
+  border: Border.all(color: color.withValues(alpha: 0.6), width: 0.8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -180,7 +180,7 @@ class SeriesEditCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 15,
-                  backgroundColor: Colors.amberAccent.withOpacity(0.85),
+                  backgroundColor: Colors.amberAccent.withValues(alpha: 0.85),
                   child: Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                 ),
                 const SizedBox(width: 10),
@@ -383,9 +383,9 @@ class _PriseBadge extends StatelessWidget {
       margin: const EdgeInsets.only(left: 6),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.16),
+  color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.55), width: 0.8),
+  border: Border.all(color: color.withValues(alpha: 0.55), width: 0.8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -443,7 +443,7 @@ class TwoFistsIcon extends StatelessWidget {
           Positioned(
             left: 0,
             top: 0,
-            child: Icon(Icons.front_hand, size: size * 0.88, color: color.withOpacity(0.85)),
+            child: Icon(Icons.front_hand, size: size * 0.88, color: color.withValues(alpha: 0.85)),
           ),
             Positioned(
             left: size * 0.5,
