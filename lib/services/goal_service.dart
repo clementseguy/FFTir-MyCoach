@@ -1,11 +1,15 @@
 import 'package:hive/hive.dart';
 import '../models/goal.dart';
 import '../models/shooting_session.dart';
-import '../data/local_db_hive.dart';
+import '../repositories/session_repository.dart';
+import '../repositories/hive_session_repository.dart';
 
 class GoalService {
   static const String goalsBoxName = 'goals';
   Box<Goal>? _box;
+  final SessionRepository _sessions;
+
+  GoalService({SessionRepository? sessionRepository}) : _sessions = sessionRepository ?? HiveSessionRepository();
 
   Future<void> init() async {
     _box ??= await Hive.openBox<Goal>(goalsBoxName);
@@ -62,13 +66,7 @@ class GoalService {
 
   Future<void> recomputeAllProgress() async {
     final b = _ensureBox();
-    final raw = await LocalDatabaseHive().getSessionsWithSeries();
-    final sessions = raw.map((m) {
-      final sessionMap = Map<String, dynamic>.from(m['session']);
-      final seriesRaw = (m['series'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
-      sessionMap['series'] = seriesRaw;
-      return ShootingSession.fromMap(sessionMap);
-    }).toList();
+    final sessions = await _sessions.getAll();
     for (final goal in b.values) {
       final updated = _computeProgress(goal, sessions);
       await b.put(updated.id, updated);
