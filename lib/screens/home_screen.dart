@@ -1,4 +1,5 @@
 import '../widgets/session_card.dart';
+import '../widgets/rules_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import '../services/session_service.dart';
 import '../constants/session_constants.dart';
@@ -70,6 +71,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.shield_outlined),
+            tooltip: 'Règles & fondamentaux',
+            onPressed: () => RulesBottomSheet.show(context),
+          ),
           IconButton(
             icon: Icon(Icons.refresh),
             tooltip: 'Rafraîchir',
