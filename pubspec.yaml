@@ -15,7 +15,7 @@ dependencies:
     sdk: flutter
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  sqflite: ^2.3.0
+  # sqflite retiré (migration abandonnée, Hive unique source de vérité)
   path_provider: ^2.1.2
   intl: ^0.20.2
   fl_chart: ^1.1.1
