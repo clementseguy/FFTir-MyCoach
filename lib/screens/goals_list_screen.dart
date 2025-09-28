@@ -259,7 +259,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<GoalMetric>(
-                              value: _metric,
+                              initialValue: _metric,
                               isExpanded: true,
                               items: GoalMetric.values.where((m) => m != GoalMetric.totalPoints)
                                   .map((m) => DropdownMenuItem(value: m, child: Text(_shortMetricName(m)))).toList(),
@@ -312,7 +312,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<GoalComparator>(
-                              value: _comparator,
+                              initialValue: _comparator,
                               isExpanded: true,
                               items: GoalComparator.values
                                   .map((m) => DropdownMenuItem(value: m, child: Text(_shortComparatorName(m)))).toList(),
@@ -333,7 +333,7 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
                       ),
                       const SizedBox(height: 20),
                       DropdownButtonFormField<GoalPeriod>(
-                        value: _period,
+                        initialValue: _period,
                         isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Période'),
                         items: const [

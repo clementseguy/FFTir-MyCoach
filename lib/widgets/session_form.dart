@@ -248,7 +248,7 @@ class SessionFormState extends State<SessionForm> {
           ),
           SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _category,
+            initialValue: _category,
             decoration: InputDecoration(labelText: 'Catégorie'),
             items: SessionConstants.categories.map((c)=> DropdownMenuItem(value: c, child: Text(c))).toList(),
             onChanged: (v)=> setState(()=> _category = v ?? SessionConstants.categoryEntrainement),

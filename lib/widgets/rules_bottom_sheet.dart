@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Bottom sheet affichant deux onglets:
-///  - Sécurité: 3 règles essentielles FFTir
+///  - Sécurité: 3 règles essentielles 
 ///  - Technique: 5 fondamentaux (posture, respiration, visée, lâcher, suivi)
 class RulesBottomSheet extends StatelessWidget {
   const RulesBottomSheet({super.key});
@@ -61,7 +61,7 @@ class RulesBottomSheet extends StatelessWidget {
                     children: [
                       _RulesList(
                         controller: controller,
-                        title: '3 Règles de Sécurité FFTir',
+                        title: '3 Règles de Sécurité essentielles',
                         icon: Icons.shield,
                         color: Colors.redAccent,
                         rules: const [

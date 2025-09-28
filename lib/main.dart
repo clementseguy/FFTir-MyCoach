@@ -271,7 +271,6 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.dark(
           primary: Colors.amber,
           secondary: Color(0xFF16FF8B),
-          background: Color(0xFF181A20),
           surface: Color(0xFF23272F),
         ),
         scaffoldBackgroundColor: Color(0xFF181A20),

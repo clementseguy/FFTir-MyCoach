@@ -5,7 +5,7 @@ Toutes les modifications notables de ce projet seront listées ici.
 ## [0.2.0] - 2025-09-28
 ### Added
 - Bottom sheet "Rappels Essentiels" (Accueil) avec onglets Sécurité / Tir.
-- Lien direct vers les règles officielles de sécurité FFTir.
+- Lien informatif vers des règles générales de sécurité (source externe).
 - Export des sessions dans un dossier utilisateur (File Picker).
 - Suppression des objectifs atteints (icône poubelle activée quand status = atteint).
 - Animation splash overlay personnalisée (remplace l'ancien splash natif visuellement).

@@ -5,7 +5,7 @@ Application mobile pour suivre et analyser les entraînements de tir sportif (Ne
 ## Fonctionnalités principales
 - Suivi des sessions de tir (date, arme, calibre, séries...)
 - Statistiques générales (points, groupement, etc.)
-- Interface sombre, élégante, logos FFTir et app
+- Interface sombre, élégante, logo applicatif
 - Stockage local, aucune authentification
 
 ## Lancer le projet
@@ -60,6 +60,6 @@ Un fichier `assets/config.example.yaml` est fourni comme modèle.
 ## À faire
 - Écrans de gestion des sessions et séries
 - Statistiques détaillées
-- Ajout des logos FFTir et app (remplacer les placeholders dans assets/)
+- Amélioration du logo applicatif (optimisation tailles si besoin)
 - Coach IA (intégration prompts et UI)
 - Améliorations statistiques
