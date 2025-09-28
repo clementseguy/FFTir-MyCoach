@@ -76,11 +76,47 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final backup = BackupService();
     final sessionService = SessionService();
+    final prefBox = Hive.box('app_preferences');
+    String current = prefBox.get('default_hand_method', defaultValue: 'two');
     return Scaffold(
       appBar: AppBar(title: Text('Paramètres')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
+          Text('Préférences Tir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Prise par défaut (pistolet)', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ValueListenableBuilder(
+                    valueListenable: prefBox.listenable(keys: ['default_hand_method']),
+                    builder: (context, box, _) {
+                      final val = box.get('default_hand_method', defaultValue: current);
+                      return SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(value: 'one', label: Text('1 main'), icon: Icon(Icons.front_hand)),
+                          ButtonSegment(value: 'two', label: Text('2 mains'), icon: Icon(Icons.pan_tool_alt)),
+                        ],
+                        selected: {val},
+                        onSelectionChanged: (s) async {
+                          await box.put('default_hand_method', s.first);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Prise par défaut: ${s.first == 'one' ? '1 main' : '2 mains'}')),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
           Text('Sauvegarde & Portabilité', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           SizedBox(height: 12),
           Card(
@@ -180,6 +216,9 @@ Future<void> main() async {
   if (!Hive.isAdapterRegistered(44)) Hive.registerAdapter(GoalAdapter());
 
   await Hive.openBox(SessionConstants.hiveBoxSessions);
+  if (!Hive.isBoxOpen('app_preferences')) {
+    await Hive.openBox('app_preferences');
+  }
 
   final minSplash = Duration(milliseconds: AppConfig.I.splashMinDisplayMs);
   final elapsed = DateTime.now().difference(start);
