@@ -37,7 +37,7 @@ class HiveSessionRepository implements SessionRepository {
   }
 
   @override
-  Future<void> update(ShootingSession session, {bool preserveExistingSeriesIfEmpty = true}) async {
+  Future<bool> update(ShootingSession session, {bool preserveExistingSeriesIfEmpty = true}) async {
     final seriesMaps = session.series.map((s) => s.toMap()).toList();
     if (preserveExistingSeriesIfEmpty && (session.id != null) && seriesMaps.isEmpty) {
       final existing = await _hive.getSessionsWithSeries();
@@ -51,10 +51,11 @@ class HiveSessionRepository implements SessionRepository {
             .toList();
         if (existingSeries.isNotEmpty) {
           await _hive.updateSession(session.toMap(), existingSeries);
-          return;
+          return true; // fallback applied
         }
       }
     }
     await _hive.updateSession(session.toMap(), seriesMaps);
+    return false; // no fallback
   }
 }

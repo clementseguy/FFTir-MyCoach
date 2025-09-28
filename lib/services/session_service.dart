@@ -16,8 +16,18 @@ class SessionService {
     await _repo.insert(session);
   }
 
-  Future<void> updateSession(ShootingSession session) async {
-    await _repo.update(session, preserveExistingSeriesIfEmpty: true);
+  Future<void> updateSession(
+    ShootingSession session, {
+    bool preserveExistingSeriesIfEmpty = true,
+    bool warnOnFallback = true,
+  }) async {
+    final fallback = await _repo.update(
+      session,
+      preserveExistingSeriesIfEmpty: preserveExistingSeriesIfEmpty,
+    );
+    if (fallback && warnOnFallback) {
+      AppLogger.I.warn('Session ${session.id} update used fallback (empty series ignored).');
+    }
   }
 
   Future<void> deleteSession(int id) async {

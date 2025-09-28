@@ -4,7 +4,8 @@ import '../models/shooting_session.dart';
 abstract class SessionRepository {
   Future<List<ShootingSession>> getAll();
   Future<int> insert(ShootingSession session);
-  Future<void> update(ShootingSession session, {bool preserveExistingSeriesIfEmpty = true});
+  /// Returns true if a fallback (preserving existing series) was applied instead of provided empty list.
+  Future<bool> update(ShootingSession session, {bool preserveExistingSeriesIfEmpty = true});
   Future<void> delete(int id);
   Future<void> clearAll();
 }
