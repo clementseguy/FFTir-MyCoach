@@ -272,7 +272,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Tir Sportif',
+      title: 'NexTarget',
       theme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.dark(

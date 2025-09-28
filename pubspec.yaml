@@ -1,7 +1,7 @@
-name: tir_sportif
+name: tir_sportif # (package id historique conservé; branding affiché = NexTarget)
 
 description: >
-  Application mobile pour suivre les entraînements de tir sportif.
+  NexTarget: application mobile pour suivre et analyser les entraînements de tir sportif.
 
 publish_to: 'none'
 

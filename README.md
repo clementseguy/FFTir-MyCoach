@@ -1,6 +1,6 @@
-# Tir Sportif
+# NexTarget
 
-Application mobile Android pour suivre les entraînements de tir sportif.
+Application mobile pour suivre et analyser les entraînements de tir sportif (NexTarget).
 
 ## Fonctionnalités principales
 - Suivi des sessions de tir (date, arme, calibre, séries...)
