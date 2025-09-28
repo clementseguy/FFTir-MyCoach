@@ -52,10 +52,9 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
       List<ShootingSession> sessions = realizedAll;
       List<ShootingSession> planned = plannedAll;
       if (_filter == 'planned') {
-        sessions = const [];
+        sessions = <ShootingSession>[]; // growable empty
       } else if (_filter == 'realized') {
-        // planned remains for optional section only when 'all'
-        planned = const [];
+        planned = <ShootingSession>[]; // growable empty
       } else if (_filter == 'all') {
         // keep both
       }
