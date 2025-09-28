@@ -28,7 +28,7 @@ class SessionCard extends StatelessWidget {
             Text('${date.day}/${date.month}', style: TextStyle(fontSize: 12)),
           ],
         ),
-  title: Text('${session['weapon']} [${session['caliber']}] - ${session['category'] ?? ''} - # Séries : ${series.length}'),
+  title: Text('${session['weapon']} [${session['caliber']}] - ${session['category'] ?? ''} - # Séries : ${series.length}' + (session['status']=='prévue' ? ' (prévue)' : '')),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

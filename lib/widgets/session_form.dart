@@ -32,6 +32,7 @@ class SessionFormState extends State<SessionForm> {
   late List<SeriesFormData> _series;
   late List<SeriesFormControllers> _seriesControllers;
   String _category = SessionConstants.categoryEntrainement;
+  String _status = SessionConstants.statusRealisee; // allow planned
   // Exercises selection
   final ExerciseService _exerciseService = ExerciseService();
   List<Exercise> _allExercises = [];
@@ -52,6 +53,7 @@ class SessionFormState extends State<SessionForm> {
       _caliberController.text = session['caliber'] ?? '22LR';
   _syntheseController = TextEditingController(text: session['synthese'] ?? '');
   _category = session['category'] ?? SessionConstants.categoryEntrainement;
+  _status = session['status'] ?? SessionConstants.statusRealisee;
       // Preload existing exercises list from session map if any
       final existingEx = session['exercises'];
       if (existingEx is List) {
@@ -73,6 +75,7 @@ class SessionFormState extends State<SessionForm> {
       _date = null;
   _syntheseController = TextEditingController();
   _category = SessionConstants.categoryEntrainement;
+  _status = SessionConstants.statusRealisee;
     }
     final defaultMethod = PreferencesService().getDefaultHandMethod();
     _seriesControllers = _series.map((s) => SeriesFormControllers(
@@ -176,11 +179,13 @@ class SessionFormState extends State<SessionForm> {
   // _save supprimé (logique de validation déplacée dans callback externe si nécessaire)
   bool validateAndBuild() {
     if (!_formKey.currentState!.validate()) return false;
-    if (_series.isEmpty || _series.every((s) => s.shotCount == 0 && s.distance == 0 && s.points == 0 && s.groupSize == 0 && s.comment.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Veuillez ajouter au moins une série à la session.')),
-      );
-      return false;
+    if (_status == SessionConstants.statusRealisee) {
+      if (_series.isEmpty || _series.every((s) => s.shotCount == 0 && s.distance == 0 && s.points == 0 && s.groupSize == 0 && s.comment.isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Veuillez ajouter au moins une série à la session réalisée.')),
+        );
+        return false;
+      }
     }
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,7 +206,7 @@ class SessionFormState extends State<SessionForm> {
       date: _date,
       weapon: _weaponController.text,
       caliber: _caliberController.text,
-      status: SessionConstants.statusRealisee,
+  status: _status,
       series: List.generate(_series.length, (i) => Series(
         shotCount: int.tryParse(_seriesControllers[i].shotCountController.text) ?? 0,
         distance: double.tryParse(_seriesControllers[i].distanceController.text) ?? 0,
@@ -284,6 +289,17 @@ class SessionFormState extends State<SessionForm> {
             items: SessionConstants.categories.map((c)=> DropdownMenuItem(value: c, child: Text(c))).toList(),
             onChanged: (v)=> setState(()=> _category = v ?? SessionConstants.categoryEntrainement),
           ),
+          SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            initialValue: _status,
+            decoration: InputDecoration(labelText: 'Statut'),
+            items: [
+              DropdownMenuItem(value: SessionConstants.statusRealisee, child: Text('Réalisée')),
+              DropdownMenuItem(value: SessionConstants.statusPrevue, child: Text('Prévue')),
+            ],
+            onChanged: (v)=> setState(()=> _status = v ?? SessionConstants.statusRealisee),
+          ),
+          // No direct goal link; exercises link goals indirectly.
           SizedBox(height: 24),
           // ---- Exercises selection ----
           _ExercisesSelector(

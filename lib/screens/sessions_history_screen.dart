@@ -44,9 +44,13 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-            final sessions = (snapshot.data ?? [])
-                .where((s) => (s.status == SessionConstants.statusRealisee) && (s.date != null))
-                .toList();
+      final all = (snapshot.data ?? []);
+      final sessions = all
+        .where((s) => (s.status == SessionConstants.statusRealisee) && (s.date != null))
+        .toList();
+      final planned = all
+        .where((s) => s.status == SessionConstants.statusPrevue)
+        .toList();
             if (sessions.isEmpty) {
               return _EmptyState(onCreate: () async {
                 await Navigator.push(
@@ -76,12 +80,47 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
               onRefresh: () async { refreshSessions(); await Future.delayed(Duration(milliseconds:300)); },
               child: ListView.builder(
                 padding: EdgeInsets.only(bottom: 24, top: 8),
-                itemCount: 1 + orderedKeys.length,
+                itemCount: 1 + orderedKeys.length + (planned.isNotEmpty ? 2 : 0),
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return _SummaryHeader(nbSessions: nbSessions, totalSeries: totalSeries, avgSeries: avgSeries, daysActive: daysActive);
                   }
-                  final day = orderedKeys[index-1];
+                  int cursor = 1;
+                  if (planned.isNotEmpty) {
+                    if (index == cursor) {
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16,8,16,4),
+                        child: Text('Sessions prévues', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.amberAccent)),
+                      );
+                    }
+                    cursor++;
+                    if (index == cursor) {
+                      return Column(
+                        children: planned.map((p)=> Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
+                          child: SessionCard(
+                            session: p.toMap(),
+                            series: const [],
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SessionDetailScreen(sessionData: {
+                                    'session': p.toMap(),
+                                    'series': [],
+                                  }),
+                                ),
+                              );
+                              refreshSessions();
+                            },
+                          ),
+                        )).toList(),
+                      );
+                    }
+                    cursor++;
+                  }
+                  final dayIndex = index - cursor;
+                  final day = orderedKeys[dayIndex];
                   final list = grouped[day]!;
                   return _DaySection(day: day, sessions: list, onChanged: refreshSessions, sessionService: _sessionService);
                 },
