@@ -1,9 +1,14 @@
-# Exemple de configuration (ne pas mettre de secrets dans ce fichier)
 api:
-  mistral_key: "__MISTRAL_API_KEY_PLACEHOLDER__"
+  # Renseigner la clé Mistral via:
+  # 1. Fichier local non versionné assets/config.local.yaml (mêmes champs)
+  # 2. Ou variable --dart-define=MISTRAL_API_KEY=...
+  # 3. Ou variable d'environnement MISTRAL_API_KEY (en fallback)
+  mistral_key: "$MISTRAL_API_KEY"
   mistral_url: "https://api.mistral.ai/v1/chat/completions"
   mistral_model: "mistral-tiny"
 
 splash:
+  # Durée minimale d'affichage du splash (en millisecondes)
   min_display_ms: 1500
+  # Durée du fade-in de l'application après le splash (en millisecondes)
   fade_duration_ms: 450
