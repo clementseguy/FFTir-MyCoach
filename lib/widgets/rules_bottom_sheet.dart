@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Bottom sheet affichant deux onglets:
 ///  - Sécurité: 3 règles essentielles FFTir
@@ -85,6 +86,10 @@ class RulesBottomSheet extends StatelessWidget {
                     ],
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                  child: _FftirPdfButton(),
+                ),
               ],
             ),
           ),
@@ -150,3 +155,46 @@ class _RuleTile extends StatelessWidget {
     );
   }
 }
+
+class _FftirPdfButton extends StatelessWidget {
+  final Uri _url = Uri.parse('https://www.fftir.org/wp-content/uploads/2020/01/Regles_de_securite_FFTir.pdf');
+  _FftirPdfButton();
+
+  Future<void> _open(BuildContext context) async {
+    try {
+      final ok = await launchUrl(_url, mode: LaunchMode.externalApplication);
+      if (!ok) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Impossible d\'ouvrir le PDF.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur ouverture: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.amberAccent.withOpacity(0.15),
+          foregroundColor: Colors.amberAccent,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        icon: const Icon(Icons.picture_as_pdf),
+        label: const Text('Ouvrir la fiche officielle FFTir (PDF)', style: TextStyle(fontWeight: FontWeight.w600)),
+        onPressed: () => _open(context),
+      ),
+    );
+  }
+}
+
