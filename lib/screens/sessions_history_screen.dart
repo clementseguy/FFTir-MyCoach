@@ -59,17 +59,8 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
       } else if (_filter == 'all') {
         // keep both
       }
-            if (sessions.isEmpty) {
-              return _EmptyState(onCreate: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (c) => const CreateSessionScreen(),
-                  ),
-                );
-                refreshSessions();
-              });
-            }
+            final bool noDataRealized = sessions.isEmpty && _filter != 'planned';
+            final bool noDataPlannedOnly = _filter == 'planned' && planned.isEmpty;
             // Tri et regroupement par jour
             sessions.sort((a,b)=> b.date!.compareTo(a.date!));
             final Map<DateTime,List<ShootingSession>> grouped = {};
@@ -88,7 +79,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
               onRefresh: () async { refreshSessions(); await Future.delayed(Duration(milliseconds:300)); },
               child: ListView.builder(
                 padding: EdgeInsets.only(bottom: 24, top: 8),
-                itemCount: 1 + orderedKeys.length + (planned.isNotEmpty ? 2 : 0),
+                itemCount: 1 + (noDataRealized ? 1 : 0) + (noDataPlannedOnly ? 1 : 0) + orderedKeys.length + (planned.isNotEmpty ? 2 : 0),
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return Column(
@@ -116,6 +107,37 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                     );
                   }
                   int cursor = 1;
+                  if (noDataPlannedOnly) {
+                    if (index == cursor) {
+                      return Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          children: [
+                            Icon(Icons.pending_actions, size: 48, color: Colors.white24),
+                            SizedBox(height: 12),
+                            Text('Aucune session prévue', style: TextStyle(fontWeight: FontWeight.w600)),
+                            SizedBox(height: 8),
+                            Text('Crée une session prévue depuis le +', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.white60)),
+                          ],
+                        ),
+                      );
+                    }
+                    cursor++;
+                  }
+                  if (noDataRealized) {
+                    if (index == cursor) {
+                      return _EmptyMini(onCreate: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (c) => const CreateSessionScreen(),
+                          ),
+                        );
+                        refreshSessions();
+                      });
+                    }
+                    cursor++;
+                  }
                   if (planned.isNotEmpty) {
                     if (index == cursor) {
                       return Padding(
@@ -336,30 +358,23 @@ class _DaySection extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class _EmptyMini extends StatelessWidget {
   final VoidCallback onCreate;
-  const _EmptyState({required this.onCreate});
+  const _EmptyMini({required this.onCreate});
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.hourglass_empty, size: 56, color: Colors.white24),
-            SizedBox(height: 16),
-            Text('Aucune session pour le moment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            SizedBox(height: 8),
-            Text('Crée ta première session pour commencer à analyser ta progression.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.white70)),
-            SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: Icon(Icons.add),
-              label: Text('Nouvelle session'),
-              onPressed: onCreate,
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        children: [
+          Icon(Icons.insights_outlined, size: 48, color: Colors.white24),
+          SizedBox(height: 12),
+          Text('Aucune session réalisée', style: TextStyle(fontWeight: FontWeight.w600)),
+          SizedBox(height: 8),
+          Text('Ajoute une session pour voir l\'historique.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.white60)),
+          SizedBox(height: 16),
+          OutlinedButton.icon(onPressed: onCreate, icon: Icon(Icons.add), label: Text('Créer')),        
+        ],
       ),
     );
   }
