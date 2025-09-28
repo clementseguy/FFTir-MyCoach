@@ -85,6 +85,7 @@ class SeriesDisplayCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        _PriseBadge(method: series.handMethod),
                         if (badges.isNotEmpty)
                           Flexible(
                             child: Wrap(
@@ -188,6 +189,14 @@ class SeriesEditCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text('Série ${index + 1}', style: const TextStyle(fontWeight: FontWeight.w600)),
                 const Spacer(),
+                _PriseSelector(
+                  initial: controllers.handMethod,
+                  onChanged: (v) {
+                    controllers.handMethod = v;
+                    notify();
+                  },
+                ),
+                const SizedBox(width: 4),
                 IconButton(onPressed: onDuplicate, icon: const Icon(Icons.copy, size: 18), tooltip: 'Dupliquer'),
                 if (canDelete) IconButton(onPressed: onDelete, icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20), tooltip: 'Supprimer'),
               ],
@@ -361,6 +370,62 @@ class _MiniIconBtn extends StatelessWidget {
         ),
         child: Icon(icon, size: 16),
       ),
+    );
+  }
+}
+
+class _PriseBadge extends StatelessWidget {
+  final HandMethod method;
+  const _PriseBadge({required this.method});
+  @override
+  Widget build(BuildContext context) {
+    final isOne = method == HandMethod.oneHand;
+    final color = isOne ? Colors.deepOrangeAccent : Colors.lightGreenAccent;
+    final icon = isOne ? Icons.front_hand : Icons.pan_tool_alt;
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.16),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.55), width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 3),
+            Text(isOne ? '1 main' : '2 mains', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PriseSelector extends StatefulWidget {
+  final String initial; // 'one' or 'two'
+  final ValueChanged<String> onChanged;
+  const _PriseSelector({required this.initial, required this.onChanged});
+  @override
+  State<_PriseSelector> createState() => _PriseSelectorState();
+}
+
+class _PriseSelectorState extends State<_PriseSelector> {
+  late String _value;
+  @override
+  void initState() { super.initState(); _value = widget.initial; }
+  void _set(String v) { setState(() => _value = v); widget.onChanged(v); }
+  @override
+  Widget build(BuildContext context) {
+    return ToggleButtons(
+      isSelected: [_value == 'one', _value == 'two'],
+      borderRadius: BorderRadius.circular(12),
+      constraints: const BoxConstraints(minHeight: 30, minWidth: 40),
+      onPressed: (i) => _set(i == 0 ? 'one' : 'two'),
+      children: const [
+        Padding(padding: EdgeInsets.symmetric(horizontal:6), child: Icon(Icons.front_hand, size:16)),
+        Padding(padding: EdgeInsets.symmetric(horizontal:6), child: Icon(Icons.pan_tool_alt, size:16)),
+      ],
     );
   }
 }

@@ -1,6 +1,7 @@
 import '../forms/series_form_controllers.dart';
 import 'package:flutter/material.dart';
 import '../forms/series_form_data.dart';
+import '../services/preferences_service.dart';
 import 'series_cards.dart';
 import '../models/shooting_session.dart';
 import '../constants/session_constants.dart';
@@ -59,13 +60,33 @@ class SessionFormState extends State<SessionForm> {
   _syntheseController = TextEditingController();
   _category = SessionConstants.categoryEntrainement;
     }
+    final defaultMethod = PreferencesService().getDefaultHandMethod();
     _seriesControllers = _series.map((s) => SeriesFormControllers(
       shotCount: s.shotCount,
       distance: s.distance,
       points: s.points,
       groupSize: s.groupSize,
       comment: s.comment,
+      handMethod: 'two',
     )).toList();
+    for (int i=0;i<_seriesControllers.length;i++) {
+      // Try detect existing map method using initialSessionData raw map if provided
+      if (widget.initialSessionData != null) {
+        final rawSeries = widget.initialSessionData!['series'];
+        if (rawSeries is List && i < rawSeries.length) {
+          final raw = rawSeries[i];
+          if (raw is Map && raw['hand_method'] == 'one') {
+            _seriesControllers[i].handMethod = 'one';
+            continue;
+          }
+          if (raw is Map && raw['hand_method'] == 'two') {
+            _seriesControllers[i].handMethod = 'two';
+            continue;
+          }
+        }
+      }
+      _seriesControllers[i].handMethod = defaultMethod == HandMethod.oneHand ? 'one' : 'two';
+    }
   }
 
   @override
@@ -95,6 +116,7 @@ class SessionFormState extends State<SessionForm> {
         points: 0,
         groupSize: 0,
         comment: '',
+        handMethod: PreferencesService().getDefaultHandMethod() == HandMethod.oneHand ? 'one' : 'two',
       ));
     });
     // Après rebuild, focus précis via FocusNodes
@@ -156,6 +178,7 @@ class SessionFormState extends State<SessionForm> {
         points: int.tryParse(_seriesControllers[i].pointsController.text) ?? 0,
         groupSize: double.tryParse(_seriesControllers[i].groupSizeController.text) ?? 0,
         comment: _seriesControllers[i].commentController.text.trim(),
+        handMethod: _seriesControllers[i].handMethod == 'one' ? HandMethod.oneHand : HandMethod.twoHands,
       )),
       synthese: _syntheseController.text,
       category: _category,
@@ -271,6 +294,7 @@ class SessionFormState extends State<SessionForm> {
                     points: newData.points,
                     groupSize: newData.groupSize,
                     comment: newData.comment,
+                    handMethod: c.handMethod,
                   ));
                 });
               },
