@@ -11,7 +11,6 @@ import 'services/session_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'config/app_config.dart';
 import 'models/goal.dart';
 import 'screens/goals_list_screen.dart';
@@ -237,8 +236,7 @@ class SettingsScreen extends StatelessWidget {
 }
 
 Future<void> main() async {
-  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsFlutterBinding.ensureInitialized();
 
   await AppConfig.load();
   await Hive.initFlutter();
@@ -255,7 +253,6 @@ Future<void> main() async {
   }
 
   // On lance immédiatement l'app, l'overlay gère min_display_ms.
-  FlutterNativeSplash.remove();
   runApp(const MyApp());
 }
 
