@@ -157,7 +157,7 @@ class _RuleTile extends StatelessWidget {
 }
 
 class _FftirPdfButton extends StatelessWidget {
-  final Uri _url = Uri.parse('https://www.fftir.org/wp-content/uploads/2020/01/Regles_de_securite_FFTir.pdf');
+  final Uri _url = Uri.parse('https://www.fftir.org/les-regles-de-securite/');
   _FftirPdfButton();
 
   Future<void> _open(BuildContext context) async {
@@ -190,8 +190,8 @@ class _FftirPdfButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-        icon: const Icon(Icons.picture_as_pdf),
-        label: const Text('Ouvrir la fiche officielle FFTir (PDF)', style: TextStyle(fontWeight: FontWeight.w600)),
+  icon: const Icon(Icons.open_in_new),
+  label: const Text('Voir les règles officielles FFTir', style: TextStyle(fontWeight: FontWeight.w600)),
         onPressed: () => _open(context),
       ),
     );
