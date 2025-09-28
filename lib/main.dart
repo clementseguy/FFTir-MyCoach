@@ -260,7 +260,8 @@ Future<void> main() async {
   if (elapsed < minSplash) {
     await Future.delayed(minSplash - elapsed);
   }
-
+  // Retire le splash natif juste avant de lancer l'app Flutter (évite écran blanc).
+  FlutterNativeSplash.remove();
   runApp(const MyApp());
 }
 
@@ -367,16 +368,17 @@ class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProvider
   void initState() {
     super.initState();
     final fadeDur = Duration(milliseconds: AppConfig.I.splashFadeDurationMs);
-    _controller = AnimationController(vsync: this, duration: fadeDur + const Duration(milliseconds: 300));
+    _controller = AnimationController(vsync: this, duration: fadeDur);
     _logoFade = CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.55, curve: Curves.easeOutCubic));
     _titleFade = CurvedAnimation(parent: _controller, curve: const Interval(0.35, 1.0, curve: Curves.easeOut));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      // Précharge le logo pour éviter frame blanche.
+      try { await precacheImage(const AssetImage('assets/app_logo.png'), context); } catch (_) {}
       setState(() => _opacity = 1.0);
       _controller.forward();
-      await Future.delayed(fadeDur + const Duration(milliseconds: 300));
+      await Future.delayed(fadeDur);
       if (mounted) setState(()=> _hideOverlay = true);
-      FlutterNativeSplash.remove();
     });
   }
 
