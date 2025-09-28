@@ -16,6 +16,8 @@ import 'models/goal.dart';
 import 'screens/goals_list_screen.dart';
 import 'widgets/goals_summary_card.dart';
 import 'widgets/series_cards.dart';
+import 'migrations/migration.dart';
+import 'migrations/migration_2_add_exercises_field.dart';
 
 // Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
@@ -240,6 +242,12 @@ Future<void> main() async {
 
   await AppConfig.load();
   await Hive.initFlutter();
+  // Run schema migrations (Hive structural adjustments) before opening boxes / using data.
+  final schemaStore = SchemaVersionStore();
+  final runner = MigrationRunner([
+    Migration2AddExercisesField(), // v2
+  ], schemaStore);
+  await runner.run();
   // Register adapters goals
   if (!Hive.isAdapterRegistered(40)) Hive.registerAdapter(GoalMetricAdapter());
   if (!Hive.isAdapterRegistered(41)) Hive.registerAdapter(GoalComparatorAdapter());

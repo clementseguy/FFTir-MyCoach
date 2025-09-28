@@ -99,11 +99,13 @@ Ajout d’indicateurs de tendance courte/moyenne: 1M = 1 mois, 2M = 2 mois.
 - Ajouter tests unitaires sur service stats & création exercices
 - Refactor si nécessaire: séparation `models/` vs `services/` plus stricte
 - Vérifier impact taille base locale (compaction périodique si besoin)
+ - Infrastructure de migrations Hive standardisée (`MigrationRunner` + version store)
 
 ## 8. Migration & Compatibilité
 - Stratégie d'évolution Hive: nouvelle box ou extension schéma serialisé (compat ascendante)
 - Prévoir un utilitaire de mise à niveau (lecture anciennes entrées -> réécriture normalisée)
 - Stratégie fallback si corruption: log + nettoyage box + notification utilisateur
+ - v2: ajout clé `exercises: []` + normalisation catégorie (appliquée au démarrage)
 
 ## 9. Suivi / Kanban interne (suggestion)
 Colonnes: Backlog | En cours | Test | Fini (0.3 scope)
