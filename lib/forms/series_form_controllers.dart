@@ -5,6 +5,7 @@ class SeriesFormControllers {
   final TextEditingController pointsController;
   final TextEditingController groupSizeController;
   final TextEditingController commentController;
+  String handMethod; // 'one' ou 'two'
   // FocusNodes pour gestion précise du focus
   final FocusNode shotCountFocus;
   final FocusNode distanceFocus;
@@ -18,6 +19,7 @@ class SeriesFormControllers {
     required int points,
     required double groupSize,
     required String comment,
+    required this.handMethod,
   })  : shotCountController = TextEditingController(text: shotCount.toString()),
         distanceController = TextEditingController(text: distance.toString()),
         pointsController = TextEditingController(text: points.toString()),

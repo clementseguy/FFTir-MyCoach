@@ -1,6 +1,8 @@
 import '../forms/series_form_controllers.dart';
 import 'package:flutter/material.dart';
 import '../forms/series_form_data.dart';
+import '../services/preferences_service.dart';
+import 'series_cards.dart';
 import '../models/shooting_session.dart';
 import '../constants/session_constants.dart';
 import '../models/series.dart';
@@ -58,13 +60,33 @@ class SessionFormState extends State<SessionForm> {
   _syntheseController = TextEditingController();
   _category = SessionConstants.categoryEntrainement;
     }
+    final defaultMethod = PreferencesService().getDefaultHandMethod();
     _seriesControllers = _series.map((s) => SeriesFormControllers(
       shotCount: s.shotCount,
       distance: s.distance,
       points: s.points,
       groupSize: s.groupSize,
       comment: s.comment,
+      handMethod: 'two',
     )).toList();
+    for (int i=0;i<_seriesControllers.length;i++) {
+      // Try detect existing map method using initialSessionData raw map if provided
+      if (widget.initialSessionData != null) {
+        final rawSeries = widget.initialSessionData!['series'];
+        if (rawSeries is List && i < rawSeries.length) {
+          final raw = rawSeries[i];
+          if (raw is Map && raw['hand_method'] == 'one') {
+            _seriesControllers[i].handMethod = 'one';
+            continue;
+          }
+          if (raw is Map && raw['hand_method'] == 'two') {
+            _seriesControllers[i].handMethod = 'two';
+            continue;
+          }
+        }
+      }
+      _seriesControllers[i].handMethod = defaultMethod == HandMethod.oneHand ? 'one' : 'two';
+    }
   }
 
   @override
@@ -94,6 +116,7 @@ class SessionFormState extends State<SessionForm> {
         points: 0,
         groupSize: 0,
         comment: '',
+        handMethod: PreferencesService().getDefaultHandMethod() == HandMethod.oneHand ? 'one' : 'two',
       ));
     });
     // Après rebuild, focus précis via FocusNodes
@@ -135,8 +158,16 @@ class SessionFormState extends State<SessionForm> {
       );
       return false;
     }
+    // Conserver l'id session si édition
+    int? existingId;
+    if (widget.initialSessionData != null) {
+      final sess = widget.initialSessionData!['session'];
+      if (sess is Map && sess['id'] != null) {
+        existingId = sess['id'] as int?;
+      }
+    }
     final session = ShootingSession(
-      id: null,
+      id: existingId,
       date: _date,
       weapon: _weaponController.text,
       caliber: _caliberController.text,
@@ -146,7 +177,8 @@ class SessionFormState extends State<SessionForm> {
         distance: double.tryParse(_seriesControllers[i].distanceController.text) ?? 0,
         points: int.tryParse(_seriesControllers[i].pointsController.text) ?? 0,
         groupSize: double.tryParse(_seriesControllers[i].groupSizeController.text) ?? 0,
-        comment: _seriesControllers[i].commentController.text,
+        comment: _seriesControllers[i].commentController.text.trim(),
+        handMethod: _seriesControllers[i].handMethod == 'one' ? HandMethod.oneHand : HandMethod.twoHands,
       )),
       synthese: _syntheseController.text,
       category: _category,
@@ -216,7 +248,7 @@ class SessionFormState extends State<SessionForm> {
           ),
           SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _category,
+            initialValue: _category,
             decoration: InputDecoration(labelText: 'Catégorie'),
             items: SessionConstants.categories.map((c)=> DropdownMenuItem(value: c, child: Text(c))).toList(),
             onChanged: (v)=> setState(()=> _category = v ?? SessionConstants.categoryEntrainement),
@@ -235,10 +267,10 @@ class SessionFormState extends State<SessionForm> {
           ..._series.asMap().entries.map((entry) {
             final i = entry.key;
             final c = _seriesControllers[i];
-            return _SerieCard(
+            return SeriesEditCard(
               index: i,
               controllers: c,
-              canDelete: _series.length>1,
+              canDelete: _series.length > 1,
               onDelete: () {
                 setState(() {
                   _series.removeAt(i);
@@ -249,19 +281,20 @@ class SessionFormState extends State<SessionForm> {
               onDuplicate: () {
                 setState(() {
                   final newData = SeriesFormData(
-                    shotCount: int.tryParse(c.shotCountController.text)??5,
-                    distance: double.tryParse(c.distanceController.text)??25,
-                    points: int.tryParse(c.pointsController.text)??0,
-                    groupSize: double.tryParse(c.groupSizeController.text)??0,
+                    shotCount: int.tryParse(c.shotCountController.text) ?? 5,
+                    distance: double.tryParse(c.distanceController.text) ?? 25,
+                    points: int.tryParse(c.pointsController.text) ?? 0,
+                    groupSize: double.tryParse(c.groupSizeController.text) ?? 0,
                     comment: c.commentController.text,
                   );
-                  _series.insert(i+1, newData);
-                  _seriesControllers.insert(i+1, SeriesFormControllers(
+                  _series.insert(i + 1, newData);
+                  _seriesControllers.insert(i + 1, SeriesFormControllers(
                     shotCount: newData.shotCount,
                     distance: newData.distance,
                     points: newData.points,
                     groupSize: newData.groupSize,
                     comment: newData.comment,
+                    handMethod: c.handMethod,
                   ));
                 });
               },
@@ -387,84 +420,6 @@ class _MiniStat extends StatelessWidget {
 
 class _DividerV extends StatelessWidget { @override Widget build(BuildContext context)=> Container(width:1, height:40, color: Colors.white12, margin: EdgeInsets.symmetric(horizontal:8)); }
 
-class _SerieCard extends StatelessWidget {
-  final int index;
-  final SeriesFormControllers controllers;
-  final bool canDelete;
-  final VoidCallback onDelete;
-  final VoidCallback onDuplicate;
-  const _SerieCard({required this.index, required this.controllers, required this.canDelete, required this.onDelete, required this.onDuplicate});
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: Colors.amberAccent.withOpacity(0.85),
-                  child: Text('${index+1}', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                ),
-                SizedBox(width: 10),
-                Text('Série ${index+1}', style: TextStyle(fontWeight: FontWeight.w600)),
-                Spacer(),
-                IconButton(onPressed: onDuplicate, icon: Icon(Icons.copy, size: 18), tooltip: 'Dupliquer'),
-                if (canDelete) IconButton(onPressed: onDelete, icon: Icon(Icons.delete_outline, color: Colors.redAccent, size: 20), tooltip: 'Supprimer'),
-              ],
-            ),
-            SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: TextFormField(
-                controller: controllers.shotCountController,
-                focusNode: controllers.shotCountFocus,
-                decoration: InputDecoration(labelText: 'Coups'),
-                keyboardType: TextInputType.number,
-              )),
-              SizedBox(width: 12),
-              Expanded(child: TextFormField(
-                controller: controllers.distanceController,
-                focusNode: controllers.distanceFocus,
-                decoration: InputDecoration(labelText: 'Distance (m)'),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-              )),
-            ]),
-            SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: TextFormField(
-                controller: controllers.pointsController,
-                focusNode: controllers.pointsFocus,
-                decoration: InputDecoration(labelText: 'Points'),
-                keyboardType: TextInputType.number,
-              )),
-              SizedBox(width: 12),
-              Expanded(child: TextFormField(
-                controller: controllers.groupSizeController,
-                focusNode: controllers.groupSizeFocus,
-                decoration: InputDecoration(labelText: 'Groupement (cm)'),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-              )),
-            ]),
-            SizedBox(height: 8),
-            TextFormField(
-              controller: controllers.commentController,
-              focusNode: controllers.commentFocus,
-              decoration: InputDecoration(labelText: 'Commentaire'),
-              keyboardType: TextInputType.multiline,
-              minLines: 2,
-              maxLines: 4,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _SyntheseCard extends StatelessWidget {
   final TextEditingController controller;

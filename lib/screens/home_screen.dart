@@ -1,14 +1,13 @@
 import '../widgets/session_card.dart';
+import '../widgets/rules_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import '../services/session_service.dart';
 import '../constants/session_constants.dart';
 import '../models/shooting_session.dart';
 import '../services/stats_service.dart';
-// import '../models/series.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'session_detail_screen.dart';
-// import 'create_session_screen.dart';
-// import 'sessions_history_screen.dart';
+// import '../models/series.dart'; // plus besoin du filtrage par prise
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final SessionService _sessionService = SessionService();
   late Future<List<ShootingSession>> _sessionsFuture;
+  // Filtrage par prise retiré
 
   @override
   void didChangeDependencies() {
@@ -72,6 +72,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.shield_outlined),
+            tooltip: 'Règles & fondamentaux',
+            onPressed: () => RulesBottomSheet.show(context),
+          ),
+          IconButton(
             icon: Icon(Icons.refresh),
             tooltip: 'Rafraîchir',
             onPressed: _refreshSessions,
@@ -86,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               Text('Mes Stats', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 16),
+              // Choix prise retiré (on affichera plus tard stats comparatives dédiées)
               FutureBuilder<List<ShootingSession>>(
                 future: _sessionsFuture,
                 builder: (context, snapshot) {
@@ -98,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   if (allSessions.isEmpty) {
                     return Center(child: Text('Aucune donnée pour les graphes.'));
                   }
-                  // Stats service
+                  // Stats service (global, sans filtrage par prise)
                   final stats = StatsService(allSessions);
                   final avgPoints30 = stats.averagePointsLast30Days();
                   final avgGroup30 = stats.averageGroupSizeLast30Days();
@@ -181,8 +187,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   );
                   // Ancienne construction des séries supprimée (remplacée par logique filtrée ci-dessus)
 
-                  // OBJECTIF points (45 sur 50) pour la ligne de référence
-                  const objectifPoints = 45.0;
+                  // Ligne objectif supprimée; constante objectifPoints retirée.
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -301,20 +306,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   },
                                 ),
                               ),
-                              extraLinesData: ExtraLinesData(horizontalLines: [
-                                HorizontalLine(
-                                  y: objectifPoints,
-                                  color: Colors.redAccent.withOpacity(0.6),
-                                  strokeWidth: 2,
-                                  dashArray: [6,4],
-                                  label: HorizontalLineLabel(
-                                    show: true,
-                                    alignment: Alignment.topRight,
-                                    style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold),
-                                    labelResolver: (_) => 'Objectif 45',
-                                  ),
-                                ),
-                              ]),
+                              // Ligne objectif supprimée (plus de repère horizontal rouge pointillé)
+                              extraLinesData: const ExtraLinesData(horizontalLines: []),
                               lineBarsData: [
                                 LineChartBarData(
                                   spots: pointsSpots,

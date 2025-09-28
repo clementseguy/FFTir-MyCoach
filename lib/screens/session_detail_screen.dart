@@ -287,7 +287,8 @@ String _buildClipboardSummary(ShootingSession s, List<Series> series) {
   buf.writeln('Séries (${series.length}):');
   for (int i=0;i<series.length;i++) {
     final se = series[i];
-    buf.writeln('- #${i+1}: ${se.points} pts, group. ${se.groupSize} cm, dist ${se.distance}m');
+    final prise = se.handMethod == HandMethod.oneHand ? '1M' : '2M';
+    buf.writeln('- #${i+1}: ${se.points} pts, group. ${se.groupSize} cm, dist ${se.distance}m, prise $prise');
   }
   if (s.synthese != null && s.synthese!.trim().isNotEmpty) {
     buf.writeln('Synthèse: ${s.synthese}');

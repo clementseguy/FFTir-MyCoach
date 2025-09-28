@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 import '../models/shooting_session.dart';
+import '../config/app_config.dart';
 
 /// Service responsable de :
 ///  - Charger la configuration d'API (clé, modèle, url) via fromAssets
@@ -65,6 +67,9 @@ class CoachAnalysisService {
           .timeout(const Duration(seconds: 25));
     } on TimeoutException {
       throw CoachAnalysisException('Le serveur ne répond pas (timeout).');
+    } on SocketException catch (e) {
+      // Résout notamment: Failed host lookup (DNS) ou absence réseau
+      throw CoachAnalysisException('Connexion impossible (réseau ou DNS): ${e.message}');
     } catch (e) {
       throw CoachAnalysisException('Erreur réseau inattendue: $e');
     }
@@ -93,21 +98,18 @@ class CoachAnalysisService {
   /// Helper statique pour charger la config et instancier le service.
   /// Permet d'injecter un loader custom (utile pour tests plus tard).
   static Future<CoachAnalysisService> fromAssets({required Future<String> Function(String path) loadAsset}) async {
-    final configStr = await loadAsset('assets/config.yaml');
-    final config = loadYaml(configStr);
-    final apiConfig = config['api'];
-    final key = apiConfig['mistral_key'].toString();
-    final url = apiConfig['mistral_url'].toString();
-    final model = apiConfig['mistral_model'].toString();
-
+    // AppConfig doit être chargé dans main() déjà.
+    final cfg = AppConfig.I;
     final promptStr = await loadAsset('assets/coach_prompt.yaml');
     final promptYaml = loadYaml(promptStr);
     final promptTemplate = promptYaml['prompt'].toString();
-
+    if (cfg.mistralKey == null) {
+      throw CoachAnalysisException('Clé API Mistral absente: configurez MISTRAL_API_KEY (dart-define, env ou config.local.yaml).');
+    }
     return CoachAnalysisService(
-      apiKey: key,
-      apiUrl: url,
-      model: model,
+      apiKey: cfg.mistralKey!,
+      apiUrl: cfg.mistralUrl,
+      model: cfg.mistralModel,
       promptTemplate: promptTemplate,
     );
   }

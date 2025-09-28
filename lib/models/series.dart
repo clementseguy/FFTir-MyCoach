@@ -1,3 +1,5 @@
+enum HandMethod { oneHand, twoHands }
+
 class Series {
   int? id;
   int shotCount;
@@ -5,6 +7,7 @@ class Series {
   int points;
   double groupSize;
   String comment;
+  HandMethod handMethod; // prise (1 main / 2 mains)
 
   Series({
     this.id,
@@ -13,6 +16,7 @@ class Series {
     required this.points,
     required this.groupSize,
     this.comment = '',
+    this.handMethod = HandMethod.twoHands,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,10 +27,20 @@ class Series {
       'points': points,
       'group_size': groupSize,
       'comment': comment,
+      'hand_method': handMethod == HandMethod.oneHand ? 'one' : 'two',
     };
   }
 
   static Series fromMap(Map<String, dynamic> map) {
+    final rawMethod = map['hand_method'];
+    HandMethod method;
+    if (rawMethod == 'one') {
+      method = HandMethod.oneHand;
+    } else if (rawMethod == 'two') {
+      method = HandMethod.twoHands;
+    } else {
+      method = HandMethod.twoHands; // fallback, migration implicite
+    }
     return Series(
       id: map['id'] as int?,
       shotCount: map['shot_count'] as int? ?? 5,
@@ -34,6 +48,7 @@ class Series {
       points: map['points'] as int? ?? 0,
       groupSize: (map['group_size'] as num?)?.toDouble() ?? 0,
       comment: map['comment'] as String? ?? '',
+      handMethod: method,
     );
   }
 }

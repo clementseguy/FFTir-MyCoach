@@ -1,11 +1,11 @@
-name: tir_sportif
+name: tir_sportif # (package id historique conservé; branding affiché = NexTarget)
 
 description: >
-  Application mobile pour suivre les entraînements de tir sportif.
+  NexTarget: application mobile pour suivre et analyser les entraînements de tir sportif.
 
 publish_to: 'none'
 
-version: 0.1.0
+version: 0.2.0
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -22,15 +22,28 @@ dependencies:
   http: ^1.5.0
   flutter_markdown: ^0.7.7+1
   yaml: ^3.1.3
+  file_picker: ^8.0.0
+  share_plus: ^7.2.0
+  url_launcher: ^6.2.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: assets/app_logo.png
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: assets/app_logo.png
+
+## Ancien bloc flutter_native_splash supprimé (splash géré par overlay Flutter)
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/fftir_logo.png
     - assets/app_logo.png
     - assets/coach_prompt.yaml
     - assets/config.yaml

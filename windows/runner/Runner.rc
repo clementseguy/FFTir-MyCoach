@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "tir_sportif" "\0"
+            VALUE "FileDescription", "NexTarget" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "tir_sportif" "\0"
+            VALUE "InternalName", "NexTarget" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "tir_sportif.exe" "\0"
-            VALUE "ProductName", "tir_sportif" "\0"
+            VALUE "OriginalFilename", "NexTarget.exe" "\0"
+            VALUE "ProductName", "NexTarget" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
