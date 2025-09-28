@@ -17,6 +17,7 @@ class SessionsHistoryScreen extends StatefulWidget {
 class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
   final SessionService _sessionService = SessionService();
   late Future<List<ShootingSession>> _sessionsFuture;
+  String _filter = 'realized'; // realized | planned | all
 
   @override
   void initState() {
@@ -45,12 +46,19 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
             return Center(child: CircularProgressIndicator());
           }
       final all = (snapshot.data ?? []);
-      final sessions = all
-        .where((s) => (s.status == SessionConstants.statusRealisee) && (s.date != null))
-        .toList();
-      final planned = all
-        .where((s) => s.status == SessionConstants.statusPrevue)
-        .toList();
+      final realizedAll = all.where((s) => (s.status == SessionConstants.statusRealisee) && (s.date != null)).toList();
+      final plannedAll = all.where((s) => s.status == SessionConstants.statusPrevue).toList();
+
+      List<ShootingSession> sessions = realizedAll;
+      List<ShootingSession> planned = plannedAll;
+      if (_filter == 'planned') {
+        sessions = const [];
+      } else if (_filter == 'realized') {
+        // planned remains for optional section only when 'all'
+        planned = const [];
+      } else if (_filter == 'all') {
+        // keep both
+      }
             if (sessions.isEmpty) {
               return _EmptyState(onCreate: () async {
                 await Navigator.push(
@@ -83,7 +91,29 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                 itemCount: 1 + orderedKeys.length + (planned.isNotEmpty ? 2 : 0),
                 itemBuilder: (context, index) {
                   if (index == 0) {
-                    return _SummaryHeader(nbSessions: nbSessions, totalSeries: totalSeries, avgSeries: avgSeries, daysActive: daysActive);
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal:16.0, vertical: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: SegmentedButton<String>(
+                                  segments: const [
+                                    ButtonSegment(value: 'realized', label: Text('Réalisées')), 
+                                    ButtonSegment(value: 'planned', label: Text('Prévues')), 
+                                    ButtonSegment(value: 'all', label: Text('Toutes')),
+                                  ],
+                                  selected: {_filter},
+                                  onSelectionChanged: (s)=> setState(()=> _filter = s.first),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        _SummaryHeader(nbSessions: nbSessions, totalSeries: totalSeries, avgSeries: avgSeries, daysActive: daysActive),
+                      ],
+                    );
                   }
                   int cursor = 1;
                   if (planned.isNotEmpty) {

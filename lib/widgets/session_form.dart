@@ -187,7 +187,7 @@ class SessionFormState extends State<SessionForm> {
         return false;
       }
     }
-    if (_date == null) {
+    if (_date == null && _status == SessionConstants.statusRealisee) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('La date est obligatoire.')),
       );
@@ -268,8 +268,12 @@ class SessionFormState extends State<SessionForm> {
               Expanded(
                 child: TextFormField(
                   controller: _weaponController,
-                  decoration: InputDecoration(labelText: 'Arme'),
-                  validator: (v)=> v==null||v.isEmpty? 'Requis': null,
+                  decoration: InputDecoration(labelText: 'Arme (optionnel si prévue)'),
+                  validator: (v){
+                    if (_status == SessionConstants.statusPrevue) return null; // optional
+                    if (v==null||v.isEmpty) return 'Requis';
+                    return null;
+                  },
                 ),
               ),
               SizedBox(width: 14),
