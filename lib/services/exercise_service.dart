@@ -47,4 +47,10 @@ class ExerciseService {
   }
 
   Future<void> clearAll() => _repo.clear();
+
+  /// Replace goal associations for an exercise.
+  Future<void> setGoals(Exercise exercise, List<String> goalIds) async {
+    final distinct = goalIds.toSet().toList();
+    await _repo.put(exercise.copyWith(goalIds: distinct));
+  }
 }

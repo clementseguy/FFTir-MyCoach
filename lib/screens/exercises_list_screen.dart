@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/exercise_service.dart';
 import '../models/exercise.dart';
 import '../constants/exercises.dart';
+import '../services/goal_service.dart';
+import '../models/goal.dart';
 
 class ExercisesListScreen extends StatefulWidget {
   const ExercisesListScreen({super.key});
@@ -28,6 +30,13 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
       MaterialPageRoute(builder: (_) => const ExerciseFormScreen()),
     );
     if (created == true) _reload();
+  }
+
+  Future<void> _openEdit(Exercise exercise) async {
+    final updated = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ExerciseFormScreen(editing: exercise)),
+    );
+    if (updated == true) _reload();
   }
 
   @override
@@ -73,8 +82,10 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
               return Card(
                 child: ListTile(
                   title: Text(ex.name),
-                  subtitle: Text(ex.category),
+                  subtitle: Text('${ex.category} • ${ex.goalIds.length} objectif(s)'),
                   leading: const Icon(Icons.fitness_center),
+                  trailing: const Icon(Icons.edit, size: 18),
+                  onTap: () => _openEdit(ex),
                 ),
               );
             },
@@ -90,7 +101,8 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
 }
 
 class ExerciseFormScreen extends StatefulWidget {
-  const ExerciseFormScreen({super.key});
+  final Exercise? editing;
+  const ExerciseFormScreen({super.key, this.editing});
   @override
   State<ExerciseFormScreen> createState() => _ExerciseFormScreenState();
 }
@@ -99,17 +111,48 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   String _category = ExerciseCategories.technique;
+  final GoalService _goalService = GoalService();
+  List<Goal> _allGoals = [];
+  final Set<String> _selectedGoals = {};
   bool _saving = false;
   final ExerciseService _service = ExerciseService();
+
+  Future<void> _initGoals() async {
+    // GoalService requires init for priority migration; ignore if already
+    try { await _goalService.init(); } catch (_) {}
+    final goals = await _goalService.listAll();
+    if (mounted) setState(() => _allGoals = goals);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.editing != null) {
+      _nameCtrl.text = widget.editing!.name;
+      _category = widget.editing!.category;
+      _selectedGoals.addAll(widget.editing!.goalIds);
+    }
+    _initGoals();
+  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(()=> _saving = true);
     try {
-      await _service.addExercise(
-        name: _nameCtrl.text,
-        category: _category,
-      );
+      if (widget.editing == null) {
+        await _service.addExercise(
+          name: _nameCtrl.text,
+          category: _category,
+          goalIds: _selectedGoals.toList(),
+        );
+      } else {
+        final updated = widget.editing!.copyWith(
+          name: _nameCtrl.text,
+          category: _category,
+          goalIds: _selectedGoals.toList(),
+        );
+        await _service.updateExercise(updated);
+      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
@@ -125,7 +168,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nouvel exercice')),
+      appBar: AppBar(title: Text(widget.editing == null ? 'Nouvel exercice' : 'Modifier exercice')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -146,6 +189,40 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
               onChanged: (v) => setState(()=> _category = v ?? ExerciseCategories.technique),
               decoration: const InputDecoration(labelText: 'Catégorie'),
             ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                const Icon(Icons.flag, size: 18, color: Colors.amberAccent),
+                const SizedBox(width: 8),
+                Text('Objectifs associés', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(width: 6),
+                Text('(${_selectedGoals.length})', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_allGoals.isEmpty)
+              const Text('Aucun objectif existant', style: TextStyle(color: Colors.white54))
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _allGoals.map((g) {
+                  final selected = _selectedGoals.contains(g.id);
+                  return FilterChip(
+                    label: Text(g.title, overflow: TextOverflow.ellipsis),
+                    selected: selected,
+                    onSelected: (s) {
+                      setState(() {
+                        if (s) {
+                          _selectedGoals.add(g.id);
+                        } else {
+                          _selectedGoals.remove(g.id);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: _saving ? null : _save,
