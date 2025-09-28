@@ -136,8 +136,16 @@ class SessionFormState extends State<SessionForm> {
       );
       return false;
     }
+    // Conserver l'id session si édition
+    int? existingId;
+    if (widget.initialSessionData != null) {
+      final sess = widget.initialSessionData!['session'];
+      if (sess is Map && sess['id'] != null) {
+        existingId = sess['id'] as int?;
+      }
+    }
     final session = ShootingSession(
-      id: null,
+      id: existingId,
       date: _date,
       weapon: _weaponController.text,
       caliber: _caliberController.text,
@@ -147,7 +155,7 @@ class SessionFormState extends State<SessionForm> {
         distance: double.tryParse(_seriesControllers[i].distanceController.text) ?? 0,
         points: int.tryParse(_seriesControllers[i].pointsController.text) ?? 0,
         groupSize: double.tryParse(_seriesControllers[i].groupSizeController.text) ?? 0,
-        comment: _seriesControllers[i].commentController.text,
+        comment: _seriesControllers[i].commentController.text.trim(),
       )),
       synthese: _syntheseController.text,
       category: _category,
