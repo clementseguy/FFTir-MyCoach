@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'migrations/v0_3.dart';
 
 class LocalDatabase {
   // Mettre à jour une session et ses séries
@@ -34,7 +35,7 @@ class LocalDatabase {
     final path = join(dbPath, 'tir_sportif.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: MigrationV0_3.targetVersion,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE sessions (
@@ -56,6 +57,14 @@ class LocalDatabase {
             FOREIGN KEY(session_id) REFERENCES sessions(id)
           );
         ''');
+        // If we create directly at latest version, also create new tables.
+        if (version >= 2) {
+          await MigrationV0_3.upgrade(db, 1, version);
+        }
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // Apply incremental migrations. For now only v2.
+        await MigrationV0_3.upgrade(db, oldVersion, newVersion);
       },
     );
   }
