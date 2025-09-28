@@ -6,6 +6,8 @@ import 'series_cards.dart';
 import '../models/shooting_session.dart';
 import '../constants/session_constants.dart';
 import '../models/series.dart';
+import '../models/exercise.dart';
+import '../services/exercise_service.dart';
 
 class SessionForm extends StatefulWidget {
   final Map<String, dynamic>? initialSessionData;
@@ -30,6 +32,11 @@ class SessionFormState extends State<SessionForm> {
   late List<SeriesFormData> _series;
   late List<SeriesFormControllers> _seriesControllers;
   String _category = SessionConstants.categoryEntrainement;
+  // Exercises selection
+  final ExerciseService _exerciseService = ExerciseService();
+  List<Exercise> _allExercises = [];
+  final Set<String> _selectedExerciseIds = <String>{};
+  bool _loadingExercises = true;
 
   @override
   void initState() {
@@ -45,6 +52,13 @@ class SessionFormState extends State<SessionForm> {
       _caliberController.text = session['caliber'] ?? '22LR';
   _syntheseController = TextEditingController(text: session['synthese'] ?? '');
   _category = session['category'] ?? SessionConstants.categoryEntrainement;
+      // Preload existing exercises list from session map if any
+      final existingEx = session['exercises'];
+      if (existingEx is List) {
+        for (final e in existingEx) {
+          if (e is String) _selectedExerciseIds.add(e);
+        }
+      }
       _series = series.map((s) => SeriesFormData(
         shotCount: s['shot_count'] ?? 5,
         distance: (s['distance'] as num?)?.toDouble() ?? 25,
@@ -86,6 +100,22 @@ class SessionFormState extends State<SessionForm> {
         }
       }
       _seriesControllers[i].handMethod = defaultMethod == HandMethod.oneHand ? 'one' : 'two';
+    }
+    // Load exercises asynchronously
+    _loadExercises();
+  }
+
+  Future<void> _loadExercises() async {
+    try {
+      final list = await _exerciseService.listAll();
+      if (mounted) {
+        setState(() {
+          _allExercises = list..sort((a,b)=> a.priority.compareTo(b.priority));
+          _loadingExercises = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(()=> _loadingExercises = false);
     }
   }
 
@@ -182,6 +212,7 @@ class SessionFormState extends State<SessionForm> {
       )),
       synthese: _syntheseController.text,
       category: _category,
+      exercises: _selectedExerciseIds.toList(),
     );
     widget.onSave(session);
     return true;
@@ -252,6 +283,22 @@ class SessionFormState extends State<SessionForm> {
             decoration: InputDecoration(labelText: 'Catégorie'),
             items: SessionConstants.categories.map((c)=> DropdownMenuItem(value: c, child: Text(c))).toList(),
             onChanged: (v)=> setState(()=> _category = v ?? SessionConstants.categoryEntrainement),
+          ),
+          SizedBox(height: 24),
+          // ---- Exercises selection ----
+          _ExercisesSelector(
+            loading: _loadingExercises,
+            exercises: _allExercises,
+            selectedIds: _selectedExerciseIds,
+            onToggle: (id) {
+              setState(() {
+                if (_selectedExerciseIds.contains(id)) {
+                  _selectedExerciseIds.remove(id);
+                } else {
+                  _selectedExerciseIds.add(id);
+                }
+              });
+            },
           ),
           SizedBox(height: 24),
           Row(
@@ -450,6 +497,65 @@ class _SyntheseCard extends StatelessWidget {
               minLines: 3,
               maxLines: 8,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Widget for selecting multiple exercises inside the session form.
+class _ExercisesSelector extends StatelessWidget {
+  final bool loading;
+  final List<Exercise> exercises;
+  final Set<String> selectedIds;
+  final void Function(String id) onToggle;
+  const _ExercisesSelector({required this.loading, required this.exercises, required this.selectedIds, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.fitness_center, color: Colors.amberAccent),
+                SizedBox(width: 8),
+                Text('Exercices liés', style: TextStyle(fontWeight: FontWeight.w600)),
+                Spacer(),
+                if (!loading) Text('${selectedIds.length}', style: TextStyle(fontSize: 12, color: Colors.white70)),
+              ],
+            ),
+            SizedBox(height: 12),
+            if (loading)
+              Center(child: SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2)))
+            else if (exercises.isEmpty)
+              Text('Aucun exercice créé pour le moment.', style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.white70))
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: exercises.map((e) {
+                  final selected = selectedIds.contains(e.id);
+                  return FilterChip(
+                    selected: selected,
+                    label: Text(e.name, style: TextStyle(fontSize: 12)),
+                    avatar: Icon(
+                      selected ? Icons.check_circle : Icons.circle_outlined,
+                      size: 16,
+                      color: selected ? Colors.greenAccent : Colors.white54,
+                    ),
+                    onSelected: (_) => onToggle(e.id),
+                    backgroundColor: Colors.white.withValues(alpha: 0.06),
+                    selectedColor: Colors.greenAccent.withValues(alpha: 0.25),
+                    shape: StadiumBorder(side: BorderSide(color: selected ? Colors.greenAccent : Colors.white12)),
+                  );
+                }).toList(),
+              ),
           ],
         ),
       ),

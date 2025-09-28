@@ -13,6 +13,7 @@ class SessionCard extends StatelessWidget {
     int totalPoints = 0;
     double avgScore = 0;
     double avgGroup = 0;
+    final List<dynamic> exerciseIds = (session['exercises'] is List) ? (session['exercises'] as List) : const [];
     if (series.isNotEmpty) {
       totalPoints = series.fold(0, (sum, s) => sum + ((s['points'] ?? 0) as int));
       avgScore = totalPoints / series.length;
@@ -33,6 +34,14 @@ class SessionCard extends StatelessWidget {
           children: [
             Text('Score moyen : ${avgScore.toStringAsFixed(1)}'),
             Text('Groupement moyen : ${avgGroup.toStringAsFixed(1)} cm'),
+            if (exerciseIds.isNotEmpty)
+              Row(
+                children: [
+                  Icon(Icons.fitness_center, size: 14, color: Colors.green),
+                  SizedBox(width: 4),
+                  Text('${exerciseIds.length} exercice(s)', style: TextStyle(fontSize: 12)),
+                ],
+              ),
           ],
         ),
         trailing: onDelete != null

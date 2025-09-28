@@ -9,6 +9,8 @@ import '../models/series.dart';
 import '../widgets/coach_analysis_card.dart';
 import '../widgets/series_list.dart';
 import 'package:flutter/services.dart';
+import '../services/exercise_service.dart';
+import '../models/exercise.dart';
 
 
 class SessionDetailScreen extends StatefulWidget {
@@ -22,6 +24,8 @@ class SessionDetailScreen extends StatefulWidget {
 class _SessionDetailScreenState extends State<SessionDetailScreen> {
   final SessionService _sessionService = SessionService();
   bool _isAnalysing = false;
+  final ExerciseService _exerciseService = ExerciseService();
+  List<Exercise> _allExercises = [];
 
   Map<String, dynamic>? _currentSessionData;
 
@@ -29,6 +33,14 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   void initState() {
     super.initState();
     _currentSessionData = widget.sessionData;
+    _loadExercises();
+  }
+
+  Future<void> _loadExercises() async {
+    try {
+      final list = await _exerciseService.listAll();
+      if (mounted) setState(()=> _allExercises = list);
+    } catch (_) {}
   }
 
 
@@ -104,6 +116,10 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         padding: EdgeInsets.all(16),
         children: [
           _SessionHeaderCard(session: session, series: series),
+          if (session.exercises.isNotEmpty) ...[
+            SizedBox(height: 16),
+            _ExercisesChips(exerciseIds: session.exercises, all: _allExercises),
+          ],
           if (_isAnalysing) ...[
             SizedBox(height: 16),
             LinearProgressIndicator(),
@@ -409,5 +425,61 @@ class _DividerVert extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(width: 1, height: 32, color: Colors.white12);
+  }
+}
+
+class _ExercisesChips extends StatelessWidget {
+  final List<String> exerciseIds;
+  final List<Exercise> all;
+  const _ExercisesChips({required this.exerciseIds, required this.all});
+
+  @override
+  Widget build(BuildContext context) {
+    final nameMap = {for (final e in all) e.id: e.name};
+    final names = exerciseIds.map((id) => nameMap[id] ?? id).toList();
+    if (names.isEmpty) return SizedBox.shrink();
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.fitness_center, size: 18, color: Colors.amberAccent),
+                SizedBox(width: 8),
+                Text('Exercices travaillés', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final n in names)
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check, size: 14, color: Colors.greenAccent),
+                        SizedBox(width: 4),
+                        Text(n, style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
