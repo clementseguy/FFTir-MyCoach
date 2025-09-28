@@ -9,10 +9,10 @@ set -euo pipefail
 # - Renommage: NexTarget-v<version>-<mode>-<timestamp>.apk
 #
 # Usage de base:
-#   ./build_release_apk.sh                 # build release
-#   ./build_release_apk.sh --debug         # build debug
-#   MISTRAL_API_KEY=xxxx ./build_release_apk.sh
-#   ./build_release_apk.sh --ask-key       # force saisie clé
+#   ./build_apk.sh                 # build release
+#   ./build_apk.sh --debug         # build debug
+#   MISTRAL_API_KEY=xxxx ./build_apk.sh
+#   ./build_apk.sh --ask-key       # force saisie clé
 #
 # Options:
 #   --ask-key        Demande la clé si absente (par défaut true)
