@@ -5,6 +5,9 @@ import '../services/session_service.dart';
 import '../constants/session_constants.dart';
 import '../models/shooting_session.dart';
 import '../services/stats_service.dart';
+import '../services/rolling_stats_service.dart';
+import '../services/stats_contract.dart';
+import '../repositories/hive_session_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'session_detail_screen.dart';
 // import '../models/series.dart'; // plus besoin du filtrage par prise
@@ -104,8 +107,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   if (allSessions.isEmpty) {
                     return Center(child: Text('Aucune donnée pour les graphes.'));
                   }
-                  // Stats service (global, sans filtrage par prise)
+                  // Stats services
                   final stats = StatsService(allSessions);
+                  final rollingService = RollingStatsService(HiveSessionRepository());
                   final avgPoints30 = stats.averagePointsLast30Days();
                   final avgGroup30 = stats.averageGroupSizeLast30Days();
                   final best = stats.bestSeriesByPoints();
@@ -185,6 +189,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       kpiCard('Sessions ce mois', sessionsMonth.toString(), icon: Icons.calendar_month),
                     ],
                   );
+                  // Rolling stats future (average total points per session vs 60j baseline)
+                  final rollingFuture = rollingService.compute();
                   // Ancienne construction des séries supprimée (remplacée par logique filtrée ci-dessus)
 
                   // Ligne objectif supprimée; constante objectifPoints retirée.
@@ -195,6 +201,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       SizedBox(height: 16),
                       // KPI banner
                       kpiGrid,
+                      SizedBox(height: 14),
+                      FutureBuilder<RollingStatsSnapshot>(
+                        future: rollingFuture,
+                        builder: (context, snap) {
+                          final r = snap.data;
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator(strokeWidth: 2));
+                          }
+                          if (r == null) return SizedBox.shrink();
+                          Color deltaColor;
+                          if (r.delta > 1) {
+                            deltaColor = Colors.greenAccent;
+                          } else if (r.delta < -1) {
+                            deltaColor = Colors.redAccent;
+                          } else {
+                            deltaColor = Colors.white70;
+                          }
+                          return Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.white12),
+                              color: Colors.white.withOpacity(0.05),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.timeline, color: Colors.amberAccent, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Rolling (30j vs 60j)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                      SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 18,
+                                        runSpacing: 8,
+                                        children: [
+                                          _MiniStatChip(label: 'Avg30', value: r.avg30.toStringAsFixed(1), color: Colors.amberAccent),
+                                          _MiniStatChip(label: 'Avg60', value: r.avg60.toStringAsFixed(1), color: Colors.lightBlueAccent),
+                                          _MiniStatChip(label: 'Δ', value: (r.delta >= 0 ? '+' : '') + r.delta.toStringAsFixed(1), color: deltaColor),
+                                          _MiniStatChip(label: 'Sessions30', value: r.sessions30.toString(), color: Colors.tealAccent),
+                                          _MiniStatChip(label: 'Sessions60', value: r.sessions60.toString(), color: Colors.pinkAccent),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                       SizedBox(height: 20),
                       // Badges performance
                       Wrap(

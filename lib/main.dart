@@ -18,6 +18,7 @@ import 'widgets/goals_summary_card.dart';
 import 'widgets/series_cards.dart';
 import 'migrations/migration.dart';
 import 'migrations/migration_2_add_exercises_field.dart';
+import 'migrations/migration_3_create_exercises_box.dart';
 
 // Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
@@ -246,6 +247,7 @@ Future<void> main() async {
   final schemaStore = SchemaVersionStore();
   final runner = MigrationRunner([
     Migration2AddExercisesField(), // v2
+    Migration3CreateExercisesBox(), // v3
   ], schemaStore);
   await runner.run();
   // Register adapters goals

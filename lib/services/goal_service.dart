@@ -1,75 +1,44 @@
-import 'package:hive/hive.dart';
 import '../models/goal.dart';
 import '../models/shooting_session.dart';
 import '../repositories/session_repository.dart';
 import '../repositories/hive_session_repository.dart';
+import '../repositories/goal_repository.dart';
 
 class GoalService {
-  static const String goalsBoxName = 'goals';
-  Box<Goal>? _box;
   final SessionRepository _sessions;
+  final GoalRepository _goals;
 
-  GoalService({SessionRepository? sessionRepository}) : _sessions = sessionRepository ?? HiveSessionRepository();
+  GoalService({SessionRepository? sessionRepository, GoalRepository? goalRepository})
+      : _sessions = sessionRepository ?? HiveSessionRepository(),
+        _goals = goalRepository ?? HiveGoalRepository();
 
   Future<void> init() async {
-    _box ??= await Hive.openBox<Goal>(goalsBoxName);
-    // Migration légère : attribuer des priorités séquentielles si absentes (9999) pour conserver ordre stable.
-    final b = _box!;
-    final goals = b.values.toList();
-    // Si tous ont priorité par défaut ou mélange -> réattribuer ordre actuel d'insertion.
-    final sorted = goals.toList();
+    // Trigger box open via repository
+    final list = await _goals.getAll();
+    // Migration légère : attribuer des priorités séquentielles si absentes (>=9999)
     int idx = 0;
-    for (final g in sorted) {
+    for (final g in list) {
       if (g.priority >= 9999) {
-        final updated = g.copyWith(priority: idx);
-        await b.put(updated.id, updated);
-        // priorité migrée
+        await _goals.put(g.copyWith(priority: idx));
       }
       idx++;
     }
   }
 
-  Box<Goal> _ensureBox() {
-    final b = _box;
-    if (b == null) {
-      throw StateError('GoalService not initialized. Call init().');
-    }
-    return b;
-  }
+  Future<List<Goal>> listAll() => _goals.getAll();
 
-  Future<List<Goal>> listAll() async {
-    final b = _ensureBox();
-    final list = b.values.toList();
-    list.sort((a,b){
-      final pa = a.priority;
-      final pb = b.priority;
-      if (pa != pb) return pa.compareTo(pb);
-      return a.createdAt.compareTo(b.createdAt);
-    });
-    return list;
-  }
+  Future<void> addGoal(Goal goal) => _goals.put(goal);
 
-  Future<void> addGoal(Goal goal) async {
-    final b = _ensureBox();
-    await b.put(goal.id, goal);
-  }
+  Future<void> updateGoal(Goal goal) => _goals.put(goal);
 
-  Future<void> updateGoal(Goal goal) async {
-    final b = _ensureBox();
-    await b.put(goal.id, goal);
-  }
-
-  Future<void> deleteGoal(String id) async {
-    final b = _ensureBox();
-    await b.delete(id);
-  }
+  Future<void> deleteGoal(String id) => _goals.delete(id);
 
   Future<void> recomputeAllProgress() async {
-    final b = _ensureBox();
     final sessions = await _sessions.getAll();
-    for (final goal in b.values) {
+    final goals = await _goals.getAll();
+    for (final goal in goals) {
       final updated = _computeProgress(goal, sessions);
-      await b.put(updated.id, updated);
+      await _goals.put(updated);
     }
   }
 
