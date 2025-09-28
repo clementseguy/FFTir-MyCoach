@@ -6,7 +6,7 @@ import '../models/shooting_session.dart';
 import '../services/stats_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'session_detail_screen.dart';
-import '../models/series.dart';
+// import '../models/series.dart'; // plus besoin du filtrage par prise
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final SessionService _sessionService = SessionService();
   late Future<List<ShootingSession>> _sessionsFuture;
-  String _handFilter = 'all'; // all | one | two
+  // Filtrage par prise retiré
 
   @override
   void didChangeDependencies() {
@@ -85,23 +85,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               Text('Mes Stats', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 16),
-              Row(
-                children: [
-                  const Text('Prise:', style: TextStyle(fontSize: 12)),
-                  const SizedBox(width: 8),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'all', label: Text('Toutes')),
-                      ButtonSegment(value: 'one', label: Text('1 main')),
-                      ButtonSegment(value: 'two', label: Text('2 mains')),
-                    ],
-                    selected: {_handFilter},
-                    onSelectionChanged: (s) => setState(()=> _handFilter = s.first),
-                    style: ButtonStyle(visualDensity: VisualDensity.compact),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+              // Choix prise retiré (on affichera plus tard stats comparatives dédiées)
               FutureBuilder<List<ShootingSession>>(
                 future: _sessionsFuture,
                 builder: (context, snapshot) {
@@ -114,29 +98,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   if (allSessions.isEmpty) {
                     return Center(child: Text('Aucune donnée pour les graphes.'));
                   }
-                  // Stats service
-                  // Filtrage par prise sur copie isolée des sessions (on filtre chaque série plus tard)
-                  final stats = StatsService(allSessions.map((sess){
-                    if (_handFilter == 'all') return sess;
-                    // cloner la session pour filtrer ses séries
-                    final filteredSeries = sess.series.where((se){
-                      if (_handFilter == 'one') return se.handMethod == HandMethod.oneHand;
-                      if (_handFilter == 'two') return se.handMethod == HandMethod.twoHands;
-                      return true;
-                    }).toList();
-                    final clone = ShootingSession(
-                      id: sess.id,
-                      date: sess.date,
-                      weapon: sess.weapon,
-                      caliber: sess.caliber,
-                      series: filteredSeries,
-                      status: sess.status,
-                      analyse: sess.analyse,
-                      synthese: sess.synthese,
-                      category: sess.category,
-                    );
-                    return clone;
-                  }).toList());
+                  // Stats service (global, sans filtrage par prise)
+                  final stats = StatsService(allSessions);
                   final avgPoints30 = stats.averagePointsLast30Days();
                   final avgGroup30 = stats.averageGroupSizeLast30Days();
                   final best = stats.bestSeriesByPoints();
