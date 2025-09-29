@@ -171,14 +171,14 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
                           child: SessionCard(
                             session: p.toMap(),
-                            series: const [],
+                            series: p.series.map((s)=> s.toMap()).toList(),
                             onTap: () async {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => SessionDetailScreen(sessionData: {
                                     'session': p.toMap(),
-                                    'series': [],
+                                    'series': p.series.map((s)=> s.toMap()).toList(),
                                   }),
                                 ),
                               );
@@ -198,14 +198,14 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
                       child: SessionCard(
                         session: p.toMap(),
-                        series: const [],
+                        series: p.series.map((s)=> s.toMap()).toList(),
                         onTap: () async {
                           await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => SessionDetailScreen(sessionData: {
                                 'session': p.toMap(),
-                                'series': [],
+                                'series': p.series.map((s)=> s.toMap()).toList(),
                               }),
                             ),
                           );
