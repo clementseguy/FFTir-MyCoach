@@ -3,6 +3,10 @@ import '../../models/shooting_session.dart';
 import '../../models/series.dart';
 import '../../services/session_service.dart';
 import '../../constants/session_constants.dart';
+import '../../services/exercise_service.dart';
+import '../../models/exercise.dart';
+import '../../services/goal_service.dart';
+import '../../models/goal.dart';
 
 /// Wizard de conversion Session prévue -> réalisée
 class PlannedSessionWizard extends StatefulWidget {
@@ -24,6 +28,11 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
   String? _syntheseDraft;
   bool _saving = false;
   final SessionService _service = SessionService();
+  final ExerciseService _exerciseService = ExerciseService();
+  final GoalService _goalService = GoalService();
+  Exercise? _linkedExercise; // premier exercice associé si présent
+  List<Goal> _goals = [];
+  bool _loadingExercise = false;
 
   @override
   void initState() {
@@ -33,10 +42,38 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
     _caliberDraft = _session.caliber;
     _categoryDraft = _session.category;
     _syntheseDraft = _session.synthese; // peut contenir "Session créée à partir de ..."
+    _loadExerciseAndGoals();
   }
 
   int get _seriesCount => _session.series.length;
   int get _lastStepIndex => 1 + _seriesCount; // intro=0, séries=1..n, synthèse = n+1
+  double get _progressRatio => (_step) / (_lastStepIndex.toDouble());
+
+  Future<void> _loadExerciseAndGoals() async {
+    if (_session.exercises.isEmpty) return;
+    setState(()=> _loadingExercise = true);
+    try {
+      final exId = _session.exercises.first;
+      final exercises = await _exerciseService.listAll();
+      final ex = exercises.where((e)=> e.id == exId).toList();
+      if (ex.isNotEmpty) {
+        final exercise = ex.first;
+        List<Goal> goals = [];
+        if (exercise.goalIds.isNotEmpty) {
+          final goalAll = await _goalService.listAll();
+            goals = goalAll.where((g)=> exercise.goalIds.contains(g.id)).toList();
+        }
+        if (mounted) {
+          setState(() {
+            _linkedExercise = exercise;
+            _goals = goals;
+          });
+        }
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(()=> _loadingExercise = false);
+    }
+  }
 
   Future<void> _onValidateIntro() async {
     final ok = _formIntro.currentState?.validate() ?? false;
@@ -104,7 +141,18 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
       onWillPop: () async => await _confirmCancel(),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_step == 0 ? 'Session prévue' : _step == _lastStepIndex ? 'Synthèse' : 'Série ${_step} / $_seriesCount'),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_step == 0 ? 'Session prévue' : _step == _lastStepIndex ? 'Synthèse' : 'Série ${_step} / $_seriesCount'),
+              const SizedBox(height:4),
+              LinearProgressIndicator(
+                value: _progressRatio.clamp(0,1),
+                minHeight: 4,
+                backgroundColor: Colors.white24,
+              ),
+            ],
+          ),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () async {
@@ -126,7 +174,6 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
   }
 
   Widget _buildIntro() {
-    // Exercice associé ?
     final hasExercise = _session.exercises.isNotEmpty;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -145,9 +192,36 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                   children: [
                     Text('Exercice', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
-                    if (!hasExercise) const Text('Pas d\'exercice associé', style: TextStyle(color: Colors.white60)) else Text('Associé à ${_session.exercises.length} exercice(s)'),
+                    if (!hasExercise) const Text('Pas d\'exercice associé', style: TextStyle(color: Colors.white60))
+                    else if (_loadingExercise) const Padding(
+                      padding: EdgeInsets.symmetric(vertical:8.0),
+                      child: SizedBox(width:24, height:24, child: CircularProgressIndicator(strokeWidth:2)),
+                    )
+                    else if (_linkedExercise != null) ...[
+                      Text(_linkedExercise!.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      if (_linkedExercise!.description != null && _linkedExercise!.description!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(_linkedExercise!.description!, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                      ],
+                      if (_goals.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: _goals.map((g)=> Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Text(g.title, style: const TextStyle(fontSize: 11)),
+                          )).toList(),
+                        ),
+                      ],
+                    ]
+                    else const Text('Exercice introuvable', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
                     const SizedBox(height: 12),
-                    // Placeholder objectifs / description: dépendrait du chargement Exercise (non chargé ici pour MVP)
                   ],
                 ),
               ),
