@@ -532,15 +532,63 @@ class _MainNavigationState extends State<MainNavigation> {
             Positioned(
               bottom: 24,
               right: 24,
-              child: FloatingActionButton(
-                heroTag: 'fab_create_session',
-                onPressed: () {
-                  Navigator.of(context)
-                      .push(MaterialPageRoute(builder: (ctx) => CreateSessionScreen()))
-                      .then((_) => _historyKey.currentState?.refreshSessions());
+              child: GestureDetector(
+                onLongPress: () {
+                  // Ouvre un menu contextuel pour créer une session prévue
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    builder: (ctx) {
+                      return SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.schedule, color: Colors.blueAccent),
+                              title: const Text('Créer une session prévue'),
+                              subtitle: const Text('Statut prérempli: prévue'),
+                              onTap: () {
+                                Navigator.of(ctx).pop();
+                                final initial = {
+                                  'session': {
+                                    'weapon': '',
+                                    'caliber': '22LR',
+                                    'status': SessionConstants.statusPrevue,
+                                    'category': SessionConstants.categoryEntrainement,
+                                    'series': [],
+                                    'exercises': [],
+                                  },
+                                  'series': [],
+                                };
+                                Navigator.of(context)
+                                    .push(MaterialPageRoute(builder: (c) => CreateSessionScreen(initialSessionData: initial)))
+                                    .then((_) => _historyKey.currentState?.refreshSessions());
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Text('Astuce: simple pression = réalisée', style: Theme.of(context).textTheme.bodySmall),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
                 },
-                child: Icon(Icons.add),
-                tooltip: 'Créer une session',
+                child: FloatingActionButton(
+                  heroTag: 'fab_create_session',
+                  onPressed: () {
+                    // Création d'une session réalisée (comportement original)
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (ctx) => CreateSessionScreen()))
+                        .then((_) => _historyKey.currentState?.refreshSessions());
+                  },
+                  child: const Icon(Icons.add),
+                  tooltip: 'Créer une session (appui long pour prévue)',
+                ),
               ),
             ),
           ],
