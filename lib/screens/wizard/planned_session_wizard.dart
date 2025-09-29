@@ -265,14 +265,24 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
     if (_seriesControllers.length == _session.series.length) return;
     _seriesControllers.clear();
     for (final s in _session.series) {
-      _seriesControllers.add(_SeriesStepController.fromSeries(s));
+      // Consigne est actuellement stockée dans comment de la série planifiée.
+      final consigneText = s.comment; // garder trace
+      _seriesControllers.add(_SeriesStepController(
+        points: 0,
+        groupSize: 0,
+        comment: '', // champ commentaire utilisateur vide au départ
+        shotCount: s.shotCount,
+        distance: s.distance,
+        handMethod: s.handMethod,
+        consigne: consigneText,
+      ));
     }
   }
 
   Widget _buildSeries(int index) {
     _ensureSeriesControllers();
     final c = _seriesControllers[index];
-    final consigne = c.comment?.trim().isEmpty ?? true ? 'Pas de consigne' : c.comment!;
+    final consigne = c.consigne.trim().isEmpty ? 'Pas de consigne' : c.consigne;
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -282,14 +292,14 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
           const SizedBox(height: 16),
           Row(children:[
             Expanded(child: TextFormField(
-              initialValue: c.points.toString(),
+              initialValue: '',
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Points'),
               onChanged: (v){ c.points = int.tryParse(v) ?? 0; },
             )),
             const SizedBox(width: 12),
             Expanded(child: TextFormField(
-              initialValue: c.groupSize.toString(),
+              initialValue: '',
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'Groupement'),
               onChanged: (v){ c.groupSize = double.tryParse(v) ?? 0; },
@@ -297,7 +307,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
           ]),
           const SizedBox(height: 12),
           TextFormField(
-            initialValue: c.comment,
+            initialValue: '',
             decoration: const InputDecoration(labelText: 'Commentaire série'),
             onChanged: (v)=> c.comment = v,
           ),
@@ -326,9 +336,10 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
             const SizedBox(height: 12),
             Expanded(
               child: TextFormField(
-                initialValue: _syntheseDraft,
+                initialValue: _normalizedSyntheseInitial(),
                 maxLines: null,
                 expands: true,
+                textAlignVertical: TextAlignVertical.top,
                 decoration: const InputDecoration(
                   labelText: 'Synthèse de la session',
                   alignLabelWithHint: true,
@@ -359,6 +370,7 @@ class _SeriesStepController {
   int shotCount;
   double distance;
   HandMethod handMethod;
+  String consigne;
 
   _SeriesStepController({
     required this.points,
@@ -367,16 +379,8 @@ class _SeriesStepController {
     required this.shotCount,
     required this.distance,
     required this.handMethod,
+    required this.consigne,
   });
-
-  factory _SeriesStepController.fromSeries(Series s) => _SeriesStepController(
-    points: s.points,
-    groupSize: s.groupSize,
-    comment: s.comment,
-    shotCount: s.shotCount,
-    distance: s.distance,
-    handMethod: s.handMethod,
-  );
 
   bool validate() { return true; }
 
@@ -388,4 +392,17 @@ class _SeriesStepController {
     distance: distance,
     handMethod: handMethod,
   );
+}
+
+// Helper to normaliser synthèse initiale (ajout newline après phrase origine)
+extension _SyntheseInit on _PlannedSessionWizardState {
+  String _normalizedSyntheseInitial() {
+    final base = _syntheseDraft ?? '';
+    if (base.isEmpty) return base;
+    final pattern = RegExp(r'^Session créée à partir de .+');
+    if (pattern.hasMatch(base) && !base.endsWith('\n')) {
+      return base + '\n';
+    }
+    return base;
+  }
 }
