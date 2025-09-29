@@ -373,18 +373,32 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                       onDismissed: (_){ _removeConsigneField(i); },
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: TextFormField(
-                          controller: _consigneCtrls[i],
-                          decoration: InputDecoration(
-                            labelText: 'Consigne ${i+1}',
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.close, size: 16),
-                              onPressed: () => _removeConsigneField(i),
-                              tooltip: 'Supprimer',
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ReorderableDragStartListener(
+                              index: i,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 14, right: 8),
+                                child: Icon(Icons.drag_indicator, size: 20, color: Colors.white54),
+                              ),
                             ),
-                          ),
-                          minLines: 1,
-                          maxLines: 4,
+                            Expanded(
+                              child: TextFormField(
+                                controller: _consigneCtrls[i],
+                                decoration: InputDecoration(
+                                  labelText: 'Consigne ${i+1}',
+                                ),
+                                minLines: 1,
+                                maxLines: 4,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              tooltip: 'Supprimer',
+                              onPressed: () => _removeConsigneField(i),
+                            ),
+                          ],
                         ),
                       ),
                     ),

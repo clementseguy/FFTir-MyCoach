@@ -47,10 +47,10 @@ class SessionService {
     final List<Series> series = [];
     final steps = exercise.consignes;
     if (steps.isEmpty) {
-      series.add(Series(distance: 0, points: 0, groupSize: 0, comment: ''));
+      series.add(Series(distance: 1, points: 0, groupSize: 0, shotCount: 1, comment: '')); // placeholder minimal série
     } else {
       for (final step in steps) {
-        series.add(Series(distance: 0, points: 0, groupSize: 0, comment: step));
+        series.add(Series(distance: 1, points: 0, groupSize: 0, shotCount: 1, comment: step));
       }
     }
     final session = ShootingSession(

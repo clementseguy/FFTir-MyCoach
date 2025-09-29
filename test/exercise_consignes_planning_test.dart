@@ -53,6 +53,10 @@ void main() {
       expect(session.exercises, contains(exercise.id));
       expect(session.series.length, 3);
       expect(session.series.map((s)=>s.comment).toList(), equals(['Phase 1','Phase 2','Phase 3']));
+      // Reload sessions from repository to ensure series persisted
+      final allSessions = await sessionService.getAllSessions();
+      final planned = allSessions.firstWhere((s)=> s.exercises.contains(exercise.id));
+      expect(planned.series.length, 3);
     });
 
     test('Planning exercise with no consigne -> single empty series', () async {
@@ -64,6 +68,17 @@ void main() {
       final session = await sessionService.planFromExercise(exercise);
       expect(session.series.length, 1);
       expect(session.series.first.comment, '');
+      final allSessions = await sessionService.getAllSessions();
+      final created = allSessions.firstWhere((s)=> s.exercises.contains(exercise.id));
+      expect(created.series.length, 1);
+    });
+    
+    test('Placeholder series has minimal non-empty metrics', () async {
+      await exerciseService.addExercise(name: 'Mini', category: 'technique');
+      final ex = (await exerciseService.listAll()).first;
+      final sess = await sessionService.planFromExercise(ex);
+      expect(sess.series.first.shotCount, 1);
+      expect(sess.series.first.distance, 1);
     });
   });
 }
