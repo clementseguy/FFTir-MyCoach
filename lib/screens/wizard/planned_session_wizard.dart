@@ -86,9 +86,9 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
     // index wizard -> série index réel = index-1
     final seriesIdx = index - 1;
     final controller = _seriesControllers[seriesIdx];
-    final ok = controller.validate();
-    if (!ok) return;
+    // Validation triviale (toujours true pour MVP)
     final updated = controller.build();
+    // Toujours persister même si l'utilisateur n'a rien modifié (0 / valeurs par défaut)
     await _service.updateSingleSeries(_session, seriesIdx, updated);
     setState(() {
       if (_step < _lastStepIndex) {
@@ -264,15 +264,23 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
   void _ensureSeriesControllers() {
     if (_seriesControllers.length == _session.series.length) return;
     _seriesControllers.clear();
-    for (final s in _session.series) {
-      // Consigne est actuellement stockée dans comment de la série planifiée.
-      final consigneText = s.comment; // garder trace
+    for (int i = 0; i < _session.series.length; i++) {
+      final s = _session.series[i];
+      final consigneText = s.comment;
+      double defaultDistance;
+      if (i == 0) {
+        defaultDistance = s.distance > 0 ? s.distance : 25;
+      } else {
+        final prev = _session.series[i-1];
+        defaultDistance = prev.distance > 0 ? prev.distance : 25;
+      }
+      final defaultShot = (s.shotCount > 0) ? s.shotCount : 5;
       _seriesControllers.add(_SeriesStepController(
         points: 0,
         groupSize: 0,
-        comment: '', // champ commentaire utilisateur vide au départ
-        shotCount: s.shotCount,
-        distance: s.distance,
+        comment: '',
+        shotCount: defaultShot,
+        distance: defaultDistance,
         handMethod: s.handMethod,
         consigne: consigneText,
       ));
@@ -307,6 +315,22 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Groupement'),
                     onChanged: (v){ c.groupSize = double.tryParse(v) ?? 0; },
+                  )),
+                ]),
+                const SizedBox(height: 12),
+                Row(children:[
+                  Expanded(child: TextFormField(
+                    initialValue: c.shotCount.toString(),
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Coups'),
+                    onChanged: (v){ c.shotCount = int.tryParse(v) ?? c.shotCount; },
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(
+                    initialValue: c.distance.toString(),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Distance (m)'),
+                    onChanged: (v){ c.distance = double.tryParse(v) ?? c.distance; },
                   )),
                 ]),
                 const SizedBox(height: 12),
