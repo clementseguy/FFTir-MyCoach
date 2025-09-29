@@ -269,12 +269,12 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
       final consigneText = s.comment;
       double defaultDistance;
       if (i == 0) {
-        defaultDistance = s.distance > 0 ? s.distance : 25;
+        defaultDistance = 25; // toujours 25 pour série 1
       } else {
         final prev = _session.series[i-1];
         defaultDistance = prev.distance > 0 ? prev.distance : 25;
       }
-      final defaultShot = (s.shotCount > 0) ? s.shotCount : 5;
+      final defaultShot = i==0 ? 5 : (s.shotCount > 0 ? s.shotCount : 5);
       _seriesControllers.add(_SeriesStepController(
         points: 0,
         groupSize: 0,
@@ -304,6 +304,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                 const SizedBox(height: 16),
                 Row(children:[
                   Expanded(child: TextFormField(
+                    key: ValueKey('points_${index}_${c.points}'),
                     initialValue: '',
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Points'),
@@ -311,6 +312,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                   )),
                   const SizedBox(width: 12),
                   Expanded(child: TextFormField(
+                    key: ValueKey('group_${index}_${c.groupSize}'),
                     initialValue: '',
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Groupement'),
@@ -320,6 +322,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                 const SizedBox(height: 12),
                 Row(children:[
                   Expanded(child: TextFormField(
+                    key: ValueKey('shots_${index}_${c.shotCount}'),
                     initialValue: c.shotCount.toString(),
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Coups'),
@@ -327,6 +330,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                   )),
                   const SizedBox(width: 12),
                   Expanded(child: TextFormField(
+                    key: ValueKey('dist_${index}_${c.distance}'),
                     initialValue: c.distance.toString(),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Distance (m)'),
@@ -335,6 +339,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                 ]),
                 const SizedBox(height: 12),
                 TextFormField(
+                  key: ValueKey('comment_${index}'),
                   initialValue: '',
                   decoration: const InputDecoration(labelText: 'Commentaire série'),
                   onChanged: (v)=> c.comment = v,
