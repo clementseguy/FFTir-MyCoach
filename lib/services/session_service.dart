@@ -64,6 +64,7 @@ class SessionService {
       series: series,
       exercises: [exercise.id],
       category: 'entraînement',
+      synthese: 'Session créée à partir de ${exercise.name}',
     );
     await addSession(session);
     // Récupération post-insertion pour garantir séries présentes et id assigné

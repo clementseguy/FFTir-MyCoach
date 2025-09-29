@@ -54,6 +54,8 @@ void main() {
       expect(session.exercises, contains(exercise.id));
       expect(session.series.length, 3);
       expect(session.series.map((s)=>s.comment).toList(), equals(['Phase 1','Phase 2','Phase 3']));
+  expect(session.synthese, isNotNull);
+  expect(session.synthese, contains('Drill vitesse'));
       // Reload sessions from repository to ensure series persisted
       final allSessions = await sessionService.getAllSessions();
       final planned = allSessions.firstWhere((s)=> s.exercises.contains(exercise.id));
@@ -74,6 +76,8 @@ void main() {
       final created = allSessions.firstWhere((s)=> s.exercises.contains(exercise.id));
       expect(created.id, isNotNull);
       expect(created.series.length, 1);
+  expect(created.synthese, isNotNull);
+  expect(created.synthese, contains('Sans étapes'));
     });
     
     test('Placeholder series has minimal non-empty metrics', () async {

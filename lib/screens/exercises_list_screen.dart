@@ -460,11 +460,19 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                 onPressed: _saving ? null : () async {
                   final ex = widget.editing!;
                   final sess = await _sessionService.planFromExercise(ex);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
-                    );
-                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
+                  );
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SessionDetailScreen(sessionData: {
+                        'session': sess.toMap(),
+                        'series': sess.series.map((s)=> s.toMap()).toList(),
+                      }),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.event_available),
                 label: const Text('Planifier depuis cet exercice'),
