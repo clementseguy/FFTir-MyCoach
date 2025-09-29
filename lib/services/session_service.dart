@@ -15,7 +15,10 @@ class SessionService {
   }
 
   Future<void> addSession(ShootingSession session) async {
-    await _repo.insert(session);
+    final id = await _repo.insert(session);
+    if (id >= 0) {
+      session.id = id;
+    }
   }
 
   Future<void> updateSession(
@@ -63,6 +66,16 @@ class SessionService {
       category: 'entraînement',
     );
     await addSession(session);
+    // Récupération post-insertion pour garantir séries présentes et id assigné
+    try {
+      final all = await getAllSessions();
+      final match = all.where((s)=> s.exercises.contains(exercise.id)).toList();
+      if (match.isNotEmpty) {
+        // On choisit la plus récente (souvent la dernière insérée)
+        match.sort((a,b)=> (b.id ?? 0).compareTo(a.id ?? 0));
+        return match.first;
+      }
+    } catch (_) {}
     return session;
   }
 }

@@ -5,6 +5,7 @@ import '../constants/exercises.dart';
 import '../services/goal_service.dart';
 import '../models/goal.dart';
 import '../services/session_service.dart';
+import 'session_detail_screen.dart';
 
 class ExercisesListScreen extends StatefulWidget {
   const ExercisesListScreen({super.key});
@@ -137,11 +138,20 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                         tooltip: 'Planifier une session',
                         onPressed: () async {
                           final sess = await _sessionService.planFromExercise(ex);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
-                            );
-                          }
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
+                          );
+                          // Navigation directe vers la session planifiée
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SessionDetailScreen(sessionData: {
+                                'session': sess.toMap(),
+                                'series': sess.series.map((s)=> s.toMap()).toList(),
+                              }),
+                            ),
+                          );
                         },
                       ),
                       IconButton(
