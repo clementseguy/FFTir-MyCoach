@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../constants/exercises.dart';
 import '../services/goal_service.dart';
 import '../models/goal.dart';
+import '../services/session_service.dart';
 
 class ExercisesListScreen extends StatefulWidget {
   const ExercisesListScreen({super.key});
@@ -13,6 +14,7 @@ class ExercisesListScreen extends StatefulWidget {
 
 class _ExercisesListScreenState extends State<ExercisesListScreen> {
   final ExerciseService _service = ExerciseService();
+  final SessionService _sessionService = SessionService();
   late Future<List<Exercise>> _future;
 
   @override
@@ -86,6 +88,17 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('${ex.category} • ${ex.goalIds.length} objectif(s)'),
+                      if (ex.consignes.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top:4.0),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              _Badge(icon: Icons.list_alt, text: '${ex.consignes.length} consigne(s)'),
+                            ],
+                          ),
+                        ),
                       if (ex.description != null && ex.description!.trim().isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top:4.0),
@@ -116,7 +129,28 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                     ex.description != null && ex.description!.trim().isNotEmpty ? Icons.description : Icons.fitness_center,
                     color: ex.description != null && ex.description!.trim().isNotEmpty ? Colors.amberAccent : null,
                   ),
-                  trailing: const Icon(Icons.edit, size: 18),
+                  trailing: Wrap(
+                    spacing: 4,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.event_available, size: 20),
+                        tooltip: 'Planifier une session',
+                        onPressed: () async {
+                          final sess = await _sessionService.planFromExercise(ex);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
+                            );
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 18),
+                        tooltip: 'Modifier',
+                        onPressed: () => _openEdit(ex),
+                      ),
+                    ],
+                  ),
                   onTap: () => _openEdit(ex),
                 ),
               );
@@ -151,6 +185,18 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   final Set<String> _selectedGoals = {};
   bool _saving = false;
   final ExerciseService _service = ExerciseService();
+  final SessionService _sessionService = SessionService();
+  final List<TextEditingController> _consigneCtrls = [];
+
+  void _addConsigneField([String initial='']) {
+    final c = TextEditingController(text: initial);
+    setState(()=> _consigneCtrls.add(c));
+  }
+
+  void _removeConsigneField(int index) {
+    if (index <0 || index>=_consigneCtrls.length) return;
+    setState(()=> _consigneCtrls.removeAt(index));
+  }
 
   Future<void> _initGoals() async {
     // GoalService requires init for priority migration; ignore if already
@@ -171,6 +217,13 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
         _durationCtrl.text = widget.editing!.durationMinutes.toString();
       }
       _equipmentCtrl.text = widget.editing!.equipment ?? '';
+      for (final step in widget.editing!.consignes) {
+        _consigneCtrls.add(TextEditingController(text: step));
+      }
+    }
+    if (_consigneCtrls.isEmpty) {
+      // Start with one empty field for usability
+      _addConsigneField();
     }
     _initGoals();
   }
@@ -187,6 +240,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
           goalIds: _selectedGoals.toList(),
           durationMinutes: int.tryParse(_durationCtrl.text.trim()),
           equipment: _equipmentCtrl.text.trim().isEmpty ? null : _equipmentCtrl.text.trim(),
+          consignes: _consigneCtrls.map((c)=>c.text).toList(),
         );
       } else {
         final updated = widget.editing!.copyWith(
@@ -196,6 +250,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
           goalIds: _selectedGoals.toList(),
           durationMinutes: int.tryParse(_durationCtrl.text.trim()),
           equipment: _equipmentCtrl.text.trim().isEmpty ? null : _equipmentCtrl.text.trim(),
+          consignes: _consigneCtrls.map((c)=>c.text).toList(),
         );
         await _service.updateExercise(updated);
       }
@@ -283,6 +338,61 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
             const SizedBox(height: 24),
             Row(
               children: [
+                const Icon(Icons.list_alt, size: 18, color: Colors.amberAccent),
+                const SizedBox(width: 8),
+                Text('Consignes', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(width: 6),
+                Text('(${_consigneCtrls.where((c)=>c.text.trim().isNotEmpty).length})', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline),
+                  tooltip: 'Ajouter une consigne',
+                  onPressed: () => _addConsigneField(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_consigneCtrls.isEmpty)
+              const Text('Aucune consigne', style: TextStyle(color: Colors.white54))
+            else
+              ReorderableListView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex>oldIndex) newIndex--;
+                    final item = _consigneCtrls.removeAt(oldIndex);
+                    _consigneCtrls.insert(newIndex, item);
+                  });
+                },
+                children: [
+                  for (int i=0;i<_consigneCtrls.length;i++)
+                    Dismissible(
+                      key: ValueKey('consigne_$i'),
+                      background: Container(color: Colors.redAccent),
+                      onDismissed: (_){ _removeConsigneField(i); },
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: TextFormField(
+                          controller: _consigneCtrls[i],
+                          decoration: InputDecoration(
+                            labelText: 'Consigne ${i+1}',
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.close, size: 16),
+                              onPressed: () => _removeConsigneField(i),
+                              tooltip: 'Supprimer',
+                            ),
+                          ),
+                          minLines: 1,
+                          maxLines: 4,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
                 const Icon(Icons.flag, size: 18, color: Colors.amberAccent),
                 const SizedBox(width: 8),
                 Text('Objectifs associés', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -320,6 +430,22 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
               icon: _saving ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.save),
               label: const Text('Enregistrer'),
             ),
+            if (widget.editing != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _saving ? null : () async {
+                  final ex = widget.editing!;
+                  final sess = await _sessionService.planFromExercise(ex);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.event_available),
+                label: const Text('Planifier depuis cet exercice'),
+              ),
+            ],
           ],
         ),
       ),

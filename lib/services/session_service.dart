@@ -2,6 +2,8 @@ import '../models/shooting_session.dart';
 import '../repositories/session_repository.dart';
 import '../repositories/hive_session_repository.dart';
 import 'logger.dart';
+import '../models/exercise.dart';
+import '../models/series.dart';
 
 class SessionService {
   final SessionRepository _repo;
@@ -37,5 +39,30 @@ class SessionService {
   Future<void> clearAllSessions() async {
     AppLogger.I.debug('Clearing all sessions');
     await _repo.clearAll();
+  }
+
+  /// Create a planned session from an Exercise definition.
+  /// One empty Series is generated per consigne (or single if none).
+  Future<ShootingSession> planFromExercise(Exercise exercise) async {
+    final List<Series> series = [];
+    final steps = exercise.consignes;
+    if (steps.isEmpty) {
+      series.add(Series(distance: 0, points: 0, groupSize: 0, comment: ''));
+    } else {
+      for (final step in steps) {
+        series.add(Series(distance: 0, points: 0, groupSize: 0, comment: step));
+      }
+    }
+    final session = ShootingSession(
+      weapon: '',
+      caliber: '',
+      date: null,
+      status: 'prévue',
+      series: series,
+      exercises: [exercise.id],
+      category: 'entraînement',
+    );
+    await addSession(session);
+    return session;
   }
 }

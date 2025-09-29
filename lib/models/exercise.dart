@@ -9,6 +9,7 @@ class Exercise {
   final DateTime createdAt;
   final int priority; // ordering / future grouping
   final List<String> goalIds; // Goals this exercise helps achieve
+  final List<String> consignes; // Ordered detailed steps / instructions (0..n)
 
   Exercise({
     required this.id,
@@ -20,7 +21,9 @@ class Exercise {
     required this.createdAt,
     this.priority = 9999,
     List<String>? goalIds,
-  }) : goalIds = goalIds ?? const [];
+    List<String>? consignes,
+  }) : goalIds = goalIds ?? const [],
+       consignes = consignes ?? const [];
 
   Exercise copyWith({
     String? name,
@@ -31,6 +34,7 @@ class Exercise {
     List<String>? goalIds,
     int? durationMinutes,
     String? equipment,
+    List<String>? consignes,
   }) => Exercise(
     id: id,
     name: name ?? this.name,
@@ -41,6 +45,7 @@ class Exercise {
     createdAt: createdAt ?? this.createdAt,
     priority: priority ?? this.priority,
     goalIds: goalIds ?? this.goalIds,
+    consignes: consignes ?? this.consignes,
   );
 
   Map<String, dynamic> toMap() => {
@@ -53,6 +58,7 @@ class Exercise {
     'createdAt': createdAt.toIso8601String(),
     'priority': priority,
     'goalIds': goalIds,
+    'consignes': consignes,
   };
 
   static Exercise fromMap(Map<String, dynamic> map) => Exercise(
@@ -65,5 +71,6 @@ class Exercise {
     createdAt: DateTime.tryParse(map['createdAt'] as String? ?? '') ?? DateTime.now(),
     priority: (map['priority'] as int?) ?? 9999,
     goalIds: (map['goalIds'] is List) ? (map['goalIds'] as List).whereType<String>().toList() : const [],
+    consignes: (map['consignes'] is List) ? (map['consignes'] as List).whereType<String>().toList() : const [],
   );
 }

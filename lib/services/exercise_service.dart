@@ -24,6 +24,7 @@ class ExerciseService {
     List<String>? goalIds,
     int? durationMinutes,
     String? equipment,
+    List<String>? consignes,
   }) async {
     final ex = Exercise(
       id: generateId(),
@@ -35,6 +36,7 @@ class ExerciseService {
       goalIds: goalIds ?? const [],
       durationMinutes: durationMinutes,
       equipment: (equipment?.trim().isEmpty ?? true) ? null : equipment!.trim(),
+      consignes: consignes?.map((e)=>e.trim()).where((e)=>e.isNotEmpty).toList(),
     );
     await _repo.put(ex);
   }
@@ -56,5 +58,11 @@ class ExerciseService {
   Future<void> setGoals(Exercise exercise, List<String> goalIds) async {
     final distinct = goalIds.toSet().toList();
     await _repo.put(exercise.copyWith(goalIds: distinct));
+  }
+
+  /// Replace consignes (steps) for an exercise.
+  Future<void> setConsignes(Exercise exercise, List<String> consignes) async {
+    final cleaned = consignes.map((e)=>e.trim()).where((e)=>e.isNotEmpty).toList();
+    await _repo.put(exercise.copyWith(consignes: cleaned));
   }
 }
