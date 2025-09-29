@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'constants/session_constants.dart';
@@ -578,6 +579,50 @@ class _MainNavigationState extends State<MainNavigation> {
                     },
                   );
                 },
+                onSecondaryTap: () { // Fallback Web: clic droit
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    builder: (ctx) {
+                      return SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.schedule, color: Colors.blueAccent),
+                              title: const Text('Créer une session prévue'),
+                              subtitle: const Text('Statut prérempli: prévue'),
+                              onTap: () {
+                                Navigator.of(ctx).pop();
+                                final initial = {
+                                  'session': {
+                                    'weapon': '',
+                                    'caliber': '22LR',
+                                    'status': SessionConstants.statusPrevue,
+                                    'category': SessionConstants.categoryEntrainement,
+                                    'series': [],
+                                    'exercises': [],
+                                  },
+                                  'series': [],
+                                };
+                                Navigator.of(context)
+                                    .push(MaterialPageRoute(builder: (c) => CreateSessionScreen(initialSessionData: initial)))
+                                    .then((_) => _historyKey.currentState?.refreshSessions());
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Text('Astuce: appui long / clic droit', style: Theme.of(context).textTheme.bodySmall),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
                 child: FloatingActionButton(
                   heroTag: 'fab_create_session',
                   onPressed: () {
@@ -587,7 +632,7 @@ class _MainNavigationState extends State<MainNavigation> {
                         .then((_) => _historyKey.currentState?.refreshSessions());
                   },
                   child: const Icon(Icons.add),
-                  tooltip: 'Créer une session (appui long pour prévue)',
+                  tooltip: kIsWeb ? 'Créer une session (clic droit pour prévue)' : 'Créer une session (appui long pour prévue)',
                 ),
               ),
             ),
