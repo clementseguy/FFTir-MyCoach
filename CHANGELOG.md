@@ -2,26 +2,33 @@
 
 Toutes les modifications notables de ce projet seront listées ici.
 
-## [Unreleased - 0.3.0]
-### Planned / Scope
-- Gestion des Exercices (création, catégories, association aux sessions)
-- Suivi amélioré des Objectifs (types, statut enrichi, progression)
-- Amélioration UI saisie des Séries (mode rapide, numpad, navigation optimisée)
-- Améliorations mineures: calibres normalisés, UX micro-ajustements
-- Stats étendues: moyennes glissantes 30j / 60j (1M / 2M), delta progression
+## [0.3.0] - 2025-09-29
+### Added
+- Exercices: création, description, durée, matériel, consignes (0..n).
+- Association sessions ↔ exercices; planification de session depuis un exercice.
+- Sessions prévues: statut 'prévue', filtre dédié, en-tête stats spécifiques.
+- Wizard conversion session prévue → réalisée (intro + séries + synthèse).
+- Consignes → génération séries placeholder; prise (1M/2M) éditable par série.
+- Champs supplémentaires séries dans le wizard: Coups, Distance, Points, Groupement, Commentaire (validations obligatoires).
+- Stats: moyennes glissantes (30/60j) + delta de progression (affichage amélioré).
 
-### Added (prévisionnel)
-- (À compléter au fil des merges)
+### Changed
+- Différenciation visuelle sessions prévues (couleurs cartes, chips, header).
+- FAB: appui long / clic droit (web) pour créer directement une session prévue.
+- Refonte UI état vide historique (suppression bouton central redondant).
+- Synthèse: préremplie depuis l'exercice + insertion newline pour édition.
 
-### Changed (prévisionnel)
-- (À compléter)
+### Fixed
+- Perte séries placeholder lors planification (valeurs minimales persistées).
+- Overflow éditeur consignes + overflow wizard séries (scroll + layout fix).
+- Defaults Coups / Distance séries suivantes hérités correctement (plus de 1).
+- Préremplissage indésirable champs (Points, Groupement, Commentaire) supprimé.
 
-### Fixed (prévisionnel)
-- (À compléter)
-
-### Technical (prévisionnel)
-- Évolution Hive: nouvelle structure pour Exercices + Objectifs enrichis
-- Cache stats agrégées (si implémenté)
+### Technical
+- Service conversion `convertPlannedToRealized` + persistance incrémentale séries.
+- Tests: ajout planned_session_conversion_test & validations post-wizard.
+- Script build APK: renommage versionné (réutilisé pour debug 0.3.0).
+- Sélecteur prise: réutilisation préférence utilisateur (Hive app_preferences).
 
 ---
 
