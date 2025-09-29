@@ -55,6 +55,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   final session = ShootingSession.fromMap(_currentSessionData!['session']);
   final series = (_currentSessionData!['series'] as List<dynamic>).map((s) => Series.fromMap(Map<String, dynamic>.from(s))).toList();
   final isRealisee = session.status == SessionConstants.statusRealisee;
+  final bool isPlanned = !isRealisee;
     String? analyse = _currentSessionData!['session']['analyse'];
     return Scaffold(
       appBar: AppBar(
@@ -115,7 +116,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [
-          _SessionHeaderCard(session: session, series: series),
+          _SessionHeaderCard(session: session, series: series, planned: isPlanned),
           if (session.exercises.isNotEmpty) ...[
             SizedBox(height: 16),
             _ExercisesChips(exerciseIds: session.exercises, all: _allExercises),
@@ -318,7 +319,8 @@ String _buildClipboardSummary(ShootingSession s, List<Series> series) {
 class _SessionHeaderCard extends StatelessWidget {
   final ShootingSession session;
   final List<Series> series;
-  const _SessionHeaderCard({required this.session, required this.series});
+  final bool planned;
+  const _SessionHeaderCard({required this.session, required this.series, this.planned = false});
 
   int get totalPoints => series.fold(0, (a,b)=> a + b.points);
   double get avgPoints => series.isEmpty ? 0 : totalPoints / series.length;
@@ -331,9 +333,12 @@ class _SessionHeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = session.date;
+    final Color accent = planned ? Colors.blueAccent : Colors.amberAccent;
+    final Color chipBase = planned ? Colors.lightBlueAccent : Colors.tealAccent;
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: planned ? Colors.blueAccent.withValues(alpha:0.4): Colors.white12, width: 0.8)),
+      color: planned ? Colors.blueGrey.withValues(alpha: 0.25) : null,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -341,11 +346,11 @@ class _SessionHeaderCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 18, color: Colors.amberAccent),
+                Icon(Icons.calendar_today, size: 18, color: accent),
                 SizedBox(width: 8),
                 Text(date != null ? '${date.day}/${date.month}/${date.year}' : 'Date inconnue', style: TextStyle(fontWeight: FontWeight.w600)),
                 Spacer(),
-                _Chip(text: session.status, icon: Icons.flag, color: Colors.lightBlueAccent),
+                _Chip(text: session.status, icon: Icons.flag, color: planned ? Colors.blueAccent : Colors.lightBlueAccent),
               ],
             ),
             SizedBox(height: 12),
@@ -353,10 +358,10 @@ class _SessionHeaderCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 6,
               children: [
-                _Chip(text: session.weapon.isEmpty ? 'Arme ?' : session.weapon, icon: Icons.security),
-                _Chip(text: session.caliber.isEmpty ? 'Calibre ?' : session.caliber, icon: Icons.bolt),
-                if (session.category.isNotEmpty) _Chip(text: session.category, icon: Icons.category, color: Colors.purpleAccent),
-                _Chip(text: '${series.length} séries', icon: Icons.list_alt, color: Colors.tealAccent),
+                _Chip(text: session.weapon.isEmpty ? 'Arme ?' : session.weapon, icon: Icons.security, overrideBase: planned),
+                _Chip(text: session.caliber.isEmpty ? 'Calibre ?' : session.caliber, icon: Icons.bolt, overrideBase: planned),
+                if (session.category.isNotEmpty) _Chip(text: session.category, icon: Icons.category, color: planned ? Colors.indigoAccent : Colors.purpleAccent),
+                _Chip(text: '${series.length} séries', icon: Icons.list_alt, color: chipBase),
               ],
             ),
             SizedBox(height: 16),
@@ -380,22 +385,24 @@ class _Chip extends StatelessWidget {
   final String text;
   final IconData icon;
   final Color? color;
-  const _Chip({required this.text, required this.icon, this.color});
+  final bool overrideBase; // when planned, adjust default neutral chips
+  const _Chip({required this.text, required this.icon, this.color, this.overrideBase = false});
   @override
   Widget build(BuildContext context) {
+    final Color base = color ?? (overrideBase ? Colors.lightBlueAccent : Colors.white70);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-  color: (color ?? Colors.white70).withValues(alpha: 0.15),
+        color: base.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: base.withValues(alpha: 0.55), width: 0.6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color ?? Colors.white70),
+          Icon(icon, size: 14, color: base),
           SizedBox(width: 4),
-          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: base)),
         ],
       ),
     );

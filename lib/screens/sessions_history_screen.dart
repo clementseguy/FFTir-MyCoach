@@ -297,25 +297,25 @@ class _PlannedHeader extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.pending_actions, color: Colors.amberAccent),
+                  Icon(Icons.pending_actions, color: Colors.blueAccent),
                   SizedBox(width: 8),
-                  Text('Résumé des prévues', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text('Résumé des prévues', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.lightBlue[100])),
                 ],
               ),
               SizedBox(height: 12),
               Row(
                 children: [
-                  _Stat(label: 'Total', value: totalPlanned.toString(), icon: Icons.list_alt, color: Colors.amberAccent),
+                  _Stat(label: 'Total', value: totalPlanned.toString(), icon: Icons.list_alt, color: Colors.blueAccent),
                   _VerticalDivider(),
-                  _Stat(label: 'Datées', value: withDate.toString(), icon: Icons.event, color: Colors.lightBlueAccent),
+                  _Stat(label: 'Datées', value: withDate.toString(), icon: Icons.event, color: Colors.indigoAccent),
                 ],
               ),
               SizedBox(height: 10),
               Row(
                 children: [
-                  _Stat(label: 'Sans date', value: withoutDate.toString(), icon: Icons.help_outline, color: Colors.pinkAccent),
+                  _Stat(label: 'Sans date', value: withoutDate.toString(), icon: Icons.help_outline, color: Colors.deepPurpleAccent),
                   _VerticalDivider(),
-                  _Stat(label: 'Prochaine', value: nextLabel, icon: Icons.schedule, color: Colors.tealAccent),
+                  _Stat(label: 'Prochaine', value: nextLabel, icon: Icons.schedule, color: Colors.cyanAccent),
                 ],
               ),
             ],
