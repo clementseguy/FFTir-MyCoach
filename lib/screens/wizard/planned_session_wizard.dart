@@ -87,9 +87,23 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
     // index wizard -> série index réel = index-1
     final seriesIdx = index - 1;
     final controller = _seriesControllers[seriesIdx];
-    // Validation triviale (toujours true pour MVP)
+    // Validation obligatoire: points, groupSize, shotCount, distance, comment (non vide)
+    final missing = <String>[];
+    if (controller.points <= 0) missing.add('Points');
+    if (controller.groupSize <= 0) missing.add('Groupement');
+    if (controller.shotCount <= 0) missing.add('Coups');
+    if (controller.distance <= 0) missing.add('Distance');
+    if ((controller.comment == null) || controller.comment!.trim().isEmpty) missing.add('Commentaire');
+    if (missing.isNotEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Champs requis: ${missing.join(', ')}')),
+        );
+      }
+      setState(()=> controller.showErrors = true);
+      return;
+    }
     final updated = controller.build();
-    // Toujours persister même si l'utilisateur n'a rien modifié (0 / valeurs par défaut)
     await _service.updateSingleSeries(_session, seriesIdx, updated);
     setState(() {
       if (_step < _lastStepIndex) {
@@ -319,6 +333,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Points'),
                     onChanged: (v){ c.points = int.tryParse(v) ?? 0; },
+                    validator: (_) => (c.showErrors && c.points<=0) ? 'Requis' : null,
                   )),
                   const SizedBox(width: 12),
                   Expanded(child: TextFormField(
@@ -327,6 +342,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Groupement'),
                     onChanged: (v){ c.groupSize = double.tryParse(v) ?? 0; },
+                    validator: (_) => (c.showErrors && c.groupSize<=0) ? 'Requis' : null,
                   )),
                 ]),
                 const SizedBox(height: 12),
@@ -337,6 +353,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Coups'),
                     onChanged: (v){ c.shotCount = int.tryParse(v) ?? c.shotCount; },
+                    validator: (_) => (c.showErrors && c.shotCount<=0) ? 'Requis' : null,
                   )),
                   const SizedBox(width: 12),
                   Expanded(child: TextFormField(
@@ -345,6 +362,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Distance (m)'),
                     onChanged: (v){ c.distance = double.tryParse(v) ?? c.distance; },
+                    validator: (_) => (c.showErrors && c.distance<=0) ? 'Requis' : null,
                   )),
                 ]),
                 const SizedBox(height: 12),
@@ -359,6 +377,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                   decoration: const InputDecoration(labelText: 'Commentaire série'),
                   onChanged: (v)=> c.comment = v,
                   maxLines: null,
+                  validator: (_) => (c.showErrors && (c.comment==null || c.comment!.trim().isEmpty)) ? 'Requis' : null,
                 ),
                 const SizedBox(height: 28),
                 Align(
@@ -423,6 +442,7 @@ class _SeriesStepController {
   double distance;
   HandMethod handMethod;
   String consigne;
+  bool showErrors;
 
   _SeriesStepController({
     required this.points,
@@ -432,6 +452,7 @@ class _SeriesStepController {
     required this.distance,
     required this.handMethod,
     required this.consigne,
+    this.showErrors = false,
   });
 
   bool validate() { return true; }
