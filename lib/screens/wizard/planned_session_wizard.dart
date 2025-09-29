@@ -272,14 +272,19 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
       final s = _session.series[i];
       final consigneText = s.comment;
       double defaultDistance;
+      int defaultShot;
+      HandMethod hand;
       if (i == 0) {
-        defaultDistance = 25; // toujours 25 pour série 1
+        defaultDistance = 25;
+        defaultShot = 5;
+        hand = (s.handMethod == HandMethod.twoHands && defaultHand == 'one') ? HandMethod.oneHand : s.handMethod;
       } else {
-        final prev = _session.series[i-1];
-        defaultDistance = prev.distance > 0 ? prev.distance : 25;
+        // Utiliser les valeurs déjà déterminées du contrôleur précédent
+        final prevCtrl = _seriesControllers[i-1];
+        defaultDistance = prevCtrl.distance > 0 ? prevCtrl.distance : 25;
+        defaultShot = prevCtrl.shotCount > 0 ? prevCtrl.shotCount : 5;
+        hand = s.handMethod; // conserve la prise existante; on pourrait hériter du prev si besoin
       }
-      final defaultShot = i==0 ? 5 : (s.shotCount > 0 ? s.shotCount : 5);
-      final hand = (i==0 && s.handMethod == HandMethod.twoHands && defaultHand == 'one') ? HandMethod.oneHand : (s.handMethod);
       _seriesControllers.add(_SeriesStepController(
         points: 0,
         groupSize: 0,
