@@ -7,6 +7,7 @@ import '../../services/exercise_service.dart';
 import '../../models/exercise.dart';
 import '../../services/goal_service.dart';
 import '../../models/goal.dart';
+import 'package:hive/hive.dart';
 
 /// Wizard de conversion Session prévue -> réalisée
 class PlannedSessionWizard extends StatefulWidget {
@@ -264,6 +265,9 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
   void _ensureSeriesControllers() {
     if (_seriesControllers.length == _session.series.length) return;
     _seriesControllers.clear();
+    // Préférence prise par défaut
+    String defaultHand = 'two';
+    try { final box = Hive.box('app_preferences'); defaultHand = box.get('default_hand_method', defaultValue: 'two'); } catch(_){ }
     for (int i = 0; i < _session.series.length; i++) {
       final s = _session.series[i];
       final consigneText = s.comment;
@@ -275,13 +279,14 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
         defaultDistance = prev.distance > 0 ? prev.distance : 25;
       }
       final defaultShot = i==0 ? 5 : (s.shotCount > 0 ? s.shotCount : 5);
+      final hand = (i==0 && s.handMethod == HandMethod.twoHands && defaultHand == 'one') ? HandMethod.oneHand : (s.handMethod);
       _seriesControllers.add(_SeriesStepController(
         points: 0,
         groupSize: 0,
         comment: '',
         shotCount: defaultShot,
         distance: defaultDistance,
-        handMethod: s.handMethod,
+        handMethod: hand,
         consigne: consigneText,
       ));
     }
@@ -323,7 +328,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                 Row(children:[
                   Expanded(child: TextFormField(
                     key: ValueKey('shots_${index}_${c.shotCount}'),
-                    initialValue: c.shotCount.toString(),
+                    initialValue: c.shotCount.toString(), // visible default (5 or previous)
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Coups'),
                     onChanged: (v){ c.shotCount = int.tryParse(v) ?? c.shotCount; },
@@ -331,12 +336,17 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
                   const SizedBox(width: 12),
                   Expanded(child: TextFormField(
                     key: ValueKey('dist_${index}_${c.distance}'),
-                    initialValue: c.distance.toString(),
+                    initialValue: c.distance.toString(), // visible default (25 or previous)
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Distance (m)'),
                     onChanged: (v){ c.distance = double.tryParse(v) ?? c.distance; },
                   )),
                 ]),
+                const SizedBox(height: 12),
+                _HandMethodSelector(
+                  initial: c.handMethod,
+                  onChanged: (m){ c.handMethod = m; },
+                ),
                 const SizedBox(height: 12),
                 TextFormField(
                   key: ValueKey('comment_${index}'),
@@ -429,6 +439,52 @@ class _SeriesStepController {
     distance: distance,
     handMethod: handMethod,
   );
+}
+
+class _HandMethodSelector extends StatefulWidget {
+  final HandMethod initial;
+  final ValueChanged<HandMethod> onChanged;
+  const _HandMethodSelector({required this.initial, required this.onChanged});
+  @override
+  State<_HandMethodSelector> createState() => _HandMethodSelectorState();
+}
+
+class _HandMethodSelectorState extends State<_HandMethodSelector> {
+  late HandMethod _method;
+  @override
+  void initState() { super.initState(); _method = widget.initial; }
+  void _set(HandMethod m){ setState(()=> _method = m); widget.onChanged(m); }
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text('Prise', style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(width: 12),
+        ToggleButtons(
+          isSelected: [_method == HandMethod.oneHand, _method == HandMethod.twoHands],
+          borderRadius: BorderRadius.circular(12),
+          constraints: const BoxConstraints(minHeight: 34, minWidth: 46),
+          onPressed: (i){ _set(i==0? HandMethod.oneHand : HandMethod.twoHands); },
+          children: const [
+            Padding(padding: EdgeInsets.symmetric(horizontal:8), child: Icon(Icons.front_hand, size:18)),
+            Padding(padding: EdgeInsets.symmetric(horizontal:8), child: _TwoHandsIconMini()),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TwoHandsIconMini extends StatelessWidget {
+  const _TwoHandsIconMini();
+  @override
+  Widget build(BuildContext context) {
+    final color = IconTheme.of(context).color ?? Colors.white;
+    return SizedBox(width: 30, height: 18, child: Stack(children:[
+      Positioned(left: 0, top:0, child: Icon(Icons.front_hand, size:14, color: color.withValues(alpha:0.8))),
+      Positioned(left: 12, top:0, child: Icon(Icons.front_hand, size:16, color: color)),
+    ]));
+  }
 }
 
 // Helper to normaliser synthèse initiale (ajout newline après phrase origine)
