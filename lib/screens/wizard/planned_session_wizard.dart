@@ -283,44 +283,52 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
     _ensureSeriesControllers();
     final c = _seriesControllers[index];
     final consigne = c.consigne.trim().isEmpty ? 'Pas de consigne' : c.consigne;
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(consigne, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 16),
-          Row(children:[
-            Expanded(child: TextFormField(
-              initialValue: '',
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Points'),
-              onChanged: (v){ c.points = int.tryParse(v) ?? 0; },
-            )),
-            const SizedBox(width: 12),
-            Expanded(child: TextFormField(
-              initialValue: '',
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Groupement'),
-              onChanged: (v){ c.groupSize = double.tryParse(v) ?? 0; },
-            )),
-          ]),
-          const SizedBox(height: 12),
-          TextFormField(
-            initialValue: '',
-            decoration: const InputDecoration(labelText: 'Commentaire série'),
-            onChanged: (v)=> c.comment = v,
-          ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: ElevatedButton(
-              onPressed: ()=> _onValidateSeries(index+1),
-              child: Text(index == _seriesCount-1 ? 'Suite' : 'Suivant'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(consigne, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 16),
+                Row(children:[
+                  Expanded(child: TextFormField(
+                    initialValue: '',
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Points'),
+                    onChanged: (v){ c.points = int.tryParse(v) ?? 0; },
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(
+                    initialValue: '',
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Groupement'),
+                    onChanged: (v){ c.groupSize = double.tryParse(v) ?? 0; },
+                  )),
+                ]),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: '',
+                  decoration: const InputDecoration(labelText: 'Commentaire série'),
+                  onChanged: (v)=> c.comment = v,
+                  maxLines: null,
+                ),
+                const SizedBox(height: 28),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: ElevatedButton(
+                    onPressed: ()=> _onValidateSeries(index+1),
+                    child: Text(index == _seriesCount-1 ? 'Suite' : 'Suivant'),
+                  ),
+                ),
+              ],
             ),
-          )
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 
