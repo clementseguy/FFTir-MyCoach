@@ -44,6 +44,42 @@ class SessionService {
     await _repo.clearAll();
   }
 
+  /// Convert a planned session (status 'prévue') into a realized one.
+  /// Applies provided field overrides, forces date to now if not supplied.
+  Future<ShootingSession> convertPlannedToRealized({
+    required ShootingSession session,
+    String? weapon,
+    String? caliber,
+    String? category,
+    String? synthese,
+    DateTime? forcedDate,
+    List<Series>? updatedSeries,
+  }) async {
+    if (session.status != 'prévue') {
+      throw StateError('Session ${session.id} is not planned.');
+    }
+    // Apply overrides in-memory
+    if (weapon != null) session.weapon = weapon;
+    if (caliber != null) session.caliber = caliber;
+    if (category != null) session.category = category;
+    if (synthese != null) session.synthese = synthese;
+    if (updatedSeries != null) {
+      session.series = updatedSeries;
+    }
+    session.status = 'réalisée';
+    session.date = forcedDate ?? DateTime.now();
+    await updateSession(session, preserveExistingSeriesIfEmpty: false, warnOnFallback: false);
+    return session;
+  }
+
+  /// Persist a single series change in a planned session before final conversion.
+  Future<void> updateSingleSeries(ShootingSession session, int seriesIndex, Series newSeries) async {
+    if (seriesIndex < 0 || seriesIndex >= session.series.length) return;
+    session.series[seriesIndex] = newSeries;
+    // Keep status as is (likely 'prévue') during incremental updates
+    await updateSession(session, preserveExistingSeriesIfEmpty: false, warnOnFallback: false);
+  }
+
   /// Create a planned session from an Exercise definition.
   /// One empty Series is generated per consigne (or single if none).
   Future<ShootingSession> planFromExercise(Exercise exercise) async {

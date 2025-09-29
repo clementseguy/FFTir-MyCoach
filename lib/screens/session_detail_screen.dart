@@ -11,6 +11,7 @@ import '../widgets/series_list.dart';
 import 'package:flutter/services.dart';
 import '../services/exercise_service.dart';
 import '../models/exercise.dart';
+import 'wizard/planned_session_wizard.dart';
 
 
 class SessionDetailScreen extends StatefulWidget {
@@ -61,6 +62,28 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
       appBar: AppBar(
         title: Text('Session'),
         actions: [
+          if (isPlanned) 
+            IconButton(
+              icon: const Icon(Icons.play_circle_outline),
+              tooltip: 'Démarrer',
+              onPressed: () async {
+                final bool? converted = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PlannedSessionWizard(session: session),
+                  ),
+                );
+                if (converted == true) {
+                  // Recharger session depuis service
+                  final all = await _sessionService.getAllSessions();
+                  final updated = all.firstWhere((s)=> s.id == session.id, orElse: ()=> session);
+                  setState(() {
+                    _currentSessionData!['session'] = updated.toMap();
+                    _currentSessionData!['series'] = updated.series.map((s)=> s.toMap()).toList();
+                  });
+                }
+              },
+            ),
           IconButton(
             icon: Icon(Icons.copy_all_outlined),
             tooltip: 'Copier résumé',
