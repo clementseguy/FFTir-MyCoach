@@ -4,7 +4,6 @@ import '../services/session_service.dart';
 import '../constants/session_constants.dart';
 import 'session_detail_screen.dart';
 import '../models/shooting_session.dart';
-import 'create_session_screen.dart';
 
 
 class SessionsHistoryScreen extends StatefulWidget {
@@ -145,15 +144,18 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                   }
                   if (noDataRealized) {
                     if (index == cursor) {
-                      return _EmptyMini(onCreate: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (c) => const CreateSessionScreen(),
-                          ),
-                        );
-                        refreshSessions();
-                      });
+                      return Padding(
+                        padding: const EdgeInsets.all(48.0),
+                        child: Column(
+                          children: const [
+                            Icon(Icons.insights_outlined, size: 48, color: Colors.white24),
+                            SizedBox(height: 12),
+                            Text('Aucune session réalisée', style: TextStyle(fontWeight: FontWeight.w600)),
+                            SizedBox(height: 8),
+                            Text('Utilise le bouton + pour ajouter ta première.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.white60)),
+                          ],
+                        ),
+                      );
                     }
                     cursor++;
                   }
@@ -452,24 +454,4 @@ class _DaySection extends StatelessWidget {
   }
 }
 
-class _EmptyMini extends StatelessWidget {
-  final VoidCallback onCreate;
-  const _EmptyMini({required this.onCreate});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        children: [
-          Icon(Icons.insights_outlined, size: 48, color: Colors.white24),
-          SizedBox(height: 12),
-          Text('Aucune session réalisée', style: TextStyle(fontWeight: FontWeight.w600)),
-          SizedBox(height: 8),
-          Text('Ajoute une session pour voir l\'historique.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.white60)),
-          SizedBox(height: 16),
-          OutlinedButton.icon(onPressed: onCreate, icon: Icon(Icons.add), label: Text('Créer')),        
-        ],
-      ),
-    );
-  }
-}
+// _EmptyMini removed: empty state now passive (instruction only, no bouton central)
