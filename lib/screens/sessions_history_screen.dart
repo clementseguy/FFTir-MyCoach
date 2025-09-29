@@ -18,7 +18,6 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
   final SessionService _sessionService = SessionService();
   late Future<List<ShootingSession>> _sessionsFuture;
   String _filter = 'realized'; // realized | planned
-  String get currentFilter => _filter;
 
   @override
   void initState() {
@@ -150,19 +149,7 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (c) => CreateSessionScreen(
-                              initialSessionData: _filter == 'planned' ? {
-                                'session': {
-                                  'weapon': '',
-                                  'caliber': '22LR',
-                                  'status': SessionConstants.statusPrevue,
-                                  'category': SessionConstants.categoryEntrainement,
-                                  'series': [],
-                                  'exercises': [],
-                                },
-                                'series': [],
-                              } : null,
-                            ),
+                            builder: (c) => const CreateSessionScreen(),
                           ),
                         );
                         refreshSessions();

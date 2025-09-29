@@ -532,32 +532,16 @@ class _MainNavigationState extends State<MainNavigation> {
             Positioned(
               bottom: 24,
               right: 24,
-              child: Builder(builder: (ctx){
-                final isPlannedView = _historyKey.currentState?.currentFilter == 'planned';
-                final Color fabColor = isPlannedView ? Colors.blueAccent : Theme.of(context).floatingActionButtonTheme.backgroundColor ?? Colors.amber;
-                return FloatingActionButton(
-                  heroTag: 'fab_create_session',
-                  backgroundColor: fabColor,
-                  onPressed: () {
-                    final initial = isPlannedView ? {
-                      'session': {
-                        'weapon': '',
-                        'caliber': '22LR',
-                        'status': SessionConstants.statusPrevue,
-                        'category': SessionConstants.categoryEntrainement,
-                        'series': [],
-                        'exercises': [],
-                      },
-                      'series': [],
-                    } : null;
-                    Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (ctx) => CreateSessionScreen(initialSessionData: initial)))
-                        .then((_) => _historyKey.currentState?.refreshSessions());
-                  },
-                  child: Icon(Icons.add, color: isPlannedView ? Colors.white : Colors.black),
-                  tooltip: isPlannedView ? 'Créer une session prévue' : 'Créer une session',
-                );
-              }),
+              child: FloatingActionButton(
+                heroTag: 'fab_create_session',
+                onPressed: () {
+                  Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (ctx) => CreateSessionScreen()))
+                      .then((_) => _historyKey.currentState?.refreshSessions());
+                },
+                child: Icon(Icons.add),
+                tooltip: 'Créer une session',
+              ),
             ),
           ],
         ),
