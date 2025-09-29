@@ -87,9 +87,11 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
               datedPlanned.sort((a,b)=> a.date!.compareTo(b.date!));
               nextPlannedDate = datedPlanned.first.date;
             }
-            return RefreshIndicator(
+            return Stack(
+              children: [
+                RefreshIndicator(
               onRefresh: () async { refreshSessions(); await Future.delayed(Duration(milliseconds:300)); },
-              child: ListView.builder(
+                  child: ListView.builder(
                 padding: EdgeInsets.only(bottom: 24, top: 8),
                 itemCount: 1 + (noDataRealized ? 1 : 0) + (noDataPlannedOnly ? 1 : 0) + (_filter=='realized' ? orderedKeys.length : planned.length) + (planned.isNotEmpty && _filter=='realized' ? 2 : 0),
                 itemBuilder: (context, index) {
@@ -149,7 +151,19 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (c) => const CreateSessionScreen(),
+                            builder: (c) => CreateSessionScreen(
+                              initialSessionData: _filter == 'planned' ? {
+                                'session': {
+                                  'weapon': '',
+                                  'caliber': '22LR',
+                                  'status': SessionConstants.statusPrevue,
+                                  'category': SessionConstants.categoryEntrainement,
+                                  'series': [],
+                                  'exercises': [],
+                                },
+                                'series': [],
+                              } : null,
+                            ),
                           ),
                         );
                         refreshSessions();
@@ -220,7 +234,38 @@ class SessionsHistoryScreenState extends State<SessionsHistoryScreen> {
                     return _DaySection(day: day, sessions: list, onChanged: refreshSessions, sessionService: _sessionService);
                   }
                 },
-              ),
+                  ),
+                ),
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: FloatingActionButton(
+                    heroTag: 'fab_sessions',
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => CreateSessionScreen(
+                            initialSessionData: _filter == 'planned' ? {
+                              'session': {
+                                'weapon': '',
+                                'caliber': '22LR',
+                                'status': SessionConstants.statusPrevue,
+                                'category': SessionConstants.categoryEntrainement,
+                                'series': [],
+                                'exercises': [],
+                              },
+                              'series': [],
+                            } : null,
+                          ),
+                        ),
+                      );
+                      refreshSessions();
+                    },
+                    child: Icon(Icons.add),
+                  ),
+                ),
+              ],
             );
         },
       );
