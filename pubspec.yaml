@@ -44,6 +44,7 @@ flutter_icons:
 flutter:
   uses-material-design: true
   assets:
-    - assets/app_logo.png
+    - assets/app_logo.png # conservé temporairement (legacy)
+    - assets/app_logo_v2_vert.png
     - assets/coach_prompt.yaml
     - assets/config.yaml
