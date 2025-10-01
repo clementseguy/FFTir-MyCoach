@@ -1,7 +1,7 @@
 # NexTarget v0.3.0 – Scope & Planning
 
 ---
-Mise à jour post-release (29/09/2025)
+Mise à jour (29/09/2025)
 
 Résumé exécution v0.3.0:
 - Objectif central réalisé: introduction des Exercices réutilisables + intégration directe dans la création / planification de sessions.
@@ -21,7 +21,6 @@ Objectif cible: Release v0.3.0 (itération fonctionnelle majeure après 0.2.0)
 
 ## 🎯 Objectifs principaux
 1. Gestion des Exercices – 🟡 (base livrée, certains attributs/options non faits)
-2. Suivi amélioré des Objectifs – ⏩ (non implémenté, seul le lien Exercice→Objectifs livré)
 3. Amélioration UI de saisie des Séries – 🟡 (wizard conversion & validations livrés, pas de clavier custom/saisie plein écran)
 4. Améliorations mineures – 🟡 (quelques micro UX + préférences, pas la normalisation calibres complète)
 5. Évolutions statistiques (1M / 2M) – ⏩ (non livré)
@@ -40,30 +39,20 @@ Livré:
 - ✅ Création / édition / suppression basiques + consignes multi-étapes utilisées pour auto-générer les séries planifiées
 - ✅ Lien Exercise -> Objectifs (sélection multiple)
 
-Non livré / reporté:
-- ⏩ Catégories formalisées (Précision, Cadence, etc.)
-- ⏩ Tags libres
-- ⏩ Filtre historique par exercice (pas encore exposé dans l’UI)
-- ⏩ Paramètres optionnels par type (pas de typage différencié encore)
-
 ### Besoins
 - Modèle `Exercise` (id, nom, description courte, catégorie, paramètres optionnels selon type)
 - Association Session -> Liste d'exercices utilisés (ordre)
 - Association Exercice -> Objectifs
-- Possibilité de filtrer l’historique par exercice
 
 ### Détails fonctionnels
 - Création / édition / suppression
 - Catégories (ex: Précision, Cadence, Stabilité, Respiration)
-- Option: tag(s) libres
 
 ### UI/UX
 - Nouvelle section "Exercices" (liste + bouton + détail)
-- Sélecteur d’exercice dans l’écran de session (ajout rapide)
 
 Statut:
 - ✅ Section Exercices (liste + détail + création) livrée
-- 🟡 Sélecteur direct dans écran session: indirect via création planifiée depuis un exercice (sélecteur inline non encore généralisé)
 
 ### Données / stockage
 - Migration locale (ajout table/collection). Conserver compat 0.2.x
@@ -100,7 +89,6 @@ Statut: ⏩ Non livré en v0.3.0 (aucune de ces extensions implémentée). Seul 
 - Peu de retours immédiats sur qualité
 
 ### Améliorations
-- Clavier custom (numpad rapide + gestes)
 - Mode plein écran de saisie rapide
 - Validation instantanée (score cumul, moyenne série en cours)
 - Passage d’une série à l’autre optimisé (swipe / raccourci)
@@ -114,9 +102,8 @@ Livré (différent du scope exact mais répond partiellement à l’intention):
 - ✅ Sélecteur de prise (1M / 2M) avec préférence utilisateur
 
 Non livré:
-- ⏩ Clavier custom
 - ⏩ Mode plein écran dédié
-- ⏩ Navigation swipe entre séries (navigation step classique uniquement)
+- ⏩ Navigation entre séries
 - ⏩ Feedback temps réel (moyenne cumulée) hors synthèse finale
 
 ### Bonus (optionnel)
@@ -146,7 +133,7 @@ Non livré / partiel:
 
 ## 5. Stats & Performances (1M / 2M)
 ### Contexte
-Ajout d’indicateurs de tendance courte/moyenne: 1M = 1 mois, 2M = 2 mois.
+Ajout d’indicateurs de tendance courte/moyenne: 1 mois, 2 mois.
 
 ### Détails
 - Calcul moyennes glissantes 30j / 60j
@@ -234,7 +221,6 @@ Document vivant – mettre à jour au fur et à mesure.
 ## Éléments reportés (candidats v0.4+)
 - Objectifs enrichis (type, statut étendu, historique)
 - Statistiques 30j / 60j + sparkline
-- Clavier custom & mode plein écran de saisie
 - Filtrage sessions par exercice dans l’historique
 - Catégories & tags d’exercices
 - Normalisation calibres + dernier calibre
