@@ -76,8 +76,8 @@ class CoachAnalysisService {
               ]
             }),
           )
-          // Timeout augmenté pour réduire les erreurs dues aux prompts plus longs / modèle plus lent
-          .timeout(const Duration(seconds: 45));
+          // Timeout élevé (120s) temporaire pour prompts verbeux; à optimiser (réduction + fallback) ultérieurement
+          .timeout(const Duration(seconds: 120));
     } on TimeoutException {
       throw CoachAnalysisException('Le serveur ne répond pas (timeout).');
     } on SocketException catch (e) {
