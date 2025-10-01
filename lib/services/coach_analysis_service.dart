@@ -76,7 +76,8 @@ class CoachAnalysisService {
               ]
             }),
           )
-          .timeout(const Duration(seconds: 25));
+          // Timeout augmenté pour réduire les erreurs dues aux prompts plus longs / modèle plus lent
+          .timeout(const Duration(seconds: 45));
     } on TimeoutException {
       throw CoachAnalysisException('Le serveur ne répond pas (timeout).');
     } on SocketException catch (e) {
