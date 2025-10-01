@@ -34,8 +34,20 @@ class CoachAnalysisService {
     buffer.writeln('Calibre : ${session.caliber}');
     buffer.writeln('Date : ${session.date?.toIso8601String() ?? 'Non renseignée'}');
     buffer.writeln('Séries :');
+    // Assurer l'ordre logique des séries :
+    // 1. Si les IDs sont présents, on trie par id croissant.
+    // 2. Sinon on conserve l'ordre existant (index original).
+    final indexed = <int, dynamic>{};
     for (var i = 0; i < session.series.length; i++) {
-      final s = session.series[i];
+      indexed[i] = session.series[i];
+    }
+    final ordered = session.series.toList();
+    final hasAllIds = ordered.every((s) => s.id != null);
+    if (hasAllIds) {
+      ordered.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+    }
+    for (var i = 0; i < ordered.length; i++) {
+      final s = ordered[i];
       buffer.writeln('- Série ${i + 1} : Coups=${s.shotCount}, Distance=${s.distance}m, Points=${s.points}, Groupement=${s.groupSize}cm, Commentaire=${s.comment}');
     }
     if (session.synthese != null && session.synthese!.trim().isNotEmpty) {
