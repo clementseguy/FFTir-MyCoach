@@ -190,6 +190,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                             // Appel API
                             final coachReply = await analysisService.fetchAnalysis(fullPrompt);
                             if (coachReply.trim().isNotEmpty) {
+                              // Log affichage immédiat (popup)
+                              try {
+                                final preview = coachReply.length > 180 ? coachReply.substring(0,180) : coachReply;
+                                // ignore: avoid_print
+                                print('[DEBUG] CoachAnalysis display (popup) len=${coachReply.length} preview="'+preview.replaceAll('\n',' ')+'"');
+                              } catch(_) {}
                               // Afficher la popup markdown
                               await showDialog(
                                 context: context,
@@ -268,7 +274,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                     SizedBox(height: 12),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: CoachAnalysisCard(analyse: analyse),
+                      child: _LoggedCoachAnalysis(analyse: analyse),
                     ),
                     SizedBox(height: 12),
                   ],
@@ -316,6 +322,34 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         ],
       ),
     );
+  }
+}
+
+/// Wrapper pour logger l'analyse coach lors du premier build d'affichage persistant.
+class _LoggedCoachAnalysis extends StatefulWidget {
+  final String analyse;
+  const _LoggedCoachAnalysis({required this.analyse});
+  @override
+  State<_LoggedCoachAnalysis> createState() => _LoggedCoachAnalysisState();
+}
+
+class _LoggedCoachAnalysisState extends State<_LoggedCoachAnalysis> {
+  bool _logged = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_logged) {
+      try {
+        final preview = widget.analyse.length > 180 ? widget.analyse.substring(0,180) : widget.analyse;
+        // ignore: avoid_print
+        print('[DEBUG] CoachAnalysis display (persisted) len=${widget.analyse.length} preview="'+preview.replaceAll('\n',' ')+'"');
+      } catch(_) {}
+      _logged = true;
+    }
+  }
+  @override
+  Widget build(BuildContext context) {
+    return CoachAnalysisCard(analyse: widget.analyse);
   }
 }
 

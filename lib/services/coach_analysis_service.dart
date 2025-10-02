@@ -105,6 +105,13 @@ class CoachAnalysisService {
     if (content == null || content.trim().isEmpty) {
       throw CoachAnalysisException('Réponse vide du modèle.');
     }
+    try {
+      final sampleStart = content.length > 160 ? content.substring(0, 160) : content;
+      final sampleEnd = content.length > 320 ? content.substring(content.length - 120) : '';
+      // Utilise print direct (AppLogger pas importé ici pour éviter dépendance circulaire)
+      // ignore: avoid_print
+      print('[DEBUG] CoachAnalysisService.fetchAnalysis received len=${content.length} start="${sampleStart.replaceAll('\n', ' ')}"${sampleEnd.isNotEmpty ? ' ... end="'+sampleEnd.replaceAll('\n',' ')+'"' : ''}');
+    } catch (_) {}
     return content;
   }
 
