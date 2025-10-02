@@ -293,7 +293,7 @@ class _FiltersBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onToggleExpanded,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
                 const Icon(Icons.filter_list, size: 18, color: Colors.amberAccent),
@@ -310,7 +310,7 @@ class _FiltersBar extends StatelessWidget {
           ),
         ),
         secondChild: Padding(
-          padding: const EdgeInsets.fromLTRB(12,12,12,12),
+          padding: const EdgeInsets.fromLTRB(12,12,12,8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -326,7 +326,7 @@ class _FiltersBar extends StatelessWidget {
                   const Spacer(),
                   IconButton(
                     tooltip: 'Replier',
-                    icon: const Icon(Icons.close_fullscreen, size: 18),
+                    icon: const Icon(Icons.expand_less, size: 20),
                     onPressed: onToggleExpanded,
                   ),
                 ],
@@ -360,24 +360,17 @@ class _FiltersBar extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (hasActive)
-                    TextButton.icon(
-                      onPressed: () => _clearAll(),
-                      icon: const Icon(Icons.clear, size: 16),
-                      label: const Text('Réinitialiser'),
-                      style: TextButton.styleFrom(foregroundColor: Colors.white70),
-                    ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: onToggleExpanded,
-                    icon: const Icon(Icons.expand_less, size: 16),
-                    label: const Text('Replier'),
+              const SizedBox(height: 8),
+              if (hasActive)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => _clearAll(),
+                    icon: const Icon(Icons.clear, size: 16),
+                    label: const Text('Réinitialiser'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
                   ),
-                ],
-              ),
+                ),
             ],
           ),
         ),
