@@ -152,8 +152,14 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => await _confirmCancel(),
+    return PopScope(
+      canPop: false, // contrôle manuel
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return; // déjà géré
+        if (await _confirmCancel()) {
+            if (mounted) Navigator.of(context).pop(false);
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Column(
@@ -452,8 +458,7 @@ class _SeriesStepController {
     required this.distance,
     required this.handMethod,
     required this.consigne,
-    this.showErrors = false,
-  });
+  }) : showErrors = false;
 
   bool validate() { return true; }
 

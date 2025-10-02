@@ -142,8 +142,14 @@ class GoalEditScreenState extends State<GoalEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => await _confirmDiscard(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (await _confirmDiscard()) {
+          if (mounted) Navigator.of(context).pop(false);
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.existing == null ? 'Nouvel objectif' : 'Modifier objectif'),
