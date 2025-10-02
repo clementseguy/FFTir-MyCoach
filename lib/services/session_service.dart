@@ -83,6 +83,9 @@ class SessionService {
   /// Create a planned session from an Exercise definition.
   /// One empty Series is generated per consigne (or single if none).
   Future<ShootingSession> planFromExercise(Exercise exercise) async {
+    if (exercise.type != ExerciseType.stand) {
+      throw StateError('Seuls les exercices de type Stand peuvent être planifiés.');
+    }
     final List<Series> series = [];
     final steps = exercise.consignes;
     if (steps.isEmpty) {

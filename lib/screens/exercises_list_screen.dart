@@ -132,27 +132,34 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                   trailing: Wrap(
                     spacing: 4,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.event_available, size: 20),
-                        tooltip: 'Planifier une session',
-                        onPressed: () async {
-                          final sess = await _sessionService.planFromExercise(ex);
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
-                          );
-                          // Navigation directe vers la session planifiée
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SessionDetailScreen(sessionData: {
-                                'session': sess.toMap(),
-                                'series': sess.series.map((s)=> s.toMap()).toList(),
-                              }),
-                            ),
-                          );
-                        },
-                      ),
+                      if (ex.type == ExerciseType.stand)
+                        IconButton(
+                          icon: const Icon(Icons.event_available, size: 20),
+                          tooltip: 'Planifier une session',
+                          onPressed: () async {
+                            try {
+                              final sess = await _sessionService.planFromExercise(ex);
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
+                              );
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SessionDetailScreen(sessionData: {
+                                    'session': sess.toMap(),
+                                    'series': sess.series.map((s)=> s.toMap()).toList(),
+                                  }),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Impossible de planifier: $e')),
+                              );
+                            }
+                          },
+                        ),
                       IconButton(
                         icon: const Icon(Icons.edit, size: 18),
                         tooltip: 'Modifier',
@@ -278,7 +285,16 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.editing == null ? 'Nouvel exercice' : 'Modifier exercice')),
+      appBar: AppBar(
+        title: Text(widget.editing == null ? 'Nouvel exercice' : 'Modifier exercice'),
+        actions: [
+          IconButton(
+            icon: _saving ? const SizedBox(width:18,height:18,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.save),
+            tooltip: 'Enregistrer',
+            onPressed: _saving ? null : _save,
+          ),
+        ],
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -457,35 +473,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
                 }).toList(),
               ),
             const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _saving ? null : _save,
-              icon: _saving ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.save),
-              label: const Text('Enregistrer'),
-            ),
-            if (widget.editing != null) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _saving ? null : () async {
-                  final ex = widget.editing!;
-                  final sess = await _sessionService.planFromExercise(ex);
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Session prévue créée (${sess.series.length} série(s))')),
-                  );
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SessionDetailScreen(sessionData: {
-                        'session': sess.toMap(),
-                        'series': sess.series.map((s)=> s.toMap()).toList(),
-                      }),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.event_available),
-                label: const Text('Planifier depuis cet exercice'),
-              ),
-            ],
+            // Bouton de bas de page retiré (sauvegarde via AppBar)
           ],
         ),
       ),
