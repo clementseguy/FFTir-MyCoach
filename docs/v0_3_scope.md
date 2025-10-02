@@ -1,12 +1,13 @@
 # NexTarget v0.3.0 – Scope & Planning
 
 ---
-Mise à jour (29/09/2025)
+Mise à jour (02/10/2025)
 
 Résumé exécution v0.3.0:
 - Objectif central réalisé: introduction des Exercices réutilisables + intégration directe dans la création / planification de sessions.
 - Accent mis sur une fonctionnalité non explicitement prévue dans le scope initial: Sessions planifiées + conversion guidée (wizard) en sessions réalisées.
-- Plusieurs éléments du scope initial restent non livrés (principalement objectifs enrichis, stats 1M/2M et améliorations clavier/saisie avancées) et sont reportés.
+- Extension Objectifs (Lots A→D) livrée: Top3 + compteurs, stats macro, multi-carte, formulaire séparé, aide tendance. (Les enrichissements structurels prévus initialement: type, statut étendu, historique → toujours non livrés.)
+- Plusieurs éléments du scope initial restent non livrés (objectifs enrichis structurés, stats 1M/2M, saisie plein écran) et sont reportés.
 
 Légende statut utilisée ci-dessous:
 - ✅ Réalisé
@@ -20,9 +21,9 @@ Branche cible: `dev`
 Objectif cible: Release v0.3.0 (itération fonctionnelle majeure après 0.2.0)
 
 ## 🎯 Objectifs principaux
-1. Gestion des Exercices – 🟡 (base livrée, certains attributs/options non faits)
-3. Amélioration UI de saisie des Séries – 🟡 (wizard conversion & validations livrés, pas de clavier custom/saisie plein écran)
-4. Améliorations mineures – 🟡 (quelques micro UX + préférences, pas la normalisation calibres complète)
+1. Gestion des Exercices – 🟡 (base livrée; catégories & raffinements à venir)
+3. Amélioration UI de saisie des Séries – ✅ (objectif v0.3 considéré atteint via wizard planifiée→réalisée + validations; plein écran & navigation directe hors scope restant)
+4. Améliorations mineures – 🟡 (micro UX & préférences livrées; calibres & harmonisation réseau reportés)
 5. Évolutions statistiques (1M / 2M) – ⏩ (non livré)
 
 ➕ Ajout majeur hors liste initiale: Sessions planifiées + conversion guidée.
@@ -31,7 +32,7 @@ Objectif cible: Release v0.3.0 (itération fonctionnelle majeure après 0.2.0)
 ### Description
 Introduire une entité "Exercice" distincte des sessions, permettant de définir un type de travail (ex: précision 10m, cadence, groupement contrôlé, visée). Les exercices pourront être réutilisés dans différentes sessions.
 
-Statut global: 🟡 (fondations livrées, certains raffinements non faits)
+Statut global: 🟡 (fondations livrées; catégories / paramètres typés / multi-exercices dans une session à compléter)
 
 Livré:
 - ✅ Modèle Exercise (id, nom, description, consignes, association objectifs)
@@ -74,7 +75,7 @@ Rendre les objectifs plus actionnables et mesurables.
 - Statut enrichi: `planned`, `in_progress`, `achieved`, `abandoned`
 - Historisation: journal des changements de statut
 
-Statut: ⏩ Non livré en v0.3.0 (aucune de ces extensions implémentée). Seul le lien Exercice -> Objectifs est disponible.
+Statut: 🟡 Partiellement livré (Lots A-D apportent visibilité & tendance) / Non livré pour: type objectif, statut enrichi, historique, date cible.
 
 ### UI
 - Vue liste triée par priorité & statut
@@ -93,7 +94,7 @@ Statut: ⏩ Non livré en v0.3.0 (aucune de ces extensions implémentée). Seul 
 - Validation instantanée (score cumul, moyenne série en cours)
 - Passage d’une série à l’autre optimisé (swipe / raccourci)
 
-Statut global: 🟡
+Statut global: ✅ (cible v0.3 atteinte avec alternative wizard; éléments avancés restants hors scope v0.3)
 
 Livré (différent du scope exact mais répond partiellement à l’intention):
 - ✅ Wizard de conversion session planifiée → réalisée avec progression multi-étapes
@@ -119,7 +120,7 @@ Statut: ⏩ Non implémenté.
 - Ajustements visuels (espacements, contrastes)
 - Nettoyage code legacy (widgets dupliqués)
 
-Statut global: 🟡
+Statut global: 🟡 (reste: calibres, dernier calibre, harmonisation réseau)
 
 Livré partiellement:
 - ✅ Ajustements visuels ciblés (cartes sessions planifiées différenciées, couleurs filtres)
@@ -136,12 +137,11 @@ Non livré / partiel:
 Ajout d’indicateurs de tendance courte/moyenne: 1 mois, 2 mois.
 
 ### Détails
-- Calcul moyennes glissantes 30j / 60j
+- Calcul moyennes glissantes 7j / 1 mois / 2 mois
 - Comparaison delta (progression + / -)
 - Ajout d’un mini graphe tendance (sparkline) sur page stats
-- Exposition API interne (service stats) pour réutilisation
 
-Statut: ⏩ Non livré en v0.3.0
+Statut: ⏩ Non livré en v0.3.0 (indicateurs 1M/2M et sparkline restant à implémenter; actuelle couverture = 7j & 30j partielle via objectifs)
 
 ### Extension future
 - Persistance des stats agrégées (cache) pour accélérer l’ouverture
@@ -159,7 +159,7 @@ Statut: ⏩ Reporté.
 - Ajouter tests unitaires sur service stats & création exercices
 - Refactor si nécessaire: séparation `models/` vs `services/` plus stricte
 - Vérifier impact taille base locale (compaction périodique si besoin)
- - Infrastructure de migrations Hive standardisée (`MigrationRunner` + version store)
+- Infrastructure de migrations Hive standardisée (`MigrationRunner` + version store)
 
 Statut:
 - ✅ Hive conservé
@@ -190,10 +190,10 @@ Colonnes: Backlog | En cours | Test | Fini (0.3 scope)
 - Changelog mis à jour avec section 0.3.0
 - Build release testée sur appareil réel
 
-Réalité v0.3.0:
-- 🟡 Modules: partiellement (Objectifs enrichis & Stats non livrés)
+Réalité v0.3.0 (état intermédiaire continué):
+- 🟡 Modules: partiellement (Objectifs structure avancée & Stats 1M/2M non livrés; extension visibilité/tendance livrée)
 - ✅ Pas de régression majeure observée (tests ciblés & scénarios wizard)
-- ✅ Changelog 0.3.0 publié
+- ✅ Changelog 0.3.0 enrichi (Objectifs Lots A-D)
 - 🟡 Build: APK debug validé; build release à produire pour diffusion finale
 
 ## 11. Versioning

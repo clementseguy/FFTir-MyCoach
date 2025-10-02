@@ -15,7 +15,7 @@ import 'dart:io';
 import 'config/app_config.dart';
 import 'models/goal.dart';
 import 'widgets/goals_at_glance_card.dart';
-import 'screens/exercises_list_screen.dart';
+import 'widgets/exercises_at_glance_card.dart';
 import 'widgets/series_cards.dart';
 import 'migrations/migration.dart';
 import 'migrations/migration_2_add_exercises_field.dart';
@@ -47,24 +47,7 @@ class _ExercicesScreenState extends State<ExercicesScreen> {
         children: [
           const GoalsAtGlanceCard(),
           const SizedBox(height: 16),
-          // Accès “Tous les objectifs” retiré: GoalsAtGlanceCard contient déjà un bouton Tous.
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.fitness_center),
-              title: const Text('Bibliothèque d’exercices'),
-              subtitle: const Text('Lister et créer des exercices'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ExercisesListScreen()),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text('Prochaines évolutions', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
-          const SizedBox(height: 8),
-          Text('- Liaison exercices ↔ sessions', style: TextStyle(color: Colors.white54)),
-          Text('- Suggestions d’objectifs IA', style: TextStyle(color: Colors.white54)),
-          Text('- Suivi des routines', style: TextStyle(color: Colors.white54)),
+          const ExercisesAtGlanceCard(),
         ],
       ),
     );

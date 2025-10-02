@@ -63,4 +63,21 @@ void main() {
   expect(find.text('Sessions'), findsWidgets);
   expect(find.text('Paramètres'), findsWidgets);
   });
+
+  testWidgets('Exercices & Objectifs screen shows new cards, without roadmap', (WidgetTester tester) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle(const Duration(milliseconds: 200));
+
+    // Navigate to Exercices tab
+    await tester.tap(find.text('Exercices').first);
+    await tester.pumpAndSettle(const Duration(milliseconds: 200));
+
+    // Goals card present
+    expect(find.text('Objectifs'), findsWidgets);
+    // New Exercises card present
+    expect(find.text('Exercices'), findsWidgets);
+    expect(find.text('au total'), findsWidgets);
+    // Roadmap text removed
+    expect(find.text('Prochaines évolutions'), findsNothing);
+  });
 }
