@@ -1,6 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:tir_sportif/models/goal.dart';
 import 'package:tir_sportif/services/goal_service.dart';
 import 'package:tir_sportif/repositories/goal_repository.dart';
@@ -24,12 +22,7 @@ void main() {
     late InMemoryGoalRepository repo;
 
     setUp(() async {
-      await Hive.initFlutter();
-      if (!Hive.isAdapterRegistered(40)) Hive.registerAdapter(GoalMetricAdapter());
-      if (!Hive.isAdapterRegistered(41)) Hive.registerAdapter(GoalComparatorAdapter());
-      if (!Hive.isAdapterRegistered(42)) Hive.registerAdapter(GoalStatusAdapter());
-      if (!Hive.isAdapterRegistered(43)) Hive.registerAdapter(GoalPeriodAdapter());
-      if (!Hive.isAdapterRegistered(44)) Hive.registerAdapter(GoalAdapter());
+      // Pas de Hive: on reste purement en mémoire pour éviter MissingPluginException.
       repo = InMemoryGoalRepository();
       service = GoalService(goalRepository: repo, sessionRepository: null);
     });

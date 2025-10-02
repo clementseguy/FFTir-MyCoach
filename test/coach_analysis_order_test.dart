@@ -45,10 +45,12 @@ void main() {
       );
       final prompt = service.buildPrompt(session);
       // After sorting by id ascending: ids 2 (A),5 (B),10 (C) => Série 1:A, Série 2:B, Série 3:C
-      final posA = prompt.indexOf('A');
-      final posB = prompt.indexOf('B');
-      final posC = prompt.indexOf('C');
-      expect(posA < posB && posB < posC, true, reason: 'Expected A -> B -> C order');
+  // Vérifier ordre via les segments 'Commentaire=A/B/C' pour éviter collisions.
+  final posA = prompt.indexOf('Commentaire=A');
+  final posB = prompt.indexOf('Commentaire=B');
+  final posC = prompt.indexOf('Commentaire=C');
+  expect(posA != -1 && posB != -1 && posC != -1, true, reason: 'Segments commentaire non trouvés');
+  expect(posA < posB && posB < posC, true, reason: 'Expected A -> B -> C order');
     });
   });
 }
