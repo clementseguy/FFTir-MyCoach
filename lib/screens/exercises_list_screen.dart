@@ -16,6 +16,8 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
   final ExerciseService _service = ExerciseService();
   final SessionService _sessionService = SessionService();
   late Future<List<Exercise>> _future;
+  // Map des exercices ayant au moins une session prévue associée
+  Map<String, bool> _plannedExerciseMap = {};
 
   @override
   void initState() {
@@ -25,6 +27,25 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
 
   void _reload() {
     setState(() { _future = _service.listAll(); });
+    // Rafraîchir aussi le mapping des exercices planifiés
+    _refreshPlannedMapping();
+  }
+
+  Future<void> _refreshPlannedMapping() async {
+    try {
+      final sessions = await _sessionService.getAllSessions();
+      final Map<String, bool> map = {};
+      for (final s in sessions) {
+        if (s.status == 'prévue') {
+          for (final exId in s.exercises) {
+            map[exId] = true;
+          }
+        }
+      }
+      if (mounted) setState(()=> _plannedExerciseMap = map);
+    } catch (_) {
+      // silencieux: ne pas casser l'affichage des exercices si session fetch échoue
+    }
   }
 
   Future<void> _openCreate() async {
@@ -136,6 +157,14 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                   trailing: Wrap(
                     spacing: 4,
                     children: [
+                      if (ex.type == ExerciseType.stand && _plannedExerciseMap[ex.id] == true)
+                        Tooltip(
+                          message: 'Au moins une session prévue liée',
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 2.0),
+                            child: Icon(Icons.schedule, size: 18, color: Colors.lightBlueAccent),
+                          ),
+                        ),
                       if (ex.type == ExerciseType.stand)
                         IconButton(
                           icon: const Icon(Icons.event_available, size: 20),
@@ -156,6 +185,8 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                                   }),
                                 ),
                               );
+                              // Actualiser le mapping (au cas où l'utilisateur revienne en arrière sans convertir)
+                              await _refreshPlannedMapping();
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
