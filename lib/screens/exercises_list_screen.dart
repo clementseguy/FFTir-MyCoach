@@ -6,6 +6,7 @@ import '../models/goal.dart';
 import '../services/session_service.dart';
 import '../widgets/exercises_total_card.dart';
 import 'session_detail_screen.dart';
+import '../utils/exercise_sorting.dart';
 
 class ExercisesListScreen extends StatefulWidget {
   const ExercisesListScreen({super.key});
@@ -23,6 +24,9 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
   final Set<ExerciseCategory> _selectedCategories = {}; // vide = toutes
   final Set<ExerciseType> _selectedTypes = {}; // vide = tous
   bool _filtersExpanded = false; // replié par défaut
+  ExerciseSortMode _sortMode = ExerciseSortMode.defaultOrder;
+
+  List<Exercise> _applySort(List<Exercise> list) => sortExercises(list, _sortMode);
 
   List<Exercise> _applyFilters(List<Exercise> list) {
     return list.where((e) {
@@ -101,6 +105,19 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
       appBar: AppBar(
         title: const Text('Exercices'),
         actions: [
+          PopupMenuButton<ExerciseSortMode>(
+            tooltip: 'Trier',
+            icon: const Icon(Icons.sort),
+            onSelected: (m)=> setState(()=> _sortMode = m),
+            itemBuilder: (ctx) => [
+              _menuItem(ExerciseSortMode.defaultOrder, 'Défaut'),
+              _menuItem(ExerciseSortMode.nameAsc, 'Nom A→Z'),
+              _menuItem(ExerciseSortMode.nameDesc, 'Nom Z→A'),
+              _menuItem(ExerciseSortMode.category, 'Catégorie'),
+              _menuItem(ExerciseSortMode.type, 'Type'),
+              _menuItem(ExerciseSortMode.newest, 'Plus récents'),
+            ],
+          ),
           IconButton(
             onPressed: _reload,
             icon: const Icon(Icons.refresh),
@@ -115,7 +132,7 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           final raw = snap.data ?? const [];
-          final data = _applyFilters(raw);
+          final data = _applySort(_applyFilters(raw));
           if (raw.isEmpty) {
             return Center(
               child: TextButton.icon(
@@ -260,6 +277,10 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
       ),
     );
   }
+}
+
+PopupMenuItem<ExerciseSortMode> _menuItem(ExerciseSortMode m, String label) {
+  return PopupMenuItem(value: m, child: Text(label));
 }
 
 class _FiltersBar extends StatelessWidget {
