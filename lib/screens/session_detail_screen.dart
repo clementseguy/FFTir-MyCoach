@@ -7,6 +7,7 @@ import 'create_session_screen.dart';
 import '../models/shooting_session.dart';
 import '../models/series.dart';
 import '../widgets/coach_analysis_card.dart';
+import '../utils/markdown_sanitizer.dart';
 import '../widgets/series_list.dart';
 import 'package:flutter/services.dart';
 import '../services/exercise_service.dart';
@@ -188,7 +189,8 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                             final session = ShootingSession.fromMap(_currentSessionData!['session']);
                             final fullPrompt = analysisService.buildPrompt(session);
                             // Appel API
-                            final coachReply = await analysisService.fetchAnalysis(fullPrompt);
+                            final rawReply = await analysisService.fetchAnalysis(fullPrompt);
+                            final coachReply = sanitizeCoachMarkdown(rawReply);
                             if (coachReply.trim().isNotEmpty) {
                               // Log affichage immédiat (popup)
                               try {
@@ -274,7 +276,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                     SizedBox(height: 12),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: _LoggedCoachAnalysis(analyse: analyse),
+                      child: _LoggedCoachAnalysis(analyse: sanitizeCoachMarkdown(analyse)),
                     ),
                     SizedBox(height: 12),
                   ],
