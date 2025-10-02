@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
-              'assets/app_logo_v2_vert.png',
+              'assets/app_logo.png',
               height: 36,
             ),
             const SizedBox(width: 12),

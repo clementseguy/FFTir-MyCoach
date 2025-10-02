@@ -355,7 +355,7 @@ class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProvider
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       // Précharge le logo pour éviter frame blanche.
-      try { await precacheImage(const AssetImage('assets/app_logo_v2_vert.png'), context); } catch (_) {}
+  try { await precacheImage(const AssetImage('assets/app_logo.png'), context); } catch (_) {}
       setState(() => _opacity = 1.0);
       _controller.forward();
       final remaining = totalMin - fadeDur;
@@ -403,7 +403,7 @@ class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProvider
                           ],
                         ),
                         alignment: Alignment.center,
-                        child: Image.asset('assets/app_logo_v2_vert.png', width: 66, height: 66, fit: BoxFit.contain),
+                        child: Image.asset('assets/app_logo.png', width: 66, height: 66, fit: BoxFit.contain),
                       ),
                     ),
                     const SizedBox(height: 28),
