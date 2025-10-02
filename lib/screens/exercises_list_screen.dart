@@ -74,11 +74,6 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
             icon: const Icon(Icons.refresh),
             tooltip: 'Rafraîchir',
           ),
-          IconButton(
-            onPressed: _openCreate,
-            icon: const Icon(Icons.add),
-            tooltip: 'Nouvel exercice',
-          ),
         ],
       ),
       body: FutureBuilder<List<Exercise>>(

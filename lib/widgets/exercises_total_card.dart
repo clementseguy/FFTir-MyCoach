@@ -33,14 +33,11 @@ class _ExercisesTotalCardState extends State<ExercisesTotalCard> {
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 2,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => refresh(),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: FutureBuilder<List<Exercise>>(
-              future: _future,
-              builder: (context, snap) {
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: FutureBuilder<List<Exercise>>(
+            future: _future,
+            builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const SizedBox(
                     height: 64,
@@ -67,20 +64,12 @@ class _ExercisesTotalCardState extends State<ExercisesTotalCard> {
                           const Text('Exercices', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 6),
                           Text('$total au total', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text('Touchez pour rafraîchir', style: TextStyle(fontSize: 11, color: Colors.white54)),
                         ],
                       ),
                     ),
-                    IconButton(
-                      tooltip: 'Rafraîchir',
-                      icon: const Icon(Icons.refresh, size: 20),
-                      onPressed: refresh,
-                    ),
                   ],
                 );
-              },
-            ),
+            },
           ),
         ),
       ),
