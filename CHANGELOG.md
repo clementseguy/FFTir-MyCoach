@@ -11,12 +11,20 @@ Toutes les modifications notables de ce projet seront listées ici.
 - Consignes → génération séries placeholder; prise (1M/2M) éditable par série.
 - Champs supplémentaires séries dans le wizard: Coups, Distance, Points, Groupement, Commentaire (validations obligatoires).
 - Stats: moyennes glissantes (30/60j) + delta de progression (affichage amélioré).
+- Objectifs: Carte récap Top3 + compteurs (F3, F4, F14) remplaçant l'ancienne carte prioritaire.
+- Objectifs: Section statistiques macro (6 indicateurs: réalisés total, actifs, réalisés 7/30/60/90j) (F5, F6).
+- Objectifs: Carte multi‑objectif affichant tous les objectifs actifs triés par progression (F5).
+- Objectifs: Formulaire création/édition séparé avec icône sauvegarde + champ Période déplacé en bas (F7, F8, F9).
+- Objectifs: Aide tendance (modal + doc) avec classification En hausse / Stable / En baisse (F10, F11).
+- Objectifs: Documentation détaillée du calcul de tendance (objectifs_tendance.md) incluant seuil neutralité.
 
 ### Changed
 - Différenciation visuelle sessions prévues (couleurs cartes, chips, header).
 - FAB: appui long / clic droit (web) pour créer directement une session prévue.
 - Refonte UI état vide historique (suppression bouton central redondant).
 - Synthèse: préremplie depuis l'exercice + insertion newline pour édition.
+- Objectifs: Suppression de la legacy `GoalsSummaryCard` et lien redondant "Tous les objectifs" au profit des nouveaux blocs.
+- Objectifs: Carte stats tendance plus compacte + refresh global.
 
 ### Fixed
 - Perte séries placeholder lors planification (valeurs minimales persistées).
@@ -29,6 +37,9 @@ Toutes les modifications notables de ce projet seront listées ici.
 - Tests: ajout planned_session_conversion_test & validations post-wizard.
 - Script build APK: renommage versionné (réutilisé pour debug 0.3.0).
 - Sélecteur prise: réutilisation préférence utilisateur (Hive app_preferences).
+- Objectifs: Wrapper `macroAchievementStats()` (agrégation unique) + helper tendance (delta normalisé).
+- Objectifs: Réorganisation GoalsListScreen (extraction GoalEditScreen, refresh via GlobalKeys).
+- Objectifs: Doc interne `objectifs_tendance.md` (fenêtres, delta, epsilon=0.001).
 
 ---
 
