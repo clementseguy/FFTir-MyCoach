@@ -160,9 +160,12 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                       if (ex.type == ExerciseType.stand && _plannedExerciseMap[ex.id] == true)
                         Tooltip(
                           message: 'Au moins une session prévue liée',
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 2.0),
-                            child: Icon(Icons.schedule, size: 18, color: Colors.lightBlueAccent),
+                          child: SizedBox(
+                            height: 40, // proche de la hauteur d'un IconButton standard
+                            width: 32,
+                            child: Center(
+                              child: Icon(Icons.schedule, size: 20, color: Colors.lightBlueAccent),
+                            ),
                           ),
                         ),
                       if (ex.type == ExerciseType.stand)
