@@ -286,15 +286,13 @@ class _FiltersBar extends StatelessWidget {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 1,
-      child: AnimatedCrossFade(
-        crossFadeState: expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-        duration: const Duration(milliseconds: 250),
-        firstChild: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onToggleExpanded,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Row(
+      child: Padding(
+        padding: const EdgeInsets.only(left: 12, right: 8, top: 8, bottom: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
               children: [
                 const Icon(Icons.filter_list, size: 18, color: Colors.amberAccent),
                 const SizedBox(width: 8),
@@ -304,81 +302,65 @@ class _FiltersBar extends StatelessWidget {
                   _ActiveCountBadge(count: selectedCategories.length + selectedTypes.length),
                 ],
                 const Spacer(),
-                Icon(Icons.expand_more, color: Colors.white70),
+                IconButton(
+                  tooltip: expanded ? 'Replier' : 'Déplier',
+                  icon: Icon(expanded ? Icons.expand_less : Icons.expand_more, size: 22),
+                  onPressed: onToggleExpanded,
+                ),
               ],
             ),
-          ),
-        ),
-        secondChild: Padding(
-          padding: const EdgeInsets.fromLTRB(12,12,12,8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.filter_list, size: 18, color: Colors.amberAccent),
-                  const SizedBox(width: 8),
-                  const Text('Filtres', style: TextStyle(fontWeight: FontWeight.w600)),
-                  if (hasActive) ...[
-                    const SizedBox(width: 8),
-                    _ActiveCountBadge(count: selectedCategories.length + selectedTypes.length),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              transitionBuilder: (child, anim) => SizeTransition(sizeFactor: anim, axisAlignment: -1.0, child: child),
+              child: !expanded ? const SizedBox.shrink() : Padding(
+                key: const ValueKey('filters-body'),
+                padding: const EdgeInsets.fromLTRB(4, 6, 4, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Catégories', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final c in cats)
+                          FilterChip(
+                            label: Text(_catLabel(c)),
+                            selected: selectedCategories.contains(c),
+                            onSelected: (_) => onToggleCategory(c),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text('Type', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final t in types)
+                          FilterChip(
+                            label: Text(t == ExerciseType.stand ? 'Stand' : 'Maison'),
+                            selected: selectedTypes.contains(t),
+                            onSelected: (_) => onToggleType(t),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (hasActive)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => _clearAll(),
+                          icon: const Icon(Icons.clear, size: 16),
+                          label: const Text('Réinitialiser'),
+                          style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                        ),
+                      ),
                   ],
-                  const Spacer(),
-                  IconButton(
-                    tooltip: 'Replier',
-                    icon: const Icon(Icons.expand_less, size: 20),
-                    onPressed: onToggleExpanded,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text('Catégories', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final c in cats)
-                    FilterChip(
-                      label: Text(_catLabel(c)),
-                      selected: selectedCategories.contains(c),
-                      onSelected: (_) => onToggleCategory(c),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text('Type', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final t in types)
-                    FilterChip(
-                      label: Text(t == ExerciseType.stand ? 'Stand' : 'Maison'),
-                      selected: selectedTypes.contains(t),
-                      onSelected: (_) => onToggleType(t),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (hasActive)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => _clearAll(),
-                    icon: const Icon(Icons.clear, size: 16),
-                    label: const Text('Réinitialiser'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
-                  ),
                 ),
-            ],
-          ),
-        ),
-        layoutBuilder: (topChild, topKey, bottomChild, bottomKey) => Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Positioned(key: bottomKey, child: bottomChild),
-            Positioned(key: topKey, child: topChild),
+              ),
+            ),
           ],
         ),
       ),
