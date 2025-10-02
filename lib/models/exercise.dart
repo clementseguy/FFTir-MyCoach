@@ -139,6 +139,14 @@ class Exercise {
     }
   }
 
+  /// Localized label (fr) for type display.
+  String get typeLabelFr {
+    switch (type) {
+      case ExerciseType.stand: return 'Stand';
+      case ExerciseType.home: return 'Maison';
+    }
+  }
+
   /// Legacy string getter for backward compatibility (old code/tests referencing ex.category).
   String get category => categoryLabelFr.toLowerCase();
 }

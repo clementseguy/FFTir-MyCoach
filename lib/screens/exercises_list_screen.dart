@@ -88,6 +88,10 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('${ex.categoryLabelFr} • ${ex.goalIds.length} objectif(s)'),
+                      Padding(
+                        padding: const EdgeInsets.only(top:2.0),
+                        child: Text('Type: ${ex.typeLabelFr}', style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                      ),
                       if (ex.consignes.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top:4.0),
@@ -196,12 +200,12 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   final _durationCtrl = TextEditingController();
   final _equipmentCtrl = TextEditingController();
   ExerciseCategory _category = ExerciseCategory.technique;
+  ExerciseType _type = ExerciseType.stand;
   final GoalService _goalService = GoalService();
   List<Goal> _allGoals = [];
   final Set<String> _selectedGoals = {};
   bool _saving = false;
   final ExerciseService _service = ExerciseService();
-  final SessionService _sessionService = SessionService();
   final List<TextEditingController> _consigneCtrls = [];
 
   void _addConsigneField([String initial='']) {
@@ -226,7 +230,8 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
     super.initState();
     if (widget.editing != null) {
       _nameCtrl.text = widget.editing!.name;
-  _category = widget.editing!.categoryEnum;
+      _category = widget.editing!.categoryEnum;
+      _type = widget.editing!.type;
       _selectedGoals.addAll(widget.editing!.goalIds);
       _descCtrl.text = widget.editing!.description ?? '';
       if (widget.editing!.durationMinutes != null) {
@@ -252,6 +257,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
         await _service.addExercise(
           name: _nameCtrl.text,
           category: _category,
+          type: _type,
           description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
           goalIds: _selectedGoals.toList(),
           durationMinutes: int.tryParse(_durationCtrl.text.trim()),
@@ -262,6 +268,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
         final updated = widget.editing!.copyWith(
           name: _nameCtrl.text,
           category: _category,
+          type: _type,
           description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
           goalIds: _selectedGoals.toList(),
           durationMinutes: int.tryParse(_durationCtrl.text.trim()),
@@ -368,6 +375,16 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
               )).toList(),
               onChanged: (v) => setState(()=> _category = v ?? ExerciseCategory.technique),
               decoration: const InputDecoration(labelText: 'Catégorie'),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<ExerciseType>(
+              value: _type,
+              items: ExerciseType.values.map((t) => DropdownMenuItem(
+                value: t,
+                child: Text(t == ExerciseType.stand ? 'Stand' : 'Maison'),
+              )).toList(),
+              onChanged: (v) => setState(()=> _type = v ?? ExerciseType.stand),
+              decoration: const InputDecoration(labelText: 'Type'),
             ),
             const SizedBox(height: 24),
             Row(
