@@ -4,6 +4,7 @@ import '../services/goal_service.dart';
 import '../widgets/goals_macro_stats_panel.dart';
 import '../widgets/multi_goal_card.dart';
 import 'goal_edit_screen.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class GoalsListScreen extends StatefulWidget {
   const GoalsListScreen({super.key});
@@ -120,6 +121,11 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
       appBar: AppBar(
         title: const Text('Objectifs'),
         actions: [
+          IconButton(
+            tooltip: 'Aide tendance',
+            icon: const Icon(Icons.help_outline),
+            onPressed: _openTrendHelp,
+          ),
           IconButton(
             tooltip: 'Recharger stats & objectifs',
             icon: const Icon(Icons.refresh),
@@ -300,7 +306,11 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
 
   Widget _buildTrendChip(Goal g) {
     final delta = g.improvementDelta ?? 0;
-    if (delta == 0) {
+    if (g.previousMeasuredValue == null || g.period == GoalPeriod.none) {
+      return const Text('-', style: TextStyle(fontSize: 12, color: Colors.white54));
+    }
+    // Classification stable si delta très faible
+    if (delta.abs() <= GoalService.kGoalDeltaNeutralEpsilon) {
       return const Icon(Icons.horizontal_rule, size: 16, color: Colors.grey);
     }
     final positive = delta > 0;
@@ -324,6 +334,92 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
         const SizedBox(width: 2),
         Text(magnitude.toStringAsFixed(0), style: TextStyle(fontSize: 11, color: color)),
       ],
+    );
+  }
+
+  Future<void> _openTrendHelp() async {
+    // Charge doc markdown complète pour "Voir plus" si besoin
+    String? fullDoc;
+    try {
+      fullDoc = await rootBundle.loadString('docs/objectifs_tendance.md');
+    } catch (_) {}
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.55,
+            maxChildSize: 0.95,
+          minChildSize: 0.4,
+          builder: (_, scroll) => SingleChildScrollView(
+            controller: scroll,
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.trending_up, color: Colors.amber),
+                    SizedBox(width: 8),
+                    Text('Tendance des objectifs', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'La tendance compare la dernière période à la précédente. ' 
+                  'En hausse: amélioration nette. Stable: variation minime. En baisse: régression.',
+                  style: TextStyle(fontSize: 13, height: 1.3),
+                ),
+                const SizedBox(height: 20),
+                const Text('Règles', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                const Text('• En hausse: progrès clair sur la métrique.\n'
+                    '• Stable: variation très faible (écart négligeable).\n'
+                    '• En baisse: recul sur la métrique.', style: TextStyle(fontSize: 12, height: 1.35)),
+                const SizedBox(height: 20),
+                if (fullDoc != null) ...[
+                  const Divider(),
+                  TextButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (dctx) => AlertDialog(
+                          backgroundColor: Colors.grey[900],
+                          title: const Text('Détails complets'),
+                          content: SizedBox(
+                            width: double.maxFinite,
+                            child: SingleChildScrollView(
+                              child: Text(fullDoc!, style: const TextStyle(fontSize: 12, height: 1.35)),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('Fermer')),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.description),
+                    label: const Text('Voir la documentation complète'),
+                  ),
+                ],
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Fermer'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
