@@ -22,7 +22,7 @@ void main() {
 
     test('store and retrieve multiline description', () async {
       final desc = 'Série 1 : 5 tirs lents en visée fine\nSérie 2 : 5 tirs cadence contrôlée main faible\nSérie 3 : 5 tirs alternance mains';
-      await service.addExercise(name: 'Routine mixte', category: 'technique', description: desc);
+  await service.addExerciseLegacy(name: 'Routine mixte', category: 'technique', description: desc);
       final list = await service.listAll();
       expect(list.length, 1);
       final ex = list.first;

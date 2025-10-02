@@ -33,7 +33,7 @@ class HiveExerciseRepository implements ExerciseRepository {
   @override
   Future<List<Exercise>> getAll() async {
     final b = await _ensureBox();
-    final list = b.values.map((e) => Exercise.fromMap(Map<String, dynamic>.from(e))).toList();
+  final list = b.values.map((e) => Exercise.fromMap(Map<String, dynamic>.from(e))).toList();
     list.sort((a,b){
       final pa=a.priority; final pb=b.priority;
       if (pa!=pb) return pa.compareTo(pb);

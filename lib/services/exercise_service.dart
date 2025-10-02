@@ -18,7 +18,8 @@ class ExerciseService {
 
   Future<void> addExercise({
     required String name,
-    required String category,
+    required dynamic category, // accepts ExerciseCategory or legacy String
+    ExerciseType type = ExerciseType.stand,
     String? description,
     int priority = 9999,
     List<String>? goalIds,
@@ -26,20 +27,48 @@ class ExerciseService {
     String? equipment,
     List<String>? consignes,
   }) async {
+    final ExerciseCategory catEnum = category is ExerciseCategory
+        ? category
+        : parseExerciseCategory(category.toString());
     final ex = Exercise(
       id: generateId(),
       name: name.trim(),
-      category: category.trim(),
+      categoryEnum: catEnum,
+      type: type,
       description: (description?.trim().isEmpty ?? true) ? null : description!.trim(),
       createdAt: DateTime.now(),
       priority: priority,
       goalIds: goalIds ?? const [],
       durationMinutes: durationMinutes,
       equipment: (equipment?.trim().isEmpty ?? true) ? null : equipment!.trim(),
-      consignes: consignes?.map((e)=>e.trim()).where((e)=>e.isNotEmpty).toList(),
+      consignes: consignes?.map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
     );
     await _repo.put(ex);
   }
+
+  /// Backward compatibility helper (accept legacy string category names).
+  // Legacy alias kept temporarily (now redundant since addExercise handles strings)
+  Future<void> addExerciseLegacy({
+    required String name,
+    required String category,
+    ExerciseType type = ExerciseType.stand,
+    String? description,
+    int priority = 9999,
+    List<String>? goalIds,
+    int? durationMinutes,
+    String? equipment,
+    List<String>? consignes,
+  }) => addExercise(
+        name: name,
+        category: category,
+        type: type,
+        description: description,
+        priority: priority,
+        goalIds: goalIds,
+        durationMinutes: durationMinutes,
+        equipment: equipment,
+        consignes: consignes,
+      );
 
   Future<void> updateExercise(Exercise exercise) => _repo.put(exercise);
 
@@ -62,7 +91,7 @@ class ExerciseService {
 
   /// Replace consignes (steps) for an exercise.
   Future<void> setConsignes(Exercise exercise, List<String> consignes) async {
-    final cleaned = consignes.map((e)=>e.trim()).where((e)=>e.isNotEmpty).toList();
+    final cleaned = consignes.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     await _repo.put(exercise.copyWith(consignes: cleaned));
   }
 }

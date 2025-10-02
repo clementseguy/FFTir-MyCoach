@@ -81,7 +81,7 @@ void main() {
     });
     
     test('Placeholder series has minimal non-empty metrics', () async {
-      await exerciseService.addExercise(name: 'Mini', category: 'technique');
+  await exerciseService.addExerciseLegacy(name: 'Mini', category: 'technique');
       final ex = (await exerciseService.listAll()).first;
       final sess = await sessionService.planFromExercise(ex);
       expect(sess.series.first.shotCount, 1);

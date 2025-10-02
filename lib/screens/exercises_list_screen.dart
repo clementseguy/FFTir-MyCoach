@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/exercise_service.dart';
 import '../models/exercise.dart';
-import '../constants/exercises.dart';
 import '../services/goal_service.dart';
 import '../models/goal.dart';
 import '../services/session_service.dart';
@@ -88,7 +87,7 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${ex.category} • ${ex.goalIds.length} objectif(s)'),
+                      Text('${ex.categoryLabelFr} • ${ex.goalIds.length} objectif(s)'),
                       if (ex.consignes.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top:4.0),
@@ -189,7 +188,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
   final _descCtrl = TextEditingController();
   final _durationCtrl = TextEditingController();
   final _equipmentCtrl = TextEditingController();
-  String _category = ExerciseCategories.technique;
+  ExerciseCategory _category = ExerciseCategory.technique;
   final GoalService _goalService = GoalService();
   List<Goal> _allGoals = [];
   final Set<String> _selectedGoals = {};
@@ -220,7 +219,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
     super.initState();
     if (widget.editing != null) {
       _nameCtrl.text = widget.editing!.name;
-      _category = widget.editing!.category;
+  _category = widget.editing!.categoryEnum;
       _selectedGoals.addAll(widget.editing!.goalIds);
       _descCtrl.text = widget.editing!.description ?? '';
       if (widget.editing!.durationMinutes != null) {
@@ -339,10 +338,19 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _category,
-              items: ExerciseCategories.all.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-              onChanged: (v) => setState(()=> _category = v ?? ExerciseCategories.technique),
+            DropdownButtonFormField<ExerciseCategory>(
+              value: _category,
+              items: ExerciseCategory.values.map((c) => DropdownMenuItem(
+                value: c,
+                child: Text(Exercise(
+                  id: '_tmp',
+                  name: '',
+                  categoryEnum: c,
+                  type: ExerciseType.stand,
+                  createdAt: DateTime.now(),
+                ).categoryLabelFr),
+              )).toList(),
+              onChanged: (v) => setState(()=> _category = v ?? ExerciseCategory.technique),
               decoration: const InputDecoration(labelText: 'Catégorie'),
             ),
             const SizedBox(height: 24),

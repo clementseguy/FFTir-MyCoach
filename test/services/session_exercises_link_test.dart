@@ -30,8 +30,8 @@ void main() {
 
     test('create session with exercises and retrieve', () async {
       // Create a couple of exercises
-      await exerciseService.addExercise(name: 'Drill précision', category: 'précision');
-      await exerciseService.addExercise(name: 'Vitesse contrôlée', category: 'vitesse');
+  await exerciseService.addExerciseLegacy(name: 'Drill précision', category: 'précision');
+  await exerciseService.addExerciseLegacy(name: 'Vitesse contrôlée', category: 'vitesse');
       final exList = await exerciseService.listAll();
       expect(exList.length, 2);
 

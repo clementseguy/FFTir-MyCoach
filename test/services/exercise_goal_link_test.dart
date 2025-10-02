@@ -40,7 +40,7 @@ void main() {
       await goalService.addGoal(g2);
 
       // Add exercise
-      await exerciseService.addExercise(name: 'Drill précision', category: 'précision');
+  await exerciseService.addExerciseLegacy(name: 'Drill précision', category: 'précision');
       final list = await exerciseService.listAll();
       expect(list.length, 1);
       final ex = list.first;
