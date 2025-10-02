@@ -42,6 +42,49 @@ class GoalService {
     }
   }
 
+  // --- Lot A additions ---
+  static const double kGoalDeltaNeutralEpsilon = 0.001;
+
+  /// Returns active (non achieved, non archived, non failed) goals sorted by
+  /// lastProgress desc then priority asc (tie-break) limited to n.
+  Future<List<Goal>> topActiveGoals(int n) async {
+    final all = await _goals.getAll();
+    final filtered = all.where((g) => g.status == GoalStatus.active).toList();
+    filtered.sort((a,b){
+      final pa = a.lastProgress ?? 0;
+      final pb = b.lastProgress ?? 0;
+      if (pb.compareTo(pa) != 0) return pb.compareTo(pa);
+      return a.priority.compareTo(b.priority);
+    });
+    if (filtered.length <= n) return filtered;
+    return filtered.sublist(0, n);
+  }
+
+  Future<int> countActiveGoals() async {
+    final all = await _goals.getAll();
+    return all.where((g)=> g.status == GoalStatus.active).length;
+  }
+
+  Future<int> countAchievedGoals() async {
+    final all = await _goals.getAll();
+    return all.where((g)=> g.status == GoalStatus.achieved).length;
+  }
+
+  /// Count goals achieved within the last [days] days (inclusive).
+  Future<int> achievementsWithin(int days) async {
+    if (days <= 0) return 0;
+    final all = await _goals.getAll();
+    final now = DateTime.now();
+    final threshold = now.subtract(Duration(days: days));
+    return all.where((g) {
+      if (g.status != GoalStatus.achieved) return false;
+      final d = g.achievementDate;
+      if (d == null) return false;
+      return !d.isBefore(threshold) && !d.isAfter(now);
+    }).length;
+  }
+  // --- End Lot A additions ---
+
   Goal _computeProgress(Goal goal, List<ShootingSession> sessions) {
     // Filtrer selon la période si définie
     List<ShootingSession> filtered = sessions;

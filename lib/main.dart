@@ -15,7 +15,8 @@ import 'dart:io';
 import 'config/app_config.dart';
 import 'models/goal.dart';
 import 'screens/goals_list_screen.dart';
-import 'widgets/goals_summary_card.dart';
+import 'widgets/goals_summary_card.dart'; // legacy (will be removed later)
+import 'widgets/goals_at_glance_card.dart';
 import 'screens/exercises_list_screen.dart';
 import 'widgets/series_cards.dart';
 import 'migrations/migration.dart';
@@ -38,7 +39,7 @@ class ExercicesScreen extends StatefulWidget {
 }
 
 class _ExercicesScreenState extends State<ExercicesScreen> {
-  final GlobalKey<GoalsSummaryCardState> _summaryKey = GlobalKey<GoalsSummaryCardState>();
+  final GlobalKey<GoalsSummaryCardState> _summaryKey = GlobalKey<GoalsSummaryCardState>(); // kept for legacy refresh removal soon
 
   Future<void> _openGoals() async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen()));
@@ -53,7 +54,7 @@ class _ExercicesScreenState extends State<ExercicesScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          GoalsSummaryCard(key: _summaryKey),
+          const GoalsAtGlanceCard(),
           const SizedBox(height: 16),
           Card(
             child: ListTile(
