@@ -19,6 +19,37 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
   late Future<List<Exercise>> _future;
   // Map des exercices ayant au moins une session prévue associée
   Map<String, bool> _plannedExerciseMap = {};
+  // Filtres sélectionnés
+  final Set<ExerciseCategory> _selectedCategories = {}; // vide = toutes
+  final Set<ExerciseType> _selectedTypes = {}; // vide = tous
+
+  List<Exercise> _applyFilters(List<Exercise> list) {
+    return list.where((e) {
+      if (_selectedCategories.isNotEmpty && !_selectedCategories.contains(e.categoryEnum)) return false;
+      if (_selectedTypes.isNotEmpty && !_selectedTypes.contains(e.type)) return false;
+      return true;
+    }).toList();
+  }
+
+  void _toggleCategory(ExerciseCategory c) {
+    setState(() {
+      if (_selectedCategories.contains(c)) {
+        _selectedCategories.remove(c);
+      } else {
+        _selectedCategories.add(c);
+      }
+    });
+  }
+
+  void _toggleType(ExerciseType t) {
+    setState(() {
+      if (_selectedTypes.contains(t)) {
+        _selectedTypes.remove(t);
+      } else {
+        _selectedTypes.add(t);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -82,8 +113,9 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-            final data = snap.data ?? const [];
-          if (data.isEmpty) {
+          final raw = snap.data ?? const [];
+          final data = _applyFilters(raw);
+          if (raw.isEmpty) {
             return Center(
               child: TextButton.icon(
                 onPressed: _openCreate,
@@ -94,13 +126,21 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
           }
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(12,12,12,12),
-            itemCount: data.length + 1,
+            itemCount: data.length + 2,
             separatorBuilder: (context, i) => const SizedBox(height: 8),
             itemBuilder: (context, i) {
               if (i == 0) {
                 return const ExercisesTotalCard();
               }
-              final ex = data[i-1];
+              if (i == 1) {
+                return _FiltersBar(
+                  selectedCategories: _selectedCategories,
+                  onToggleCategory: _toggleCategory,
+                  selectedTypes: _selectedTypes,
+                  onToggleType: _toggleType,
+                );
+              }
+              final ex = data[i-2];
               return Card(
                 child: ListTile(
                   title: Text(ex.name),
@@ -216,6 +256,102 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+}
+
+class _FiltersBar extends StatelessWidget {
+  final Set<ExerciseCategory> selectedCategories;
+  final void Function(ExerciseCategory) onToggleCategory;
+  final Set<ExerciseType> selectedTypes;
+  final void Function(ExerciseType) onToggleType;
+  const _FiltersBar({
+    required this.selectedCategories,
+    required this.onToggleCategory,
+    required this.selectedTypes,
+    required this.onToggleType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cats = ExerciseCategory.values;
+    final types = ExerciseType.values;
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12,12,12,8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.filter_list, size: 18, color: Colors.amberAccent),
+                SizedBox(width: 6),
+                Text('Filtres', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final c in cats)
+                  FilterChip(
+                    label: Text(_catLabel(c)),
+                    selected: selectedCategories.contains(c),
+                    onSelected: (_) => onToggleCategory(c),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.place, size: 16, color: Colors.lightBlueAccent),
+                const SizedBox(width: 6),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final t in types)
+                      FilterChip(
+                        label: Text(t == ExerciseType.stand ? 'Stand' : 'Maison'),
+                        selected: selectedTypes.contains(t),
+                        onSelected: (_) => onToggleType(t),
+                      ),
+                  ],
+                ),
+                const Spacer(),
+                if (selectedCategories.isNotEmpty || selectedTypes.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () => _clearAll(),
+                    icon: const Icon(Icons.clear, size: 16),
+                    label: const Text('Réinitialiser'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _clearAll() {
+    // On appelle les toggle uniquement pour les éléments sélectionnés pour les vider.
+    final catsToClear = List<ExerciseCategory>.from(selectedCategories);
+    final typesToClear = List<ExerciseType>.from(selectedTypes);
+    for (final c in catsToClear) { onToggleCategory(c); }
+    for (final t in typesToClear) { onToggleType(t); }
+  }
+
+  static String _catLabel(ExerciseCategory c) {
+    switch (c) {
+      case ExerciseCategory.precision: return 'Précision';
+      case ExerciseCategory.group: return 'Groupement';
+      case ExerciseCategory.speed: return 'Vitesse';
+      case ExerciseCategory.technique: return 'Technique';
+      case ExerciseCategory.mental: return 'Mental';
+      case ExerciseCategory.physical: return 'Physique';
+    }
   }
 }
 
