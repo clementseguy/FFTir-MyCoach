@@ -5,7 +5,7 @@ api:
   # 3. Ou variable d'environnement MISTRAL_API_KEY (en fallback)
   mistral_key: "$MISTRAL_API_KEY"
   mistral_url: "https://api.mistral.ai/v1/chat/completions"
-  mistral_model: "mistral-tiny"
+  mistral_model: "mistral-medium"
 
 splash:
   # Durée minimale d'affichage du splash (en millisecondes)
