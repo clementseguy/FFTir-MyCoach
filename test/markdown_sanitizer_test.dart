@@ -16,11 +16,11 @@ void main() {
       expect(out, input);
     });
 
-    test('ne casse pas contenu sans fence de fin', () {
+    test('retire fence ouvrant seul sans fermeture', () {
       final input = '```\n# Titre\nTexte';
       final out = sanitizeCoachMarkdown(input);
-      // Pas de fence terminal -> on ne le retire pas (sécurité)
-      expect(out, input.trim());
+      expect(out.startsWith('# Titre'), true);
+      expect(out.contains('```'), false);
     });
 
     test('convertit literal \n en retours ligne', () {

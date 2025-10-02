@@ -191,6 +191,11 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                             // Appel API
                             final rawReply = await analysisService.fetchAnalysis(fullPrompt);
                             final coachReply = sanitizeCoachMarkdown(rawReply);
+                            try {
+                              final prev = coachReply.length > 160 ? coachReply.substring(0,160) : coachReply;
+                              // ignore: avoid_print
+                              print('[DEBUG] CoachAnalysis sanitized preview="'+prev.replaceAll('\n',' ')+'"');
+                            } catch(_) {}
                             if (coachReply.trim().isNotEmpty) {
                               // Log affichage immédiat (popup)
                               try {

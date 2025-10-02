@@ -22,6 +22,20 @@ String sanitizeCoachMarkdown(String input) {
         }
       }
     }
+    // Cas: fence ouvrant seul sans fence de fermeture -> on retire juste la première ligne
+    if (lastFence == 0) {
+      final firstLineEnd = s.indexOf('\n');
+      if (firstLineEnd != -1) {
+        final firstLine = s.substring(0, firstLineEnd);
+        if (firstLine.trim().startsWith('```')) {
+          final rest = s.substring(firstLineEnd + 1).trim();
+          // Si le reste contient encore un fence final plus bas, on laisse tel quel (sera géré plus haut si complet)
+          if (!rest.contains('\n```')) {
+            s = rest; // retirer le fence orphelin
+          }
+        }
+      }
+    }
   }
 
   // Convertit \n littéraux si pas de vrais retours ligne.
