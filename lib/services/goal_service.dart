@@ -4,6 +4,24 @@ import '../repositories/session_repository.dart';
 import '../repositories/hive_session_repository.dart';
 import '../repositories/goal_repository.dart';
 
+/// Lot B: objet valeur regroupant les stats macro pour l'écran Objectifs.
+class MacroAchievementStats {
+  final int totalCompleted;
+  final int totalActive;
+  final int completedLast7;
+  final int completedLast30;
+  final int completedLast60;
+  final int completedLast90;
+  const MacroAchievementStats({
+    required this.totalCompleted,
+    required this.totalActive,
+    required this.completedLast7,
+    required this.completedLast30,
+    required this.completedLast60,
+    required this.completedLast90,
+  });
+}
+
 class GoalService {
   final SessionRepository _sessions;
   final GoalRepository _goals;
@@ -83,6 +101,42 @@ class GoalService {
       return !d.isBefore(threshold) && !d.isAfter(now);
     }).length;
   }
+  /// --- Lot B additions ---
+  /// Calcule toutes les stats macro en un seul passage sur la liste des objectifs.
+  Future<MacroAchievementStats> macroAchievementStats() async {
+    final all = await _goals.getAll();
+    final now = DateTime.now();
+    final t7 = now.subtract(const Duration(days: 7));
+    final t30 = now.subtract(const Duration(days: 30));
+    final t60 = now.subtract(const Duration(days: 60));
+    final t90 = now.subtract(const Duration(days: 90));
+    int totalCompleted = 0;
+    int totalActive = 0;
+    int c7 = 0; int c30 = 0; int c60 = 0; int c90 = 0;
+    for (final g in all) {
+      if (g.status == GoalStatus.achieved) {
+        totalCompleted++;
+        final d = g.achievementDate;
+        if (d != null) {
+          if (!d.isBefore(t7)) c7++;
+          if (!d.isBefore(t30)) c30++;
+          if (!d.isBefore(t60)) c60++;
+          if (!d.isBefore(t90)) c90++;
+        }
+      } else if (g.status == GoalStatus.active) {
+        totalActive++;
+      }
+    }
+    return MacroAchievementStats(
+      totalCompleted: totalCompleted,
+      totalActive: totalActive,
+      completedLast7: c7,
+      completedLast30: c30,
+      completedLast60: c60,
+      completedLast90: c90,
+    );
+  }
+  /// --- End Lot B additions ---
   // --- End Lot A additions ---
 
   Goal _computeProgress(Goal goal, List<ShootingSession> sessions) {

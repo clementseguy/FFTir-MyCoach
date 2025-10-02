@@ -14,8 +14,6 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'config/app_config.dart';
 import 'models/goal.dart';
-import 'screens/goals_list_screen.dart';
-import 'widgets/goals_summary_card.dart'; // legacy (will be removed later)
 import 'widgets/goals_at_glance_card.dart';
 import 'screens/exercises_list_screen.dart';
 import 'widgets/series_cards.dart';
@@ -39,13 +37,6 @@ class ExercicesScreen extends StatefulWidget {
 }
 
 class _ExercicesScreenState extends State<ExercicesScreen> {
-  final GlobalKey<GoalsSummaryCardState> _summaryKey = GlobalKey<GoalsSummaryCardState>(); // kept for legacy refresh removal soon
-
-  Future<void> _openGoals() async {
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen()));
-    // Au retour, recharger la carte (pour refléter nouveau tri / priorités)
-    _summaryKey.currentState?.refresh();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,16 +47,7 @@ class _ExercicesScreenState extends State<ExercicesScreen> {
         children: [
           const GoalsAtGlanceCard(),
           const SizedBox(height: 16),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.flag),
-              title: const Text('Tous les objectifs'),
-              subtitle: const Text('Créer ou modifier vos objectifs'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _openGoals,
-            ),
-          ),
-          const SizedBox(height: 12),
+          // Accès “Tous les objectifs” retiré: GoalsAtGlanceCard contient déjà un bouton Tous.
           Card(
             child: ListTile(
               leading: const Icon(Icons.fitness_center),

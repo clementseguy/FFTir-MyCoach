@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/goal.dart';
 import '../services/goal_service.dart';
+import '../widgets/goals_macro_stats_panel.dart';
+import '../widgets/multi_goal_card.dart';
 
 class GoalsListScreen extends StatefulWidget {
   const GoalsListScreen({super.key});
@@ -22,6 +24,8 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
   Goal? _editingGoal;
   final _scrollCtrl = ScrollController();
   String? _recentAddedGoalId;
+  final GlobalKey<GoalsMacroStatsPanelState> _statsKey = GlobalKey<GoalsMacroStatsPanelState>();
+  final GlobalKey<MultiGoalCardState> _multiKey = GlobalKey<MultiGoalCardState>();
 
   @override
   void initState() {
@@ -223,7 +227,19 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Objectifs')),
+      appBar: AppBar(
+        title: const Text('Objectifs'),
+        actions: [
+          IconButton(
+            tooltip: 'Recharger stats & objectifs',
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              _statsKey.currentState?.refresh();
+              _multiKey.currentState?.refresh();
+            },
+          ),
+        ],
+      ),
       body: _loading ? const Center(child: CircularProgressIndicator()) : RefreshIndicator(
         onRefresh: () async {
           await _service.recomputeAllProgress();
@@ -234,6 +250,10 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
           controller: _scrollCtrl,
           padding: const EdgeInsets.all(16),
           children: [
+            GoalsMacroStatsPanel(key: _statsKey),
+            const SizedBox(height: 16),
+            MultiGoalCard(key: _multiKey),
+            const SizedBox(height: 20),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
