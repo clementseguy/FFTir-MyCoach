@@ -22,6 +22,7 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
   // Filtres sélectionnés
   final Set<ExerciseCategory> _selectedCategories = {}; // vide = toutes
   final Set<ExerciseType> _selectedTypes = {}; // vide = tous
+  bool _filtersExpanded = false; // replié par défaut
 
   List<Exercise> _applyFilters(List<Exercise> list) {
     return list.where((e) {
@@ -134,6 +135,8 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
               }
               if (i == 1) {
                 return _FiltersBar(
+                  expanded: _filtersExpanded,
+                  onToggleExpanded: () => setState(()=> _filtersExpanded = !_filtersExpanded),
                   selectedCategories: _selectedCategories,
                   onToggleCategory: _toggleCategory,
                   selectedTypes: _selectedTypes,
@@ -260,11 +263,15 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
 }
 
 class _FiltersBar extends StatelessWidget {
+  final bool expanded;
+  final VoidCallback onToggleExpanded;
   final Set<ExerciseCategory> selectedCategories;
   final void Function(ExerciseCategory) onToggleCategory;
   final Set<ExerciseType> selectedTypes;
   final void Function(ExerciseType) onToggleType;
   const _FiltersBar({
+    required this.expanded,
+    required this.onToggleExpanded,
     required this.selectedCategories,
     required this.onToggleCategory,
     required this.selectedTypes,
@@ -275,60 +282,110 @@ class _FiltersBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cats = ExerciseCategory.values;
     final types = ExerciseType.values;
+    final hasActive = selectedCategories.isNotEmpty || selectedTypes.isNotEmpty;
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12,12,12,8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: const [
-                Icon(Icons.filter_list, size: 18, color: Colors.amberAccent),
-                SizedBox(width: 6),
-                Text('Filtres', style: TextStyle(fontWeight: FontWeight.w600)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
+      child: AnimatedCrossFade(
+        crossFadeState: expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+        duration: const Duration(milliseconds: 250),
+        firstChild: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onToggleExpanded,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            child: Row(
               children: [
-                for (final c in cats)
-                  FilterChip(
-                    label: Text(_catLabel(c)),
-                    selected: selectedCategories.contains(c),
-                    onSelected: (_) => onToggleCategory(c),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.place, size: 16, color: Colors.lightBlueAccent),
-                const SizedBox(width: 6),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final t in types)
-                      FilterChip(
-                        label: Text(t == ExerciseType.stand ? 'Stand' : 'Maison'),
-                        selected: selectedTypes.contains(t),
-                        onSelected: (_) => onToggleType(t),
-                      ),
-                  ],
-                ),
+                const Icon(Icons.filter_list, size: 18, color: Colors.amberAccent),
+                const SizedBox(width: 8),
+                const Text('Filtres', style: TextStyle(fontWeight: FontWeight.w600)),
+                if (hasActive) ...[
+                  const SizedBox(width: 8),
+                  _ActiveCountBadge(count: selectedCategories.length + selectedTypes.length),
+                ],
                 const Spacer(),
-                if (selectedCategories.isNotEmpty || selectedTypes.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: () => _clearAll(),
-                    icon: const Icon(Icons.clear, size: 16),
-                    label: const Text('Réinitialiser'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
-                  ),
+                Icon(Icons.expand_more, color: Colors.white70),
               ],
             ),
+          ),
+        ),
+        secondChild: Padding(
+          padding: const EdgeInsets.fromLTRB(12,12,12,12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.filter_list, size: 18, color: Colors.amberAccent),
+                  const SizedBox(width: 8),
+                  const Text('Filtres', style: TextStyle(fontWeight: FontWeight.w600)),
+                  if (hasActive) ...[
+                    const SizedBox(width: 8),
+                    _ActiveCountBadge(count: selectedCategories.length + selectedTypes.length),
+                  ],
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'Replier',
+                    icon: const Icon(Icons.close_fullscreen, size: 18),
+                    onPressed: onToggleExpanded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text('Catégories', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final c in cats)
+                    FilterChip(
+                      label: Text(_catLabel(c)),
+                      selected: selectedCategories.contains(c),
+                      onSelected: (_) => onToggleCategory(c),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text('Type', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final t in types)
+                    FilterChip(
+                      label: Text(t == ExerciseType.stand ? 'Stand' : 'Maison'),
+                      selected: selectedTypes.contains(t),
+                      onSelected: (_) => onToggleType(t),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (hasActive)
+                    TextButton.icon(
+                      onPressed: () => _clearAll(),
+                      icon: const Icon(Icons.clear, size: 16),
+                      label: const Text('Réinitialiser'),
+                      style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                    ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: onToggleExpanded,
+                    icon: const Icon(Icons.expand_less, size: 16),
+                    label: const Text('Replier'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        layoutBuilder: (topChild, topKey, bottomChild, bottomKey) => Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Positioned(key: bottomKey, child: bottomChild),
+            Positioned(key: topKey, child: topChild),
           ],
         ),
       ),
@@ -352,6 +409,23 @@ class _FiltersBar extends StatelessWidget {
       case ExerciseCategory.mental: return 'Mental';
       case ExerciseCategory.physical: return 'Physique';
     }
+  }
+}
+
+class _ActiveCountBadge extends StatelessWidget {
+  final int count;
+  const _ActiveCountBadge({required this.count});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.amberAccent.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+      ),
+      child: Text('$count', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.amberAccent)),
+    );
   }
 }
 
