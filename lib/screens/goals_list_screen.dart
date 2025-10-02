@@ -3,6 +3,7 @@ import '../models/goal.dart';
 import '../services/goal_service.dart';
 import '../widgets/goals_macro_stats_panel.dart';
 import '../widgets/multi_goal_card.dart';
+import '../widgets/exercises_total_card.dart';
 import 'goal_edit_screen.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -147,6 +148,9 @@ class _GoalsListScreenState extends State<GoalsListScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             GoalsMacroStatsPanel(key: _statsKey),
+            const SizedBox(height: 16),
+            // Carte stats exercices (EX4)
+            const ExercisesTotalCard(),
             const SizedBox(height: 16),
             MultiGoalCard(key: _multiKey),
             const SizedBox(height: 12),

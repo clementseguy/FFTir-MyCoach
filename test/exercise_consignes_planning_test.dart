@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:io';
+import 'dart:math';
 import 'package:hive/hive.dart';
 import 'package:tir_sportif/services/exercise_service.dart';
 import 'package:tir_sportif/services/session_service.dart';
@@ -12,20 +13,15 @@ void main() {
     late SessionService sessionService;
 
     setUp(() async {
-      final dir = Directory('./build/test_ex');
-      if (!dir.existsSync()) dir.createSync(recursive: true);
+      // Répertoire vraiment unique (ajout random) pour éviter toute réutilisation pendant exécution parallèle potentielle.
+      final dir = await Directory('./build/test_ex/${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(1<<32)}').create(recursive: true);
       Hive.init(dir.path);
       exerciseService = ExerciseService();
       sessionService = SessionService();
-      // Clear boxes
-      try {
-        final repoBox = await Hive.openBox('exercises');
-        await repoBox.clear();
-      } catch (_) {}
-      try {
-        final sessBox = await Hive.openBox('sessions');
-        await sessBox.clear();
-      } catch (_) {}
+      final exBox = await Hive.openBox('exercises');
+      await exBox.clear();
+      final sessBox = await Hive.openBox('sessions');
+      await sessBox.clear();
     });
 
     test('Persist consignes and recreate from map', () async {

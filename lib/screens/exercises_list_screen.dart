@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../services/goal_service.dart';
 import '../models/goal.dart';
 import '../services/session_service.dart';
+import '../widgets/exercises_total_card.dart';
 import 'session_detail_screen.dart';
 
 class ExercisesListScreen extends StatefulWidget {
@@ -97,11 +98,14 @@ class _ExercisesListScreenState extends State<ExercisesListScreen> {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: data.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            padding: const EdgeInsets.fromLTRB(12,12,12,12),
+            itemCount: data.length + 1,
+            separatorBuilder: (context, i) => const SizedBox(height: 8),
             itemBuilder: (context, i) {
-              final ex = data[i];
+              if (i == 0) {
+                return const ExercisesTotalCard();
+              }
+              final ex = data[i-1];
               return Card(
                 child: ListTile(
                   title: Text(ex.name),
