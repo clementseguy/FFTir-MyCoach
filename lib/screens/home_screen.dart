@@ -399,47 +399,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                     ),
                     const SizedBox(height: 32),
-                    // Graphes 1 main / 2 mains (sur les 30 dernières séries)
-                    if (oneHand.isNotEmpty) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text('1 main — Points (30 dernières séries)')
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _PointsLineChart(dates: dates1, pointsSpots: pts1, trendSpots: const []),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text('1 main — Groupement (cm)')
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _GroupementLineChart(dates: dates1, groupSizeSpots: grp1),
-                      const SizedBox(height: 24),
-                    ],
-                    if (twoHands.isNotEmpty) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text('2 mains — Points (30 dernières séries)')
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _PointsLineChart(dates: dates2, pointsSpots: pts2, trendSpots: const []),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text('2 mains — Groupement (cm)')
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _GroupementLineChart(dates: dates2, groupSizeSpots: grp2),
-                      const SizedBox(height: 24),
-                    ],
+                    // (1M/2M charts moved to bottom as requested)
                     // F10 Scatter (corrélation) - dernières 30 séries
                     if (last30.isNotEmpty) ...[
                       Row(
@@ -494,6 +454,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       const SizedBox(height: 32),
                     ],
                     const SizedBox(height: 8),
+                    // 1M / 2M Combined charts at the bottom (30 dernières séries)
+                    if (oneHand.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('1 main - Points et Groupement'),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _PointsAndGroupCombinedChart(dates: dates1, points: pts1, groups: grp1),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          _LegendDot(color: Colors.amberAccent, label: 'Points'),
+                          SizedBox(width: 16),
+                          _LegendDot(color: Colors.lightGreenAccent, label: 'Groupement'),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    if (twoHands.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('2 mains - Points et Groupement'),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _PointsAndGroupCombinedChart(dates: dates2, points: pts2, groups: grp2),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          _LegendDot(color: Colors.amberAccent, label: 'Points'),
+                          SizedBox(width: 16),
+                          _LegendDot(color: Colors.lightGreenAccent, label: 'Groupement'),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -1047,3 +1048,70 @@ class _CategorySegment extends StatelessWidget {
 }
 
 // Bucket temporaire pour affichage filtré (évite d'exposer la classe privée de StatsService)
+
+class _PointsAndGroupCombinedChart extends StatelessWidget {
+  final List<DateTime> dates;
+  final List<FlSpot> points;
+  final List<FlSpot> groups;
+  const _PointsAndGroupCombinedChart({required this.dates, required this.points, required this.groups});
+  @override
+  Widget build(BuildContext context) {
+    if (points.isEmpty && groups.isEmpty) return const SizedBox.shrink();
+    final maxPoints = points.isNotEmpty ? points.map((e)=> e.y).reduce((a,b)=> a>b?a:b) : 10;
+    final maxGroup = groups.isNotEmpty ? groups.map((e)=> e.y).reduce((a,b)=> a>b?a:b) : 10;
+    // Scale group to roughly overlap points range for a simple combined view
+    final scale = (maxGroup <= 0) ? 1.0 : (maxPoints / maxGroup);
+    final scaledGroups = groups.map((e)=> FlSpot(e.x, e.y * scale)).toList();
+    final maxY = [
+      if (points.isNotEmpty) maxPoints.toDouble(),
+      if (scaledGroups.isNotEmpty) scaledGroups.map((e)=> e.y).reduce((a,b)=> a>b?a:b),
+    ].fold<double>(10.0, (a,b)=> a>b?a:b);
+    return SizedBox(
+      height: 200,
+      child: LineChart(
+        LineChartData(
+          backgroundColor: Colors.transparent,
+          gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 5, getDrawingHorizontalLine: (v)=> FlLine(color: Colors.white10, strokeWidth: 1)),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 36)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, meta) {
+                  final i = value.toInt();
+                  if (value % 1 != 0 || i < 0 || i >= dates.length) return const SizedBox.shrink();
+                  final d = dates[i];
+                  return Text('${d.day}/${d.month}', style: const TextStyle(fontSize: 11, color: Colors.white70));
+                },
+              ),
+            ),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          minX: 0,
+          maxX: (points.isNotEmpty ? points.length - 1.0 : (groups.isNotEmpty ? groups.length - 1.0 : 1.0)),
+          minY: 0,
+          maxY: maxY,
+          lineBarsData: [
+            LineChartBarData(
+              spots: points,
+              isCurved: true,
+              color: Colors.amberAccent,
+              barWidth: 3,
+              dotData: FlDotData(show: false),
+            ),
+            LineChartBarData(
+              spots: scaledGroups,
+              isCurved: true,
+              color: Colors.lightGreenAccent,
+              barWidth: 2,
+              dotData: FlDotData(show: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

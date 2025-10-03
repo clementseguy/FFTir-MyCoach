@@ -136,6 +136,14 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "flutter test",
+			"type": "shell",
+			"command": "flutter test --reporter=compact",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
