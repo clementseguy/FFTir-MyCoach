@@ -18,13 +18,13 @@ Portée: décrit UNIQUEMENT l'existant (implémenté) pour l'écran Accueil. Auc
 - Scatter: jeu de points construit uniquement sur les (jusqu'à) 10 dernières séries (logique UI, indépendant des fenêtres 30j/60j).
 
 ## 3. Glossaire
-Points = `serie.points` • Groupement = `serie.groupSize` (cm) • Distance = `serie.distance` (m) • Catégorie = `session.category`.
+Points = `serie.points` (entier, somme simple; aucune normalisation) • Groupement = `serie.groupSize` (cm, peut être 0 ou ≤0: ces valeurs comptent dans la moyenne 30j mais sont ignorées pour best/record) • Distance = `serie.distance` (m, arrondie UNIQUEMENT pour la distribution distance) • Catégorie = `session.category` (niveau session, défaut 'entraînement').
 
 ## 4. Tableau Synthétique
 | Code | Nom UI | Source | Fenêtre | Formule / Règle | Condition | Fallback |
 |------|--------|--------|---------|-----------------|----------|----------|
 | AVG30 | Moy. points 30j | Séries | 30j | sum(points)/N | ≥1 série 30j | 0 |
-| GRP30 | Groupement moy 30j | Séries | 30j (groupSize>0) | sum(groupSize)/N | ≥1 série valide | 0 |
+| GRP30 | Groupement moy 30j | Séries | 30j (toutes valeurs, y compris ≤0) | sum(groupSize)/N | ≥1 série 30j | 0 |
 | BEST | Best série | Séries | Toutes | max(points) | ≥1 série | '-' |
 | SESSM | Sessions ce mois | Sessions | Mois courant | count(sessions) | Toujours | 0 |
 | SMA3 | Tendance (SMA3) | Séries | Historique | moyenne glissante taille 3 | ≥1 série | valeurs brutes |
@@ -47,7 +47,7 @@ Points = `serie.points` • Groupement = `serie.groupSize` (cm) • Distance = `
 ### 5.1 Moyenne points 30j (AVG30)
 Filtre: séries date > now-30j. Moyenne simple. Vide → 0.
 ### 5.2 Groupement moyen 30j (GRP30)
-Filtre 30j + groupSize>0. Moyenne arithmétique. Vide → 0.
+Filtre: séries date > now-30j (AUCUN filtrage sur groupSize). La moyenne inclut donc aussi les valeurs 0 ou négatives présentes. Vide → 0. (Les filtres groupSize>0 ne s'appliquent qu'à BESTGRP et RRECGRP.)
 ### 5.3 Best série (BEST)
 Max(points) global. Aucune série → '-'.
 ### 5.4 Sessions ce mois (SESSM)
