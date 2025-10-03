@@ -21,7 +21,7 @@ Branche cible: `dev`
 Objectif cible: Release v0.3.0 (itération fonctionnelle majeure après 0.2.0)
 
 ## 🎯 Objectifs principaux
-1. Gestion des Exercices – 🟡 (base livrée; catégories & raffinements à venir)
+1. Gestion des Exercices – ✅ (fondations livrées : modèle, UI liste/édition, planification, icônes, filtres/tri, cartes stats). Restant (reporté v0.4+) : usageCount / lastPerformedAt, tags libres, recommandations croisées.
 3. Amélioration UI de saisie des Séries – ✅ (objectif v0.3 considéré atteint via wizard planifiée→réalisée + validations; plein écran & navigation directe hors scope restant)
 4. Améliorations mineures – 🟡 (micro UX & préférences livrées; calibres & harmonisation réseau reportés)
 5. Évolutions statistiques (1M / 2M) – ⏩ (non livré)
@@ -192,9 +192,10 @@ Colonnes: Backlog | En cours | Test | Fini (0.3 scope)
 
 Réalité v0.3.0 (état intermédiaire continué):
 - 🟡 Modules: partiellement (Objectifs structure avancée & Stats 1M/2M non livrés; extension visibilité/tendance livrée)
+- ✅ Exercices: socle complet livré (EX1–EX17); approfondissements replanifiés.
 - ✅ Pas de régression majeure observée (tests ciblés & scénarios wizard)
-- ✅ Changelog 0.3.0 enrichi (Objectifs Lots A-D)
-- 🟡 Build: APK debug validé; build release à produire pour diffusion finale
+- ✅ Changelog 0.3.0 enrichi (Objectifs Lots A-D & Exercices EX1–EX17)
+- ✅ Build: APK release générée et testée sur appareil
 
 ## 11. Versioning
 - Incrément: `pubspec.yaml` passera à `0.3.0` lors de la phase de stabilisation (pré-release) avant tag.
@@ -228,3 +229,6 @@ Document vivant – mettre à jour au fur et à mesure.
 
 ---
 Fin de mise à jour post-release v0.3.0.
+
+### Note de progression
+Bien que les fondations Exercices soient marquées ✅, certains incréments restent à livrer avant clôture formelle totale de la version (objectif enrichi, stats profondes, normalisation calibres). Le statut global reste donc "version en stabilisation" jusqu'à intégration des derniers correctifs mineurs ou décision de bascule vers v0.4.
