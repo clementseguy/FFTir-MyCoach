@@ -5,13 +5,14 @@ import '../screens/goals_list_screen.dart';
 
 /// Carte récap Objectifs (Lot A): Top3 actifs + compteurs réalisés / en cours.
 class GoalsAtGlanceCard extends StatefulWidget {
-  const GoalsAtGlanceCard({super.key});
+  final GoalService? service; // injection pour tests
+  const GoalsAtGlanceCard({super.key, this.service});
   @override
   State<GoalsAtGlanceCard> createState() => _GoalsAtGlanceCardState();
 }
 
 class _GoalsAtGlanceCardState extends State<GoalsAtGlanceCard> {
-  final _service = GoalService();
+  late final GoalService _service;
   bool _loading = true;
   List<Goal> _top3 = [];
   int _active = 0;
@@ -20,6 +21,7 @@ class _GoalsAtGlanceCardState extends State<GoalsAtGlanceCard> {
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? GoalService();
     _load();
   }
 

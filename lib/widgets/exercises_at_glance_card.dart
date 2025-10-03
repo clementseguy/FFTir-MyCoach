@@ -8,18 +8,20 @@ import '../screens/exercises_list_screen.dart';
 /// - Répartition par type (chips)
 /// - Bouton d'accès à la liste complète
 class ExercisesAtGlanceCard extends StatefulWidget {
-  const ExercisesAtGlanceCard({super.key});
+  final ExerciseService? service; // injection pour tests
+  const ExercisesAtGlanceCard({super.key, this.service});
   @override
   State<ExercisesAtGlanceCard> createState() => _ExercisesAtGlanceCardState();
 }
 
 class _ExercisesAtGlanceCardState extends State<ExercisesAtGlanceCard> {
-  final ExerciseService _service = ExerciseService();
+  late final ExerciseService _service;
   late Future<List<Exercise>> _future;
 
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? ExerciseService();
     _future = _service.listAll();
   }
 
