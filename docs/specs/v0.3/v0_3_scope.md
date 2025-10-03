@@ -1,13 +1,14 @@
 # NexTarget v0.3.0 – Scope & Planning
 
 ---
-Mise à jour (02/10/2025)
+Mise à jour (03/10/2025)
 
 Résumé exécution v0.3.0:
 - Objectif central réalisé: introduction des Exercices réutilisables + intégration directe dans la création / planification de sessions.
 - Accent mis sur une fonctionnalité non explicitement prévue dans le scope initial: Sessions planifiées + conversion guidée (wizard) en sessions réalisées.
 - Extension Objectifs (Lots A→D) livrée: Top3 + compteurs, stats macro, multi-carte, formulaire séparé, aide tendance. (Les enrichissements structurels prévus initialement: type, statut étendu, historique → toujours non livrés.)
 - Plusieurs éléments du scope initial restent non livrés (objectifs enrichis structurés, stats 1M/2M, saisie plein écran) et sont reportés.
+ - Stabilisation « Tableau de bord » (ex‑Accueil) livrée: filtrage central des sessions réalisées, tri chronologique strict des séries (ASC), titres centrés, renommage, et harmonisation des graphes (points, groupement, scatter) affichant désormais les 30 dernières séries. Modes Scatter alternatifs outillés (cap/downsampling) disponibles pour itérations futures.
 
 Légende statut utilisée ci-dessous:
 - ✅ Réalisé
@@ -132,6 +133,15 @@ Non livré / partiel:
 - ⏩ Préservation dernier calibre (non appliqué)
 - ⏩ Harmonisation messages réseau (reporté)
 
+### Tableau de bord – Stats (livré v0.3)
+- ✅ Renommage « Accueil » → « Tableau de bord » et titres centrés sur les composants
+- ✅ Filtrage central des sessions: exclusion systématique du statut `prévue` dans tous les calculs stats
+- ✅ Tri chronologique strict des séries (date session puis ordre intra‑session)
+- ✅ Graphes « Évolution points » et « Évolution groupement »: affichent les 30 dernières séries (ancien → récent)
+- ✅ Graphe « Corrélation Points/Groupement » (scatter): affiche les 30 dernières séries
+- ✅ Retrait de la section obsolète « Mes dernières sessions »
+- 🧩 Modes Scatter alternatifs (fenêtre 30j cap / adaptatif + downsampling stride) outillés pour une activation ultérieure si souhaité (par défaut: 30 dernières séries)
+
 ## 5. Stats & Performances (1M / 2M)
 ### Contexte
 Ajout d’indicateurs de tendance courte/moyenne: 1 mois, 2 mois.
@@ -165,7 +175,7 @@ Statut:
 - ✅ Hive conservé
 - ✅ Repository / service Exercise implémenté (niveau basique)
 - ✅ Tests autour de la conversion planifiée → réalisée (service sessions) ajoutés
-- 🟡 Pas de tests stats (fonctionnalités stats non implémentées)
+- ✅ Tests stats ajoutés (filtres statut, ordre des séries, progression/consistency edge cases, pipeline « dernières N séries », sélection/downsampling Scatter)
 - 🟡 Refactor structure partiel (pas de refonte complète models/services)
 - ⏩ Infrastructure de migrations standardisée non finalisée
 

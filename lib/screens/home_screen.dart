@@ -138,6 +138,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               pointsSpots.add(FlSpot(i.toDouble(), s.points.toDouble()));
               groupSizeSpots.add(FlSpot(i.toDouble(), s.groupSize.toDouble()));
             }
+
+            // Préparation 1 main / 2 mains: reconstruire un flatten avec handMethod, prendre dernières 30 séries, puis filtrer
+            final List<Map<String, dynamic>> allSeriesFlatHand = [];
+            final sessionsAsc = List<ShootingSession>.from(allSessions)
+              ..sort((a, b) => (a.date ?? DateTime(1970)).compareTo(b.date ?? DateTime(1970)));
+            for (final session in sessionsAsc) {
+              final d = session.date ?? DateTime(1970);
+              for (final serie in session.series) {
+                allSeriesFlatHand.add({
+                  'date': d,
+                  'points': serie.points.toDouble(),
+                  'group': serie.groupSize.toDouble(),
+                  'hand': serie.handMethod.name, // 'oneHand' | 'twoHands'
+                });
+              }
+            }
+            allSeriesFlatHand.sort((a,b)=> (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+            final int nH = allSeriesFlatHand.length;
+            final int startH = nH > 30 ? nH - 30 : 0;
+            final last30Flat = allSeriesFlatHand.sublist(startH, nH);
+            final oneHand = last30Flat.where((e)=> e['hand'] == 'oneHand').toList();
+            final twoHands = last30Flat.where((e)=> e['hand'] == 'twoHands').toList();
+
+            List<DateTime> _datesFrom(List<Map<String,dynamic>> list) => List.generate(list.length, (i)=> list[i]['date'] as DateTime);
+            List<FlSpot> _pointsFrom(List<Map<String,dynamic>> list) => List.generate(list.length, (i)=> FlSpot(i.toDouble(), (list[i]['points'] as double)));
+            List<FlSpot> _groupsFrom(List<Map<String,dynamic>> list) => List.generate(list.length, (i)=> FlSpot(i.toDouble(), (list[i]['group'] as double)));
+
+            final dates1 = _datesFrom(oneHand);
+            final pts1 = _pointsFrom(oneHand);
+            final grp1 = _groupsFrom(oneHand);
+            final dates2 = _datesFrom(twoHands);
+            final pts2 = _pointsFrom(twoHands);
+            final grp2 = _groupsFrom(twoHands);
             final moving = stats.movingAveragePoints(window: 3); // F03 tendance
             final List<FlSpot> trendSpots = [];
             if (pointsSpots.isNotEmpty && moving.isNotEmpty) {
@@ -366,6 +399,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                     ),
                     const SizedBox(height: 32),
+                    // Graphes 1 main / 2 mains (sur les 30 dernières séries)
+                    if (oneHand.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('1 main — Points (30 dernières séries)')
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _PointsLineChart(dates: dates1, pointsSpots: pts1, trendSpots: const []),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('1 main — Groupement (cm)')
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _GroupementLineChart(dates: dates1, groupSizeSpots: grp1),
+                      const SizedBox(height: 24),
+                    ],
+                    if (twoHands.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('2 mains — Points (30 dernières séries)')
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _PointsLineChart(dates: dates2, pointsSpots: pts2, trendSpots: const []),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('2 mains — Groupement (cm)')
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _GroupementLineChart(dates: dates2, groupSizeSpots: grp2),
+                      const SizedBox(height: 24),
+                    ],
                     // F10 Scatter (corrélation) - dernières 30 séries
                     if (last30.isNotEmpty) ...[
                       Row(
