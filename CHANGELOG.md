@@ -4,19 +4,31 @@ Toutes les modifications notables de ce projet seront listées ici.
 
 ## [0.3.0] - 2025-09-29
 ### Added
-- Exercices: création, description, durée, matériel, consignes (0..n).
-- Association sessions ↔ exercices; planification de session depuis un exercice.
 - Sessions prévues: statut 'prévue', filtre dédié, en-tête stats spécifiques.
 - Wizard conversion session prévue → réalisée (intro + séries + synthèse).
 - Consignes → génération séries placeholder; prise (1M/2M) éditable par série.
 - Champs supplémentaires séries dans le wizard: Coups, Distance, Points, Groupement, Commentaire (validations obligatoires).
 - Stats: moyennes glissantes (30/60j) + delta de progression (affichage amélioré).
-- Objectifs: Carte récap Top3 + compteurs (F3, F4, F14) remplaçant l'ancienne carte prioritaire.
-- Objectifs: Section statistiques macro (6 indicateurs: réalisés total, actifs, réalisés 7/30/60/90j) (F5, F6).
-- Objectifs: Carte multi‑objectif affichant tous les objectifs actifs triés par progression (F5).
-- Objectifs: Formulaire création/édition séparé avec icône sauvegarde + champ Période déplacé en bas (F7, F8, F9).
-- Objectifs: Aide tendance (modal + doc) avec classification En hausse / Stable / En baisse (F10, F11).
-- Objectifs: Documentation détaillée du calcul de tendance (objectifs_tendance.md) incluant seuil neutralité.
+- Objectifs :
+    - Carte récap Top3 + compteurs (F3, F4, F14) remplaçant l'ancienne carte prioritaire.
+    - Section statistiques macro (6 indicateurs: réalisés total, actifs, réalisés 7/30/60/90j) (F5, F6).
+    - Carte multi‑objectif affichant tous les objectifs actifs triés par progression (F5).
+    - Formulaire création/édition séparé avec icône sauvegarde + champ Période déplacé en bas (F7, F8, F9).
+    - Aide tendance (modal + doc) avec classification En hausse / Stable / En baisse (F10, F11).
+    - Documentation détaillée du calcul de tendance (objectifs_tendance.md) incluant seuil neutralité.
+- Exercices (introduction) :
+    - Exercices: création, description, durée, matériel, consignes (0..n).
+    - Association sessions ↔ exercices; planification de session depuis un exercice.
+- Exercices (EX1–EX17):
+	- EX1/EX2/EX14: Enums Catégorie & Type + migration rétrocompat.
+	- EX3: Règle planification limitée aux exercices Stand.
+	- EX4/EX5: Cartes statistiques total exercices (écran combiné & écran dédié).
+	- EX6: Icône d'exercice planifié (sessions prévues liées).
+	- EX7/EX8: Filtres multi-catégories & par type (chips togglables + panneau repliable).
+	- EX9: Modes de tri (nom asc/desc, catégorie, type, récent).
+	- EX10: Nettoyage UI (suppression bouton + topbar redondant).
+	- EX11–EX13: Actions planifier depuis card, retrait planifier du formulaire, sauvegarde dans AppBar.
+	- EX15–EX17: Carte récap Exercices cohérente, stats par type (chips), suppression TODO list combiné.
 
 ### Changed
 - Différenciation visuelle sessions prévues (couleurs cartes, chips, header).
@@ -40,6 +52,7 @@ Toutes les modifications notables de ce projet seront listées ici.
 - Objectifs: Wrapper `macroAchievementStats()` (agrégation unique) + helper tendance (delta normalisé).
 - Objectifs: Réorganisation GoalsListScreen (extraction GoalEditScreen, refresh via GlobalKeys).
 - Objectifs: Doc interne `objectifs_tendance.md` (fenêtres, delta, epsilon=0.001).
+ - Exercices: Tests de migration, tri, filtres, planification, carte stats; widget test écran combiné.
 
 ---
 
