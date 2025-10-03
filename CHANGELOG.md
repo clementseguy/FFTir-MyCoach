@@ -4,11 +4,11 @@ Toutes les modifications notables de ce projet seront listées ici.
 
 ## [0.3.0] - 2025-09-29
 ### Added
-- Sessions prévues: statut 'prévue', filtre dédié, en-tête stats spécifiques.
-- Wizard conversion session prévue → réalisée (intro + séries + synthèse).
-- Consignes → génération séries placeholder; prise (1M/2M) éditable par série.
-- Champs supplémentaires séries dans le wizard: Coups, Distance, Points, Groupement, Commentaire (validations obligatoires).
-- Stats: moyennes glissantes (30/60j) + delta de progression (affichage amélioré).
+- Sessions :
+    - Sessions prévues: statut 'prévue', filtre dédié, en-tête stats spécifiques.
+    - Wizard conversion session prévue → réalisée (intro + séries + synthèse).
+    - Consignes → génération séries placeholder; prise (1M/2M) éditable par série.
+    - Champs supplémentaires séries dans le wizard: Coups, Distance, Points, Groupement, Commentaire (validations obligatoires).
 - Objectifs :
     - Carte récap Top3 + compteurs (F3, F4, F14) remplaçant l'ancienne carte prioritaire.
     - Section statistiques macro (6 indicateurs: réalisés total, actifs, réalisés 7/30/60/90j) (F5, F6).
@@ -16,10 +16,9 @@ Toutes les modifications notables de ce projet seront listées ici.
     - Formulaire création/édition séparé avec icône sauvegarde + champ Période déplacé en bas (F7, F8, F9).
     - Aide tendance (modal + doc) avec classification En hausse / Stable / En baisse (F10, F11).
     - Documentation détaillée du calcul de tendance (objectifs_tendance.md) incluant seuil neutralité.
-- Exercices (introduction) :
+- Exercices :
     - Exercices: création, description, durée, matériel, consignes (0..n).
     - Association sessions ↔ exercices; planification de session depuis un exercice.
-- Exercices (EX1–EX17):
 	- EX1/EX2/EX14: Enums Catégorie & Type + migration rétrocompat.
 	- EX3: Règle planification limitée aux exercices Stand.
 	- EX4/EX5: Cartes statistiques total exercices (écran combiné & écran dédié).
@@ -29,9 +28,12 @@ Toutes les modifications notables de ce projet seront listées ici.
 	- EX10: Nettoyage UI (suppression bouton + topbar redondant).
 	- EX11–EX13: Actions planifier depuis card, retrait planifier du formulaire, sauvegarde dans AppBar.
 	- EX15–EX17: Carte récap Exercices cohérente, stats par type (chips), suppression TODO list combiné.
-- Stats: helpers et tests pour pipeline séries (verrouillage ordre ASC et sélection des N dernières).
-- Scatter: modes alternatifs (last10, window30Cap, adaptive) + utilitaires publics (`scatter_mode.dart`, `scatter_utils.dart`).
-- Tests: `scatter_modes_test.dart` (modes + downsampling), renforts sur filtres/ordre (Lot C).
+- Tableau de bord (ex accueil) :
+    - Stats: moyennes glissantes (30/60j) + delta de progression (affichage amélioré).
+    - Stats: helpers et tests pour pipeline séries (verrouillage ordre ASC et sélection des N dernières).
+    - Scatter: modes alternatifs (last10, window30Cap, adaptive) + utilitaires publics (`scatter_mode.dart`, `scatter_utils.dart`).
+    - Tests: `scatter_modes_test.dart` (modes + downsampling), renforts sur filtres/ordre (Lot C).
+    - Avancé: graphes "1 main" et "2 mains" combinés (points + groupement) en mode brut, sur les 30 dernières séries. [F29][F30]
 
 ### Changed
 - Différenciation visuelle sessions prévues (couleurs cartes, chips, header).
