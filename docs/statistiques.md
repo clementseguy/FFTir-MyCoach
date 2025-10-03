@@ -2,6 +2,13 @@
 
 Objectif: documenter l'existant (calculs actuels).
 
+Notes globales:
+- Les sessions au statut "prévue" sont exclues de tous les calculs (seules les sessions réalisées sont prises en compte).
+- Répartition UI (organisation cible v0.3):
+	- Onglet "Mes statistiques" (≤5 blocs): Snapshot, Évolution points+SMA3, Évolution groupement, Répartition catégories, Distribution points.
+	- Onglet "Statistiques avancées": Rolling 30/60, Consistency, Progression, Streak & Charge, Distances, Scatter corrélation, Records, autres distributions.
+- Corrélation Points / Groupement: visualisation scatter uniquement (pas de coefficient). Fenêtre: 30 derniers jours. Seuil d'affichage: ≥10 séries sinon message "Trop peu de données".
+
 ## Table récap (vue rapide)
 | Nom | Source de données | Fenêtre / Ensemble | Formule / Algorithme | Conditions d'affichage | Valeurs limites / Fallback |
 |-----|-------------------|--------------------|----------------------|------------------------|----------------------------|
@@ -94,5 +101,11 @@ Objectif: documenter l'existant (calculs actuels).
 - Charge: "Sessions cette semaine".
 - Rolling: "Moyennes 30j / 60j (points/session)".
 - SMA3: "Moyenne glissante (3 séries)".
+
+## Corrélation (scatter)
+- Axe X: group_size (cm), Axe Y: points.
+- Données: séries 30j.
+- Seuil: <10 séries → message d'insuffisance.
+- Pas de calcul de coefficient stocké.
 
 
