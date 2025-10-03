@@ -5,7 +5,7 @@ Portée: décrit UNIQUEMENT l'existant (implémenté) pour l'écran Accueil. Auc
 ## 1. Sources & Préparation
 - Filtre UI préalable: `status == 'réalisée'` et `date != null` avant création de `StatsService`.
 - `StatsService` : aplatissement séries (ordre date croissant) dans `_series`.
-- `RollingStatsService` : calcule moyennes 30j / 60j sur points totaux par session (toutes sessions chargées avec date non nulle).
+- `RollingStatsService` : calcule moyennes 30j / 60j sur points totaux par session (toutes sessions avec date non nulle, y compris actuellement les sessions au statut 'prévue').
 
 ## 2. Règles Globales
 - Fenêtre 30 jours : `date > now - 30j`. Fenêtre 60j analogue.
