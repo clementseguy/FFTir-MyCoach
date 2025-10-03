@@ -2,10 +2,10 @@
 
 Portée: décrit UNIQUEMENT l'existant (implémenté) pour l'écran Accueil. Aucune projection future.
 
-## 1. Sources & Préparation
-- Filtrage spécifique AVANT `StatsService`: dans `HomeScreen`, on restreint la liste aux sessions dont `status == 'réalisée'` et `date != null`.
-- Construction `_series` (`StatsService`): pour chaque session retenue, chaque série reçoit la date de la session (si date absente → fallback epoch `1970-01-01`), puis toutes les séries sont triées par date croissante.
-- Couverture `RollingStatsService`: lit toutes les sessions du repository sans filtrer le statut; ignore seulement celles sans date. Les sessions `prévue` datées sont donc incluses dans les calculs rolling (avg30/avg60/delta) à l'état actuel.
+## 1. Sources & Préparation (Lot C)
+- Filtrage centralisé AVANT tout calcul: `SessionFilters.realizedWithDate` exclut systématiquement les sessions au statut `prévue` et sans date. Utilisé par `StatsService` et `RollingStatsService`.
+- Construction `_series` (`StatsService`): sur la base des sessions filtrées, chaque série hérite de la date session, puis l’ensemble est trié par date ASC. Ordre strict intra-session respecté (F14).
+- `RollingStatsService`: applique le même filtre central (sessions réalisées uniquement) pour avg30/avg60/delta.
 
 ## 2. Règles Globales
 - Fenêtres temporelles: 30 jours (`date > now - 30j`), 60 jours analogue. Les fenêtres progression: (0..30j) vs (30..60j).
@@ -90,7 +90,7 @@ Tri sessions DESC → garder les 10 dernières sessions → aplatir toutes leurs
 - Scatter tronqué (10 séries) donc non exhaustif.
 - Pas de normalisation distance sur groupement.
 - σ population utilisé.
-- Rolling: mélange sessions 'prévue' et 'réalisée' (statut non filtré) → possible dilution.
+- Rolling: filtrage statut appliqué (Lot C) → cohérence avec les autres métriques.
 - Scatter biaisé: sélection d'abord des 10 dernières sessions puis découpe à 10 séries → certaines séries récentes hors de ces sessions peuvent être exclues.
 
 ## 8. Révision
