@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               Image.asset('assets/app_logo.png', height: 36),
               const SizedBox(width: 12),
-              const Text('Accueil'),
+              const Text('Tableau de bord'),
             ],
           ),
           actions: [
@@ -236,7 +236,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     const SizedBox(height: 32),
                     // F05 Répartition catégories (sessions)
                     if (catDistrib.isNotEmpty) ...[
-                      const Text('Répartition catégories', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('Répartition catégories', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       _CategoryStackedBar(distribution: catDistrib),
                       const SizedBox(height: 10),
@@ -249,7 +254,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ],
                     // F06 Distribution points 30j
                     if (pointBuckets.isNotEmpty) ...[
-                      const Text('Distribution points (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('Distribution points (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                       const SizedBox(height: 8),
                       _BucketsChart(pointBuckets: pointBuckets),
                       const SizedBox(height: 12),
@@ -267,7 +277,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   children: [
                     const SizedBox(height: 8),
                     // F07 Analyse avancée
-                    const Text('Analyse avancée', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text('Analyse avancée', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 12,
@@ -406,7 +421,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ],
                     // F11 Répartition distances 30j
                     if (distDistrib.isNotEmpty) ...[
-                      const Text('Répartition distances (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('Répartition distances (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                       const SizedBox(height: 8),
                       _DistanceChart(distDistrib: distDistrib),
                       const SizedBox(height: 32),

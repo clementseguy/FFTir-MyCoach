@@ -113,7 +113,7 @@ void main() {
   // we assert at least one occurrence.
   expect(find.text('Coach'), findsWidgets);
   expect(find.text('Exercices'), findsWidgets);
-  expect(find.text('Accueil'), findsWidgets);
+  expect(find.text('Tableau de bord'), findsWidgets);
   expect(find.text('Sessions'), findsWidgets);
   expect(find.text('Paramètres'), findsWidgets);
   });
