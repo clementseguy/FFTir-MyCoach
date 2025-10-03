@@ -1,4 +1,5 @@
 import '../repositories/session_repository.dart';
+import '../utils/session_filters.dart';
 import 'stats_contract.dart';
 import 'logger.dart';
 
@@ -8,7 +9,7 @@ class RollingStatsService implements RollingStatsCalculator {
 
   @override
   Future<RollingStatsSnapshot> compute() async {
-    final sessions = await _repo.getAll();
+    final sessions = SessionFilters.realizedWithDate(await _repo.getAll());
     if (sessions.isEmpty) {
       return const RollingStatsSnapshot(
         avg30: 0,

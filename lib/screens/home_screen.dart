@@ -1,4 +1,3 @@
-import '../widgets/session_card.dart';
 import '../widgets/rules_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import '../services/session_service.dart';
@@ -9,7 +8,6 @@ import '../services/rolling_stats_service.dart';
 import '../services/stats_contract.dart';
 import '../repositories/hive_session_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'session_detail_screen.dart';
 // import '../models/series.dart'; // plus besoin du filtrage par prise
 
 class HomeScreen extends StatefulWidget {
@@ -413,50 +411,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _DistanceChart(distDistrib: distDistrib),
                       const SizedBox(height: 32),
                     ],
-                    // Section "Mes dernières sessions" (gardée jusqu'au Lot C - F12 futur)
                     const SizedBox(height: 8),
-                    const Text('Mes dernières sessions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    FutureBuilder<List<ShootingSession>>(
-                      future: _sessionsFuture,
-                      builder: (context, snap) {
-                        if (snap.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        final sessions = (snap.data ?? [])
-                            .where((s) => s.status == 'réalisée' && s.date != null)
-                            .toList();
-                        if (sessions.isEmpty) {
-                          return const Center(child: Text('Aucune session enregistrée.'));
-                        }
-                        final sorted = List<ShootingSession>.from(sessions)
-                          ..sort((a,b)=> (b.date ?? DateTime.now()).compareTo(a.date ?? DateTime.now()));
-                        final last3 = sorted.take(3).toList();
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: last3.length,
-                          itemBuilder: (context, index) {
-                            final session = last3[index];
-                            return SessionCard(
-                              session: session.toMap(),
-                              series: session.series.map((s) => s.toMap()).toList(),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => SessionDetailScreen(sessionData: {
-                                      'session': session.toMap(),
-                                      'series': session.series.map((s) => s.toMap()).toList(),
-                                    }),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
                     const SizedBox(height: 40),
                   ],
                 ),

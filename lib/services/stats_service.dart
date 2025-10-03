@@ -1,4 +1,5 @@
 import '../models/shooting_session.dart';
+import '../utils/session_filters.dart';
 
 class SeriesStat {
   final DateTime date; // date de la session associée
@@ -20,12 +21,17 @@ class StatsService {
   late final List<SeriesStat> _series; // séries aplaties
 
   StatsService(this.sessions) {
-    _series = _flatten();
+    // Lot C (F24): central filter to exclude planned sessions globally
+    final realized = SessionFilters.realizedWithDate(sessions);
+    _series = _flatten(realized);
   }
 
-  List<SeriesStat> _flatten() {
+  List<SeriesStat> _flatten(List<ShootingSession> realized) {
     final List<SeriesStat> list = [];
-    for (final s in sessions) {
+    // Strict chronological ordering: by date then by intra-session order (F14)
+    final ordered = List<ShootingSession>.from(realized)
+      ..sort((a, b) => (a.date ?? DateTime(1970)).compareTo(b.date ?? DateTime(1970)));
+    for (final s in ordered) {
       final date = s.date ?? DateTime.fromMillisecondsSinceEpoch(0);
       for (final serie in s.series) {
         list.add(SeriesStat(
@@ -74,11 +80,8 @@ class StatsService {
 
   int sessionsCountCurrentMonth() {
     final now = DateTime.now();
-    return sessions.where((s) =>
-      s.date != null &&
-      s.date!.year == now.year &&
-      s.date!.month == now.month
-    ).length;
+    final realized = SessionFilters.realizedWithDate(sessions);
+    return realized.where((s) => s.date!.year == now.year && s.date!.month == now.month).length;
   }
 
   // Moyenne mobile des points (window par défaut 3)
@@ -144,7 +147,7 @@ class StatsService {
     // sessionsOnly = true : compte par session (pas par série)
     if (sessionsOnly) {
       final Map<String,int> counts = {};
-      for (final sess in sessions) {
+      for (final sess in SessionFilters.realizedWithDate(sessions)) {
         final cat = sess.category;
         counts[cat] = (counts[cat] ?? 0) + 1;
       }
@@ -174,7 +177,7 @@ class StatsService {
   // ===== Phase 3 Metrics =====
   int currentDayStreak() {
     final dates = <DateTime>{};
-    for (final s in sessions) {
+    for (final s in SessionFilters.realizedWithDate(sessions)) {
       if (s.date != null) {
         final d = s.date!;
         dates.add(DateTime(d.year, d.month, d.day));
@@ -223,7 +226,9 @@ class StatsService {
     final now = DateTime.now();
     final start = _startOfWeek(now);
     final end = start.add(const Duration(days:7));
-    return sessions.where((s)=> s.date != null && s.date!.isAfter(start.subtract(const Duration(milliseconds:1))) && s.date!.isBefore(end)).length;
+    return SessionFilters.realizedWithDate(sessions)
+      .where((s)=> s.date!.isAfter(start.subtract(const Duration(milliseconds:1))) && s.date!.isBefore(end))
+      .length;
   }
 
   int sessionsPreviousWeek() {
@@ -231,7 +236,9 @@ class StatsService {
     final startCurrent = _startOfWeek(now);
     final startPrev = startCurrent.subtract(const Duration(days:7));
     final endPrev = startCurrent;
-    return sessions.where((s)=> s.date != null && s.date!.isAfter(startPrev.subtract(const Duration(milliseconds:1))) && s.date!.isBefore(endPrev)).length;
+    return SessionFilters.realizedWithDate(sessions)
+      .where((s)=> s.date!.isAfter(startPrev.subtract(const Duration(milliseconds:1))) && s.date!.isBefore(endPrev))
+      .length;
   }
 
   int weeklyLoadDelta() => sessionsThisWeek() - sessionsPreviousWeek();
