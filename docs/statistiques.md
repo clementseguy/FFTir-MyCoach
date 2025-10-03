@@ -3,9 +3,9 @@
 Portée: décrit UNIQUEMENT l'existant (implémenté) pour l'écran Accueil. Aucune projection future.
 
 ## 1. Sources & Préparation
-- Filtre UI préalable: `status == 'réalisée'` et `date != null` avant création de `StatsService`.
-- `StatsService` : aplatissement des séries en leur associant la date de leur session (fallback epoch si `session.date` null), puis tri croissant sur cette date dans `_series`.
-- `RollingStatsService` : calcule moyennes 30j / 60j sur points totaux par session (toutes sessions avec date non nulle, y compris actuellement les sessions au statut 'prévue').
+- Filtrage spécifique AVANT `StatsService`: dans `HomeScreen`, on restreint la liste aux sessions dont `status == 'réalisée'` et `date != null`.
+- Construction `_series` (`StatsService`): pour chaque session retenue, chaque série reçoit la date de la session (si date absente → fallback epoch `1970-01-01`), puis toutes les séries sont triées par date croissante.
+- Couverture `RollingStatsService`: lit toutes les sessions du repository sans filtrer le statut; ignore seulement celles sans date. Les sessions `prévue` datées sont donc incluses dans les calculs rolling (avg30/avg60/delta) à l'état actuel.
 
 ## 2. Règles Globales
 - Fenêtre 30 jours : `date > now - 30j`. Fenêtre 60j analogue.
@@ -87,7 +87,7 @@ Tri sessions DESC → 10; aplatir séries → tri ASC → garder 10 dernières; 
 - σ population utilisé.
 
 ## 8. Révision
-2025-10-03 Réécriture propre (existant only).# Documentation des Statistiques (v0.3)
+2025-10-03 Réécriture propre (existant only).
 
 Objectif: documenter uniquement l'existant (calculs réellement implémentés dans le code à la date de cette version).
 
