@@ -4,7 +4,7 @@ Portée: décrit UNIQUEMENT l'existant (implémenté) pour l'écran Accueil. Auc
 
 ## 1. Sources & Préparation
 - Filtre UI préalable: `status == 'réalisée'` et `date != null` avant création de `StatsService`.
-- `StatsService` : aplatissement séries (ordre date croissant) dans `_series`.
+- `StatsService` : aplatissement des séries en leur associant la date de leur session (fallback epoch si `session.date` null), puis tri croissant sur cette date dans `_series`.
 - `RollingStatsService` : calcule moyennes 30j / 60j sur points totaux par session (toutes sessions avec date non nulle, y compris actuellement les sessions au statut 'prévue').
 
 ## 2. Règles Globales
