@@ -2,6 +2,32 @@
 
 Toutes les modifications notables de ce projet seront listées ici.
 
+## [0.3.1] - 2025-10-03
+### Added
+- Stats: helpers et tests pour pipeline séries (verrouillage ordre ASC et sélection des N dernières).
+- Scatter: modes alternatifs (last10, window30Cap, adaptive) + utilitaires publics (`scatter_mode.dart`, `scatter_utils.dart`).
+- Tests: `scatter_modes_test.dart` (modes + downsampling), renforts sur filtres/ordre (Lot C).
+
+### Changed
+- Accueil → Tableau de bord (libellés UI et tests) [Lot D].
+- Titres des tableaux/graphes centrés [Lot D].
+- Graphes “Évolution points” et “Évolution groupement” affichent désormais les 30 dernières séries (ancien → récent).
+- Graphe “Corrélation Points/Groupement” affiche les 30 dernières séries.
+- Documentation `docs/statistiques.md` alignée (sélection des 30 dernières séries; clarifications).
+
+### Fixed
+- Bug d’ordre: les graphes pouvaient afficher les séries récentes à gauche. Pipeline corrigé pour garantir “récentes à droite” et SMA3 alignée sur les points visibles.
+- Flakiness tests temporels: `StatsService` accepte un `now` injecté pour figer le temps dans les tests.
+
+### Removed
+- Section “Mes dernières sessions” obsolète retirée [Lot C].
+
+### Technical
+- Filtre centralisé statut sessions (exclusion `prévue`) appliqué dans `StatsService` et `RollingStatsService` [Lot C].
+- Tri strict ASC des séries (date session puis ordre intra-session) [Lot C].
+- Refactor pipeline Scatter et introduction du downsampling stride.
+- Mise à jour et durcissement des tests (ordre, filtres, progression/consistency edge cases).
+
 ## [0.3.0] - 2025-09-29
 ### Added
 - Sessions prévues: statut 'prévue', filtre dédié, en-tête stats spécifiques.
