@@ -7,9 +7,9 @@ import 'package:tir_sportif/constants/session_constants.dart';
 void main() {
   group('StatsService Lot C filters & ordering', () {
     test('Excludes planned sessions from all computations', () {
-      final now = DateTime.now();
-  // Use current date to avoid edge cases
-  final inThisMonth = DateTime(now.year, now.month, now.day);
+      // Freeze reference time to avoid flakiness around month/day boundaries
+      final now = DateTime(2025, 01, 15, 12, 0, 0);
+      final inThisMonth = DateTime(now.year, now.month, now.day);
       final sessions = [
         ShootingSession(
           id: 1,
@@ -26,7 +26,7 @@ void main() {
           series: [Series(distance: 10, points: 100, groupSize: 5)],
         ),
       ];
-      final stats = StatsService(sessions);
+  final stats = StatsService(sessions, now: now);
       // Only realized series counted -> average points should be 50, not (50,100)
       expect(stats.averagePointsLast30Days(), 50);
       // Session count this month counts only realized
@@ -57,7 +57,7 @@ void main() {
           Series(distance: 10, points: 30, groupSize: 22), // third
         ],
       );
-      final stats = StatsService([s2, s1]); // out-of-order input
+  final stats = StatsService([s2, s1], now: now); // out-of-order input
       final moving = stats.movingAveragePoints(window: 2);
       // Moving average should reflect points ordered as [10,20,30]
       expect(moving.length, 3);
@@ -67,7 +67,7 @@ void main() {
     });
 
     test('Progression: insufficient data or avgPrev=0 yields NaN', () {
-      final now = DateTime.now();
+  final now = DateTime(2025, 01, 15, 12, 0, 0);
       // Only 2 series -> insufficient
       final s = ShootingSession(
         id: 1,
@@ -79,7 +79,7 @@ void main() {
           Series(distance: 10, points: 15, groupSize: 28),
         ],
       );
-      final stats1 = StatsService([s]);
+  final stats1 = StatsService([s], now: now);
       expect(stats1.progressionPercent30Days().isNaN, isTrue);
 
       // Previous window avg is zero -> NaN
@@ -97,7 +97,7 @@ void main() {
         status: SessionConstants.statusRealisee,
         series: [Series(distance: 10, points: 20, groupSize: 15), Series(distance: 10, points: 25, groupSize: 14), Series(distance: 10, points: 22, groupSize: 16)],
       );
-      final stats2 = StatsService([prev, curr]);
+  final stats2 = StatsService([prev, curr], now: now);
       final prog = stats2.progressionPercent30Days();
       // Avec peu de données dans prev, la moyenne peut être 0 -> NaN attendu selon règle docs
       expect(prog.isNaN, isTrue);

@@ -8,6 +8,8 @@ import '../services/rolling_stats_service.dart';
 import '../services/stats_contract.dart';
 import '../repositories/hive_session_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../utils/scatter_mode.dart';
+import '../utils/scatter_utils.dart';
 // import '../models/series.dart'; // plus besoin du filtrage par prise
 
 class HomeScreen extends StatefulWidget {
@@ -126,16 +128,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             final currentWeek = stats.sessionsThisWeek(); // F09
             final bestGroup = stats.bestGroupSize(); // F26
 
-            // Séries flatten subset pour graphes points/groupe & scatter (logique existante conservée)
+            // Séries: timeline complet, en ordre chrono ASC (ancien -> récent)
             final List<DateTime> dates = [];
             final List<FlSpot> pointsSpots = [];
             final List<FlSpot> groupSizeSpots = [];
-            final List<ShootingSession> sortedSessions = List<ShootingSession>.from(allSessions)
-              ..sort((a, b) => (b.date ?? DateTime.now()).compareTo(a.date ?? DateTime.now()));
-            final List<ShootingSession> lastSessions = sortedSessions.take(10).toList();
             final List<Map<String, dynamic>> allSeriesFlat = [];
-            for (final session in lastSessions) {
-              final sessionDate = session.date ?? DateTime.now();
+            final sessionsAsc = List<ShootingSession>.from(allSessions)
+              ..sort((a, b) => (a.date ?? DateTime(1970)).compareTo(b.date ?? DateTime(1970)));
+            for (final session in sessionsAsc) {
+              final sessionDate = session.date ?? DateTime(1970);
               for (final serie in session.series) {
                 allSeriesFlat.add({
                   'date': sessionDate,
@@ -145,9 +146,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               }
             }
             allSeriesFlat.sort((a, b) => a['date'].compareTo(b['date']));
-            final List<Map<String, dynamic>> lastSeries = allSeriesFlat.length > 10
-                ? allSeriesFlat.sublist(allSeriesFlat.length - 10)
-                : allSeriesFlat; // F10 (source scatter)
+            // Lot E: Scatter modes
+            const ScatterMode scatterMode = ScatterMode.window30Cap; // default for v0.3 Lot E
+            final lastSeries = selectScatterSeries(
+              allSeriesFlat,
+              now: DateTime.now(),
+              mode: scatterMode,
+            );
             for (int i = 0; i < lastSeries.length; i++) {
               final serie = lastSeries[i];
               dates.add(serie['date']);
@@ -156,8 +161,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             }
             final moving = stats.movingAveragePoints(window: 3); // F03 tendance
             final List<FlSpot> trendSpots = [];
-            for (int i = 0; i < moving.length && i < pointsSpots.length; i++) {
-              trendSpots.add(FlSpot(pointsSpots[i].x, moving[i]));
+            if (pointsSpots.isNotEmpty && moving.isNotEmpty) {
+              final take = pointsSpots.length;
+              final start = (moving.length - take) < 0 ? 0 : (moving.length - take);
+              for (int i = 0; i < take && (start + i) < moving.length; i++) {
+                trendSpots.add(FlSpot(pointsSpots[i].x, moving[start + i]));
+              }
             }
 
             final rollingFuture = rollingService.compute(); // F08 async
@@ -450,6 +459,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 }
+
+// (helpers moved to utils/scatter_utils.dart)
 
 class _LegendDot extends StatelessWidget {
   final Color color;

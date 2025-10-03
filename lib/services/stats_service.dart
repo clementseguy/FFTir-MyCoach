@@ -19,8 +19,10 @@ class SeriesStat {
 class StatsService {
   final List<ShootingSession> sessions;
   late final List<SeriesStat> _series; // séries aplaties
+  // Freeze a reference "now" to ensure deterministic date-based computations (useful for tests)
+  final DateTime _now;
 
-  StatsService(this.sessions) {
+  StatsService(this.sessions, {DateTime? now}) : _now = now ?? DateTime.now() {
     // Lot C (F24): central filter to exclude planned sessions globally
     final realized = SessionFilters.realizedWithDate(sessions);
     _series = _flatten(realized);
@@ -49,7 +51,7 @@ class StatsService {
 
   // Filtre séries sur une période (ex: 30 derniers jours)
   List<SeriesStat> _filterLast(Duration d) {
-    final cutoff = DateTime.now().subtract(d);
+    final cutoff = _now.subtract(d);
     return _series.where((s) => s.date.isAfter(cutoff)).toList();
   }
 
@@ -79,7 +81,7 @@ class StatsService {
   }
 
   int sessionsCountCurrentMonth() {
-    final now = DateTime.now();
+    final now = _now;
     final realized = SessionFilters.realizedWithDate(sessions);
     return realized.where((s) => s.date!.year == now.year && s.date!.month == now.month).length;
   }
@@ -121,7 +123,7 @@ class StatsService {
   }
 
   double progressionPercent30Days() {
-    final now = DateTime.now();
+    final now = _now;
     final currentWindow = now.subtract(const Duration(days: 30));
     final previousWindowStart = now.subtract(const Duration(days: 60));
     final curr = _series.where((s) => s.date.isAfter(currentWindow)).toList();
@@ -175,6 +177,15 @@ class StatsService {
   }
 
   // ===== Phase 3 Metrics =====
+  /// Returns the last [n] series from the full chronological series list (ASC order).
+  /// If fewer than [n] exist, returns all. Used by UI graphs to ensure newest on the right.
+  List<SeriesStat> lastNSortedSeriesAsc(int n) {
+    if (n <= 0 || _series.isEmpty) return const [];
+    final len = _series.length;
+    final start = (len - n) < 0 ? 0 : (len - n);
+    // _series is already sorted by date ASC
+    return _series.sublist(start, len);
+  }
   int currentDayStreak() {
     final dates = <DateTime>{};
     for (final s in SessionFilters.realizedWithDate(sessions)) {
@@ -223,7 +234,7 @@ class StatsService {
   }
 
   int sessionsThisWeek() {
-    final now = DateTime.now();
+    final now = _now;
     final start = _startOfWeek(now);
     final end = start.add(const Duration(days:7));
     return SessionFilters.realizedWithDate(sessions)
@@ -232,7 +243,7 @@ class StatsService {
   }
 
   int sessionsPreviousWeek() {
-    final now = DateTime.now();
+    final now = _now;
     final startCurrent = _startOfWeek(now);
     final startPrev = startCurrent.subtract(const Duration(days:7));
     final endPrev = startCurrent;
