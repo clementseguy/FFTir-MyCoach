@@ -15,7 +15,7 @@ Portée: décrit UNIQUEMENT l'existant (implémenté) pour l'écran Accueil. Auc
 	- Consistency: 0 si <3 séries ou moyenne ≤0 ou résultat non fini.
 	- Progression: `NaN` si conditions non remplies (≥5 séries dans chaque fenêtre & avgPrev>0).
 	- Records: false si <2 séries ou conditions non satisfaites.
-- Scatter: jeu de points construit uniquement sur les (jusqu'à) 10 dernières séries (logique UI, indépendant des fenêtres 30j/60j).
+- Série pour les graphes de tendance (points, groupement) et le scatter: sélection des 30 dernières séries en ordre chronologique ASC (ancien → récent). Cette sélection est indépendante des fenêtres 30j/60j basées sur la date.
 
 ## 3. Glossaire
 Points = `serie.points` (entier, somme simple; aucune normalisation) • Groupement = `serie.groupSize` (cm, peut être 0 ou ≤0: ces valeurs comptent dans la moyenne 30j mais sont ignorées pour best/record) • Distance = `serie.distance` (m, arrondie UNIQUEMENT pour la distribution distance) • Catégorie = `session.category` (niveau session, défaut 'entraînement').
@@ -41,7 +41,7 @@ Points = `serie.points` (entier, somme simple; aucune normalisation) • Groupem
 | BESTGRP | Best groupement | Séries | Toutes | min(groupSize>0) | ≥1 série valide | 0 |
 | RRECPTS | Record points dernière | Séries | Dernière vs précédent | last.points > max(prev) | ≥2 séries | false |
 | RRECGRP | Record groupement dernière | Séries | Dernière vs précédent | last.groupSize < min(prev>0) | ≥2 séries valides | false |
-| SCAT | Scatter pts/groupement | Séries | 10 dernières sessions → max 10 séries | (x=group_size,y=points) | ≥1 série | n/a |
+| SCAT | Scatter pts/groupement | Séries | 30 dernières séries | (x=group_size,y=points) | ≥1 série | n/a |
 
 ## 5. Détails des Calculs
 ### 5.1 Moyenne points 30j (AVG30)
@@ -77,7 +77,7 @@ Min groupSize>0 sinon 0.
 ### 5.16 Records dernière (RRECPTS / RRECGRP)
 Points: last > max(prev). Groupement: last < min(prev>0). <2 séries → false.
 ### 5.17 Scatter (SCAT)
-Tri sessions DESC → garder les 10 dernières sessions → aplatir toutes leurs séries → tri ASC par date → conserver les 10 dernières séries → spots (group_size, points). maxX = max(group_size)+5 (plancher 10). maxY = 55 fixe. (Sélection biaisée potentielle, voir Limites.)
+Prendre les 30 dernières séries (après aplatissement ASC) → spots (group_size, points). maxX = max(group_size)+5 (plancher 10). maxY = 55 fixe.
 
 ## 6. Règles d'Affichage
 - Progression NaN → '-'. Consistency==0 → '-'.
@@ -87,7 +87,7 @@ Tri sessions DESC → garder les 10 dernières sessions → aplatir toutes leurs
 - 0 ≠ '-' (0 = calcul valide; '-' = absence / insuffisant).
 
 ## 7. Limites Connues
-- Scatter tronqué (10 séries) donc non exhaustif.
+- Scatter tronqué (30 séries) donc non exhaustif.
 - Pas de normalisation distance sur groupement.
 - σ population utilisé.
 - Rolling: filtrage statut appliqué (Lot C) → cohérence avec les autres métriques.

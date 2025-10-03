@@ -8,8 +8,7 @@ import '../services/rolling_stats_service.dart';
 import '../services/stats_contract.dart';
 import '../repositories/hive_session_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../utils/scatter_mode.dart';
-import '../utils/scatter_utils.dart';
+// Scatter mode utils kept for potential future use; charts use last 30 series by requirement
 // import '../models/series.dart'; // plus besoin du filtrage par prise
 
 class HomeScreen extends StatefulWidget {
@@ -128,36 +127,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             final currentWeek = stats.sessionsThisWeek(); // F09
             final bestGroup = stats.bestGroupSize(); // F26
 
-            // Séries: timeline complet, en ordre chrono ASC (ancien -> récent)
+            // Séries: afficher les 30 dernières séries en ordre chrono ASC (ancien -> récent)
+            final last30 = stats.lastNSortedSeriesAsc(30);
             final List<DateTime> dates = [];
             final List<FlSpot> pointsSpots = [];
             final List<FlSpot> groupSizeSpots = [];
-            final List<Map<String, dynamic>> allSeriesFlat = [];
-            final sessionsAsc = List<ShootingSession>.from(allSessions)
-              ..sort((a, b) => (a.date ?? DateTime(1970)).compareTo(b.date ?? DateTime(1970)));
-            for (final session in sessionsAsc) {
-              final sessionDate = session.date ?? DateTime(1970);
-              for (final serie in session.series) {
-                allSeriesFlat.add({
-                  'date': sessionDate,
-                  'points': (serie.points).toDouble(),
-                  'group_size': (serie.groupSize).toDouble(),
-                });
-              }
-            }
-            allSeriesFlat.sort((a, b) => a['date'].compareTo(b['date']));
-            // Lot E: Scatter modes
-            const ScatterMode scatterMode = ScatterMode.window30Cap; // default for v0.3 Lot E
-            final lastSeries = selectScatterSeries(
-              allSeriesFlat,
-              now: DateTime.now(),
-              mode: scatterMode,
-            );
-            for (int i = 0; i < lastSeries.length; i++) {
-              final serie = lastSeries[i];
-              dates.add(serie['date']);
-              pointsSpots.add(FlSpot(i.toDouble(), serie['points']));
-              groupSizeSpots.add(FlSpot(i.toDouble(), serie['group_size']));
+            for (int i = 0; i < last30.length; i++) {
+              final s = last30[i];
+              dates.add(s.date);
+              pointsSpots.add(FlSpot(i.toDouble(), s.points.toDouble()));
+              groupSizeSpots.add(FlSpot(i.toDouble(), s.groupSize.toDouble()));
             }
             final moving = stats.movingAveragePoints(window: 3); // F03 tendance
             final List<FlSpot> trendSpots = [];
@@ -387,8 +366,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                     ),
                     const SizedBox(height: 32),
-                    // F10 Scatter (corrélation)
-                    if (lastSeries.isNotEmpty) ...[
+                    // F10 Scatter (corrélation) - dernières 30 séries
+                    if (last30.isNotEmpty) ...[
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
@@ -406,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             borderData: FlBorderData(show: false),
                             minX: 0,
                             maxX: () {
-                              final maxG = lastSeries.isEmpty ? 0.0 : lastSeries.map((e)=> e['group_size'] as double).reduce((a,b)=> b>a? b:a);
+                              final maxG = last30.isEmpty ? 0.0 : last30.map((e)=> e.groupSize.toDouble()).reduce((a,b)=> b>a? b:a);
                               final v = maxG + 5.0;
                               return (v > 10.0 ? v : 10.0).toDouble();
                             }(),
@@ -418,10 +397,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                               rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                             ),
-                            scatterSpots: lastSeries.map((s) => ScatterSpot(
-                              s['group_size'],
-                              (s['points']).toDouble(),
-                            )).toList(),
+                            scatterSpots: List.generate(last30.length, (i) => ScatterSpot(
+                              last30[i].groupSize.toDouble(),
+                              last30[i].points.toDouble(),
+                            )),
                             scatterTouchData: ScatterTouchData(enabled: true),
                           ),
                         ),
