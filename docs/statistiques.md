@@ -27,7 +27,7 @@ Points = `serie.points` (entier, somme simple; aucune normalisation) • Groupem
 | GRP30 | Groupement moy 30j | Séries | 30j (toutes valeurs, y compris ≤0) | sum(groupSize)/N | ≥1 série 30j | 0 |
 | BEST | Best série | Séries | Toutes | max(points) | ≥1 série | '-' |
 | SESSM | Sessions ce mois | Sessions | Mois courant | count(sessions) | Toujours | 0 |
-| SMA3 | Tendance (SMA3) | Séries | Historique | moyenne glissante taille 3 | ≥1 série | valeurs brutes |
+| SMA3 | Tendance (SMA3) | Séries | Historique | moyenne glissante taille 3 (bords tronqués; si window<=1 → points bruts) | ≥1 série | valeurs brutes |
 | CONS | Consistency 30j | Séries | 30j | (1 - σ/μ)*100 clamp [0,100] | ≥3 séries & μ>0 | 0 |
 | PROG | Progression % | Séries | 0..30 vs 30..60 | ((avgC-avgP)/avgP)*100 | ≥5 & avgP>0 | NaN |
 | DIST30 | Répartition distances 30j | Séries | 30j | comptage distance arrondie | ≥1 série | liste vide |
@@ -41,7 +41,7 @@ Points = `serie.points` (entier, somme simple; aucune normalisation) • Groupem
 | BESTGRP | Best groupement | Séries | Toutes | min(groupSize>0) | ≥1 série valide | 0 |
 | RRECPTS | Record points dernière | Séries | Dernière vs précédent | last.points > max(prev) | ≥2 séries | false |
 | RRECGRP | Record groupement dernière | Séries | Dernière vs précédent | last.groupSize < min(prev>0) | ≥2 séries valides | false |
-| SCAT | Scatter pts/groupement | Séries | 10 dernières séries | (x=group_size,y=points) | ≥1 série | n/a |
+| SCAT | Scatter pts/groupement | Séries | 10 dernières sessions → max 10 séries | (x=group_size,y=points) | ≥1 série | n/a |
 
 ## 5. Détails des Calculs
 ### 5.1 Moyenne points 30j (AVG30)
@@ -53,7 +53,7 @@ Max(points) global. Aucune série → '-'.
 ### 5.4 Sessions ce mois (SESSM)
 Count sessions (year & month = now).
 ### 5.5 SMA3 (SMA3)
-Pour i: moyenne des points indices [i-2..i]. Bords tronqués.
+Pour i: moyenne des points indices [i-2..i] (fenêtre 3 tronquée en début de série). Si window<=1 ou liste vide → valeurs brutes (points). Pas d'interpolation.
 ### 5.6 Consistency (CONS)
 Fenêtre 30j. Conditions: ≥3 séries & moyenne>0. σ population. (1 - σ/μ)*100 clamp [0,100]. Sinon 0.
 ### 5.7 Progression (PROG)
@@ -69,7 +69,7 @@ Somme points/session. avg30 / avg60 = sum / count (0 si count=0).
 ### 5.12 Rolling delta (RDELTA)
 Delta = avg30 - avg60.
 ### 5.13 Streak (STRK)
-Dates normalisées jour; tri DESC; diff==1 successif.
+Dates normalisées jour; tri DESC; diff==1 → incrément, autre → arrêt. Aucune session → 0.
 ### 5.14 Charge & Delta (LOAD / LΔ)
 Semaine ISO (lundi). Delta = current - previous.
 ### 5.15 Best groupement (BESTGRP)
@@ -77,11 +77,12 @@ Min groupSize>0 sinon 0.
 ### 5.16 Records dernière (RRECPTS / RRECGRP)
 Points: last > max(prev). Groupement: last < min(prev>0). <2 séries → false.
 ### 5.17 Scatter (SCAT)
-Tri sessions DESC → 10; aplatir séries → tri ASC → garder 10 dernières; spots (group_size, points); maxX = max(group_size)+5 (≥10); maxY=55 fixe.
+Tri sessions DESC → garder les 10 dernières sessions → aplatir toutes leurs séries → tri ASC par date → conserver les 10 dernières séries → spots (group_size, points). maxX = max(group_size)+5 (plancher 10). maxY = 55 fixe. (Sélection biaisée potentielle, voir Limites.)
 
 ## 6. Règles d'Affichage
 - Progression NaN → '-'. Consistency==0 → '-'.
 - Badges record affichés si true.
+- Badge "Best grp" affiché si `bestGroupSize() > 0` (valeur formatée 1 décimale + 'cm').
 - Scatter / distributions masqués si aucune donnée.
 - 0 ≠ '-' (0 = calcul valide; '-' = absence / insuffisant).
 
@@ -89,6 +90,8 @@ Tri sessions DESC → 10; aplatir séries → tri ASC → garder 10 dernières; 
 - Scatter tronqué (10 séries) donc non exhaustif.
 - Pas de normalisation distance sur groupement.
 - σ population utilisé.
+- Rolling: mélange sessions 'prévue' et 'réalisée' (statut non filtré) → possible dilution.
+- Scatter biaisé: sélection d'abord des 10 dernières sessions puis découpe à 10 séries → certaines séries récentes hors de ces sessions peuvent être exclues.
 
 ## 8. Révision
 2025-10-03 Réécriture propre (existant only).
