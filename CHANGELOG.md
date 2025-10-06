@@ -34,6 +34,7 @@ Toutes les modifications notables de ce projet seront listées ici.
     - Scatter: modes alternatifs (last10, window30Cap, adaptive) + utilitaires publics (`scatter_mode.dart`, `scatter_utils.dart`).
     - Tests: `scatter_modes_test.dart` (modes + downsampling), renforts sur filtres/ordre (Lot C).
     - Avancé: graphes "1 main" et "2 mains" combinés (points + groupement) en mode brut, sur les 30 dernières séries. [F29][F30]
+    - Calibres: liste configurable (config.yaml avec override local), autocomplétion avec autoremplacement (match unique), préférence "calibre par défaut" (préremplissage formulaires).
 
 ### Changed
 - Différenciation visuelle sessions prévues (couleurs cartes, chips, header).
@@ -55,6 +56,7 @@ Toutes les modifications notables de ce projet seront listées ici.
 - Préremplissage indésirable champs (Points, Groupement, Commentaire) supprimé.
 - Bug d’ordre: les graphes pouvaient afficher les séries récentes à gauche. Pipeline corrigé pour garantir “récentes à droite” et SMA3 alignée sur les points visibles.
 - Flakiness tests temporels: `StatsService` accepte un `now` injecté pour figer le temps dans les tests.
+- Calibre (saisie): liste complète affichée au focus (création/édition), suppression de caractères sans autoremplacement bloquant, préremplissage vide si préférence vide.
 
 ### Removed
 - Section “Mes dernières sessions” obsolète retirée [Lot C].

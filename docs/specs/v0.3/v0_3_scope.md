@@ -24,7 +24,7 @@ Objectif cible: Release v0.3.0 (itération fonctionnelle majeure après 0.2.0)
 ## 🎯 Objectifs principaux
 1. Gestion des Exercices – ✅ (fondations livrées : modèle, UI liste/édition, planification, icônes, filtres/tri, cartes stats). Restant (reporté v0.4+) : usageCount / lastPerformedAt, tags libres, recommandations croisées.
 3. Amélioration UI de saisie des Séries – ✅ (objectif v0.3 considéré atteint via wizard planifiée→réalisée + validations; plein écran & navigation directe hors scope restant)
-4. Améliorations mineures – 🟡 (micro UX & préférences livrées; calibres & harmonisation réseau reportés)
+4. Améliorations mineures – 🟡 (micro UX & préférences livrées; calibres harmonisés livrés; harmonisation réseau reportée)
 5. Évolutions statistiques (1M / 2M) – ⏩ (non livré)
 
 ➕ Ajout majeur hors liste initiale: Sessions planifiées + conversion guidée.
@@ -121,7 +121,7 @@ Statut: ⏩ Non implémenté.
 - Ajustements visuels (espacements, contrastes)
 - Nettoyage code legacy (widgets dupliqués)
 
-Statut global: 🟡 (reste: calibres, dernier calibre, harmonisation réseau)
+Statut global: 🟡 (reste: dernier calibre, harmonisation réseau)
 
 Livré partiellement:
 - ✅ Ajustements visuels ciblés (cartes sessions planifiées différenciées, couleurs filtres)
@@ -129,7 +129,6 @@ Livré partiellement:
 - ✅ Nettoyages ponctuels autour des écrans wizard / FAB
 
 Non livré / partiel:
-- ⏩ Normalisation complète des calibres + liste standard
 - ⏩ Préservation dernier calibre (non appliqué)
 - ⏩ Harmonisation messages réseau (reporté)
 
