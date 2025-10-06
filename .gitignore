@@ -1,5 +1,8 @@
 # Local secret config (API keys, not committed)
 assets/config.local.yaml
+app_preferences.hive
+app_preferences.lock
+assets/coach_prompt.yaml
 # Miscellaneous
 *.class
 *.log

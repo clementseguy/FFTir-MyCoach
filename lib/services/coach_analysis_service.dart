@@ -34,8 +34,20 @@ class CoachAnalysisService {
     buffer.writeln('Calibre : ${session.caliber}');
     buffer.writeln('Date : ${session.date?.toIso8601String() ?? 'Non renseignée'}');
     buffer.writeln('Séries :');
+    // Assurer l'ordre logique des séries :
+    // 1. Si les IDs sont présents, on trie par id croissant.
+    // 2. Sinon on conserve l'ordre existant (index original).
+    final indexed = <int, dynamic>{};
     for (var i = 0; i < session.series.length; i++) {
-      final s = session.series[i];
+      indexed[i] = session.series[i];
+    }
+    final ordered = session.series.toList();
+    final hasAllIds = ordered.every((s) => s.id != null);
+    if (hasAllIds) {
+      ordered.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+    }
+    for (var i = 0; i < ordered.length; i++) {
+      final s = ordered[i];
       buffer.writeln('- Série ${i + 1} : Coups=${s.shotCount}, Distance=${s.distance}m, Points=${s.points}, Groupement=${s.groupSize}cm, Commentaire=${s.comment}');
     }
     if (session.synthese != null && session.synthese!.trim().isNotEmpty) {
@@ -64,7 +76,8 @@ class CoachAnalysisService {
               ]
             }),
           )
-          .timeout(const Duration(seconds: 25));
+          // Timeout élevé (120s) temporaire pour prompts verbeux; à optimiser (réduction + fallback) ultérieurement
+          .timeout(const Duration(seconds: 120));
     } on TimeoutException {
       throw CoachAnalysisException('Le serveur ne répond pas (timeout).');
     } on SocketException catch (e) {
@@ -92,6 +105,13 @@ class CoachAnalysisService {
     if (content == null || content.trim().isEmpty) {
       throw CoachAnalysisException('Réponse vide du modèle.');
     }
+    try {
+      final sampleStart = content.length > 160 ? content.substring(0, 160) : content;
+      final sampleEnd = content.length > 320 ? content.substring(content.length - 120) : '';
+      // Utilise print direct (AppLogger pas importé ici pour éviter dépendance circulaire)
+      // ignore: avoid_print
+      print('[DEBUG] CoachAnalysisService.fetchAnalysis received len=${content.length} start="${sampleStart.replaceAll('\n', ' ')}"${sampleEnd.isNotEmpty ? ' ... end="'+sampleEnd.replaceAll('\n',' ')+'"' : ''}');
+    } catch (_) {}
     return content;
   }
 

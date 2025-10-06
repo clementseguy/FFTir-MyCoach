@@ -1,56 +1,121 @@
-import '../data/local_db_hive.dart';
 import '../models/shooting_session.dart';
+import '../repositories/session_repository.dart';
+import '../repositories/hive_session_repository.dart';
+import 'logger.dart';
+import '../models/exercise.dart';
 import '../models/series.dart';
 
 class SessionService {
-  final LocalDatabaseHive _db = LocalDatabaseHive();
+  final SessionRepository _repo;
+
+  SessionService({SessionRepository? repository}) : _repo = repository ?? HiveSessionRepository();
 
   Future<List<ShootingSession>> getAllSessions() async {
-    final raw = await _db.getSessionsWithSeries();
-    return raw.map((e) {
-      final sessionMap = e['session'];
-      final seriesList = e['series'] as List<dynamic>? ?? [];
-      // Convert LinkedMap to Map<String, dynamic> if needed
-      final sessionMapFixed = sessionMap is Map<String, dynamic> ? sessionMap : Map<String, dynamic>.from(sessionMap);
-      return ShootingSession.fromMap(sessionMapFixed)
-        ..series = seriesList.map((s) => Series.fromMap(s is Map<String, dynamic> ? s : Map<String, dynamic>.from(s))).toList();
-    }).toList();
+    return _repo.getAll();
   }
 
   Future<void> addSession(ShootingSession session) async {
-    await _db.insertSession(session.toMap(), session.series.map((s) => s.toMap()).toList());
+    final id = await _repo.insert(session);
+    if (id >= 0) {
+      session.id = id;
+    }
   }
 
-  Future<void> updateSession(ShootingSession session) async {
-    // Prévention : si une session existante perdrait ses séries (liste vide),
-    // on tente de récupérer les séries existantes pour éviter un écrasement accidentel.
-    final seriesMaps = session.series.map((s) => s.toMap()).toList();
-    if ((session.id != null) && seriesMaps.isEmpty) {
-      final existing = await _db.getSessionsWithSeries();
-      final match = existing.firstWhere(
-        (e) => (e['session']?['id'] == session.id),
-        orElse: () => {},
-      );
-      if (match.isNotEmpty) {
-        final existingSeries = (match['series'] as List<dynamic>? ?? [])
-            .map((s) => (s is Map<String, dynamic>) ? s : Map<String, dynamic>.from(s))
-            .toList();
-        if (existingSeries.isNotEmpty) {
-          // Log debug (print) - pourrait être remplacé par un logger
-          // debugPrint('updateSession: séries fournies vides, récupération ${existingSeries.length} existantes');
-          await _db.updateSession(session.toMap(), existingSeries);
-          return;
-        }
-      }
+  Future<void> updateSession(
+    ShootingSession session, {
+    bool preserveExistingSeriesIfEmpty = true,
+    bool warnOnFallback = true,
+  }) async {
+    final fallback = await _repo.update(
+      session,
+      preserveExistingSeriesIfEmpty: preserveExistingSeriesIfEmpty,
+    );
+    if (fallback && warnOnFallback) {
+      AppLogger.I.warn('Session ${session.id} update used fallback (empty series ignored).');
     }
-    await _db.updateSession(session.toMap(), seriesMaps);
   }
 
   Future<void> deleteSession(int id) async {
-    await _db.deleteSession(id);
+    await _repo.delete(id);
   }
 
   Future<void> clearAllSessions() async {
-    await _db.clearAllSessions();
+    AppLogger.I.debug('Clearing all sessions');
+    await _repo.clearAll();
+  }
+
+  /// Convert a planned session (status 'prévue') into a realized one.
+  /// Applies provided field overrides, forces date to now if not supplied.
+  Future<ShootingSession> convertPlannedToRealized({
+    required ShootingSession session,
+    String? weapon,
+    String? caliber,
+    String? category,
+    String? synthese,
+    DateTime? forcedDate,
+    List<Series>? updatedSeries,
+  }) async {
+    if (session.status != 'prévue') {
+      throw StateError('Session ${session.id} is not planned.');
+    }
+    // Apply overrides in-memory
+    if (weapon != null) session.weapon = weapon;
+    if (caliber != null) session.caliber = caliber;
+    if (category != null) session.category = category;
+    if (synthese != null) session.synthese = synthese;
+    if (updatedSeries != null) {
+      session.series = updatedSeries;
+    }
+    session.status = 'réalisée';
+    session.date = forcedDate ?? DateTime.now();
+    await updateSession(session, preserveExistingSeriesIfEmpty: false, warnOnFallback: false);
+    return session;
+  }
+
+  /// Persist a single series change in a planned session before final conversion.
+  Future<void> updateSingleSeries(ShootingSession session, int seriesIndex, Series newSeries) async {
+    if (seriesIndex < 0 || seriesIndex >= session.series.length) return;
+    session.series[seriesIndex] = newSeries;
+    // Keep status as is (likely 'prévue') during incremental updates
+    await updateSession(session, preserveExistingSeriesIfEmpty: false, warnOnFallback: false);
+  }
+
+  /// Create a planned session from an Exercise definition.
+  /// One empty Series is generated per consigne (or single if none).
+  Future<ShootingSession> planFromExercise(Exercise exercise) async {
+    if (exercise.type != ExerciseType.stand) {
+      throw StateError('Seuls les exercices de type Stand peuvent être planifiés.');
+    }
+    final List<Series> series = [];
+    final steps = exercise.consignes;
+    if (steps.isEmpty) {
+      series.add(Series(distance: 1, points: 0, groupSize: 0, shotCount: 1, comment: '')); // placeholder minimal série
+    } else {
+      for (final step in steps) {
+        series.add(Series(distance: 1, points: 0, groupSize: 0, shotCount: 1, comment: step));
+      }
+    }
+    final session = ShootingSession(
+      weapon: '',
+      caliber: '',
+      date: null,
+      status: 'prévue',
+      series: series,
+      exercises: [exercise.id],
+      category: 'entraînement',
+      synthese: 'Session créée à partir de ${exercise.name}',
+    );
+    await addSession(session);
+    // Récupération post-insertion pour garantir séries présentes et id assigné
+    try {
+      final all = await getAllSessions();
+      final match = all.where((s)=> s.exercises.contains(exercise.id)).toList();
+      if (match.isNotEmpty) {
+        // On choisit la plus récente (souvent la dernière insérée)
+        match.sort((a,b)=> (b.id ?? 0).compareTo(a.id ?? 0));
+        return match.first;
+      }
+    } catch (_) {}
+    return session;
   }
 }

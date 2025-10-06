@@ -7,8 +7,12 @@ import 'create_session_screen.dart';
 import '../models/shooting_session.dart';
 import '../models/series.dart';
 import '../widgets/coach_analysis_card.dart';
+import '../utils/markdown_sanitizer.dart';
 import '../widgets/series_list.dart';
 import 'package:flutter/services.dart';
+import '../services/exercise_service.dart';
+import '../models/exercise.dart';
+import 'wizard/planned_session_wizard.dart';
 
 
 class SessionDetailScreen extends StatefulWidget {
@@ -22,6 +26,8 @@ class SessionDetailScreen extends StatefulWidget {
 class _SessionDetailScreenState extends State<SessionDetailScreen> {
   final SessionService _sessionService = SessionService();
   bool _isAnalysing = false;
+  final ExerciseService _exerciseService = ExerciseService();
+  List<Exercise> _allExercises = [];
 
   Map<String, dynamic>? _currentSessionData;
 
@@ -29,6 +35,14 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   void initState() {
     super.initState();
     _currentSessionData = widget.sessionData;
+    _loadExercises();
+  }
+
+  Future<void> _loadExercises() async {
+    try {
+      final list = await _exerciseService.listAll();
+      if (mounted) setState(()=> _allExercises = list);
+    } catch (_) {}
   }
 
 
@@ -43,11 +57,34 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   final session = ShootingSession.fromMap(_currentSessionData!['session']);
   final series = (_currentSessionData!['series'] as List<dynamic>).map((s) => Series.fromMap(Map<String, dynamic>.from(s))).toList();
   final isRealisee = session.status == SessionConstants.statusRealisee;
+  final bool isPlanned = !isRealisee;
     String? analyse = _currentSessionData!['session']['analyse'];
     return Scaffold(
       appBar: AppBar(
         title: Text('Session'),
         actions: [
+          if (isPlanned) 
+            IconButton(
+              icon: const Icon(Icons.play_circle_outline),
+              tooltip: 'Démarrer',
+              onPressed: () async {
+                final bool? converted = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PlannedSessionWizard(session: session),
+                  ),
+                );
+                if (converted == true) {
+                  // Recharger session depuis service
+                  final all = await _sessionService.getAllSessions();
+                  final updated = all.firstWhere((s)=> s.id == session.id, orElse: ()=> session);
+                  setState(() {
+                    _currentSessionData!['session'] = updated.toMap();
+                    _currentSessionData!['series'] = updated.series.map((s)=> s.toMap()).toList();
+                  });
+                }
+              },
+            ),
           IconButton(
             icon: Icon(Icons.copy_all_outlined),
             tooltip: 'Copier résumé',
@@ -103,7 +140,11 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [
-          _SessionHeaderCard(session: session, series: series),
+          _SessionHeaderCard(session: session, series: series, planned: isPlanned),
+          if (session.exercises.isNotEmpty) ...[
+            SizedBox(height: 16),
+            _ExercisesChips(exerciseIds: session.exercises, all: _allExercises),
+          ],
           if (_isAnalysing) ...[
             SizedBox(height: 16),
             LinearProgressIndicator(),
@@ -113,7 +154,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
           ],
           if (isRealisee)
             Card(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               child: ExpansionTile(
                 initiallyExpanded: analyse != null && analyse.trim().isNotEmpty,
@@ -148,8 +189,20 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                             final session = ShootingSession.fromMap(_currentSessionData!['session']);
                             final fullPrompt = analysisService.buildPrompt(session);
                             // Appel API
-                            final coachReply = await analysisService.fetchAnalysis(fullPrompt);
+                            final rawReply = await analysisService.fetchAnalysis(fullPrompt);
+                            final coachReply = sanitizeCoachMarkdown(rawReply);
+                            try {
+                              final prev = coachReply.length > 160 ? coachReply.substring(0,160) : coachReply;
+                              // ignore: avoid_print
+                              print('[DEBUG] CoachAnalysis sanitized preview="'+prev.replaceAll('\n',' ')+'"');
+                            } catch(_) {}
                             if (coachReply.trim().isNotEmpty) {
+                              // Log affichage immédiat (popup)
+                              try {
+                                final preview = coachReply.length > 180 ? coachReply.substring(0,180) : coachReply;
+                                // ignore: avoid_print
+                                print('[DEBUG] CoachAnalysis display (popup) len=${coachReply.length} preview="'+preview.replaceAll('\n',' ')+'"');
+                              } catch(_) {}
                               // Afficher la popup markdown
                               await showDialog(
                                 context: context,
@@ -228,7 +281,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                     SizedBox(height: 12),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: CoachAnalysisCard(analyse: analyse),
+                      child: _LoggedCoachAnalysis(analyse: sanitizeCoachMarkdown(analyse)),
                     ),
                     SizedBox(height: 12),
                   ],
@@ -279,6 +332,34 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   }
 }
 
+/// Wrapper pour logger l'analyse coach lors du premier build d'affichage persistant.
+class _LoggedCoachAnalysis extends StatefulWidget {
+  final String analyse;
+  const _LoggedCoachAnalysis({required this.analyse});
+  @override
+  State<_LoggedCoachAnalysis> createState() => _LoggedCoachAnalysisState();
+}
+
+class _LoggedCoachAnalysisState extends State<_LoggedCoachAnalysis> {
+  bool _logged = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_logged) {
+      try {
+        final preview = widget.analyse.length > 180 ? widget.analyse.substring(0,180) : widget.analyse;
+        // ignore: avoid_print
+        print('[DEBUG] CoachAnalysis display (persisted) len=${widget.analyse.length} preview="'+preview.replaceAll('\n',' ')+'"');
+      } catch(_) {}
+      _logged = true;
+    }
+  }
+  @override
+  Widget build(BuildContext context) {
+    return CoachAnalysisCard(analyse: widget.analyse);
+  }
+}
+
 String _buildClipboardSummary(ShootingSession s, List<Series> series) {
   final buf = StringBuffer();
   buf.writeln('Session ${s.date != null ? '${s.date!.day}/${s.date!.month}/${s.date!.year}' : ''}');
@@ -302,7 +383,8 @@ String _buildClipboardSummary(ShootingSession s, List<Series> series) {
 class _SessionHeaderCard extends StatelessWidget {
   final ShootingSession session;
   final List<Series> series;
-  const _SessionHeaderCard({required this.session, required this.series});
+  final bool planned;
+  const _SessionHeaderCard({required this.session, required this.series, this.planned = false});
 
   int get totalPoints => series.fold(0, (a,b)=> a + b.points);
   double get avgPoints => series.isEmpty ? 0 : totalPoints / series.length;
@@ -315,9 +397,12 @@ class _SessionHeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = session.date;
+    final Color accent = planned ? Colors.blueAccent : Colors.amberAccent;
+    final Color chipBase = planned ? Colors.lightBlueAccent : Colors.tealAccent;
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: planned ? Colors.blueAccent.withValues(alpha:0.4): Colors.white12, width: 0.8)),
+      color: planned ? Colors.blueGrey.withValues(alpha: 0.25) : null,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -325,11 +410,11 @@ class _SessionHeaderCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 18, color: Colors.amberAccent),
+                Icon(Icons.calendar_today, size: 18, color: accent),
                 SizedBox(width: 8),
                 Text(date != null ? '${date.day}/${date.month}/${date.year}' : 'Date inconnue', style: TextStyle(fontWeight: FontWeight.w600)),
                 Spacer(),
-                _Chip(text: session.status, icon: Icons.flag, color: Colors.lightBlueAccent),
+                _Chip(text: session.status, icon: Icons.flag, color: planned ? Colors.blueAccent : Colors.lightBlueAccent),
               ],
             ),
             SizedBox(height: 12),
@@ -337,10 +422,10 @@ class _SessionHeaderCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 6,
               children: [
-                _Chip(text: session.weapon.isEmpty ? 'Arme ?' : session.weapon, icon: Icons.security),
-                _Chip(text: session.caliber.isEmpty ? 'Calibre ?' : session.caliber, icon: Icons.bolt),
-                if (session.category.isNotEmpty) _Chip(text: session.category, icon: Icons.category, color: Colors.purpleAccent),
-                _Chip(text: '${series.length} séries', icon: Icons.list_alt, color: Colors.tealAccent),
+                _Chip(text: session.weapon.isEmpty ? 'Arme ?' : session.weapon, icon: Icons.security, overrideBase: planned),
+                _Chip(text: session.caliber.isEmpty ? 'Calibre ?' : session.caliber, icon: Icons.bolt, overrideBase: planned),
+                if (session.category.isNotEmpty) _Chip(text: session.category, icon: Icons.category, color: planned ? Colors.indigoAccent : Colors.purpleAccent),
+                _Chip(text: '${series.length} séries', icon: Icons.list_alt, color: chipBase),
               ],
             ),
             SizedBox(height: 16),
@@ -364,22 +449,24 @@ class _Chip extends StatelessWidget {
   final String text;
   final IconData icon;
   final Color? color;
-  const _Chip({required this.text, required this.icon, this.color});
+  final bool overrideBase; // when planned, adjust default neutral chips
+  const _Chip({required this.text, required this.icon, this.color, this.overrideBase = false});
   @override
   Widget build(BuildContext context) {
+    final Color base = color ?? (overrideBase ? Colors.lightBlueAccent : Colors.white70);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: (color ?? Colors.white70).withOpacity(0.15),
+        color: base.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: base.withValues(alpha: 0.55), width: 0.6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color ?? Colors.white70),
+          Icon(icon, size: 14, color: base),
           SizedBox(width: 4),
-          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: base)),
         ],
       ),
     );
@@ -409,5 +496,61 @@ class _DividerVert extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(width: 1, height: 32, color: Colors.white12);
+  }
+}
+
+class _ExercisesChips extends StatelessWidget {
+  final List<String> exerciseIds;
+  final List<Exercise> all;
+  const _ExercisesChips({required this.exerciseIds, required this.all});
+
+  @override
+  Widget build(BuildContext context) {
+    final nameMap = {for (final e in all) e.id: e.name};
+    final names = exerciseIds.map((id) => nameMap[id] ?? id).toList();
+    if (names.isEmpty) return SizedBox.shrink();
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.fitness_center, size: 18, color: Colors.amberAccent),
+                SizedBox(width: 8),
+                Text('Exercices travaillés', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final n in names)
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check, size: 14, color: Colors.greenAccent),
+                        SizedBox(width: 4),
+                        Text(n, style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

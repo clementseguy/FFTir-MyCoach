@@ -26,7 +26,7 @@ class RulesBottomSheet extends StatelessWidget {
       builder: (context, controller) {
         return Container(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withOpacity(0.97),
+            color: theme.colorScheme.surface.withValues(alpha: 0.97),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
             border: Border.all(color: Colors.white12),
           ),
@@ -140,14 +140,14 @@ class _RuleTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+  color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white10),
       ),
       child: ListTile(
         leading: CircleAvatar(
           radius: 16,
-          backgroundColor: accent.withOpacity(0.18),
+          backgroundColor: accent.withValues(alpha: 0.18),
           child: Text('$index', style: TextStyle(fontWeight: FontWeight.bold, color: accent)),
         ),
         title: Text(text, style: const TextStyle(fontSize: 13.5, height: 1.25)),
@@ -185,7 +185,7 @@ class _FftirPdfButton extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.amberAccent.withOpacity(0.15),
+          backgroundColor: Colors.amberAccent.withValues(alpha: 0.15),
           foregroundColor: Colors.amberAccent,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

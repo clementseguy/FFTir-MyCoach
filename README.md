@@ -63,3 +63,19 @@ Un fichier `assets/config.example.yaml` est fourni comme modèle.
 - Amélioration du logo applicatif (optimisation tailles si besoin)
 - Coach IA (intégration prompts et UI)
 - Améliorations statistiques
+
+## Qualité / Pré-commit
+
+Un script d'assurance basique avant commit : `scripts/verify_before_commit.sh`
+
+Usage :
+```
+./scripts/verify_before_commit.sh         # analyse + tous les tests
+./scripts/verify_before_commit.sh fast    # analyse + sous-ensemble rapide
+```
+
+Hook Git (optionnel) :
+```
+ln -sf ../../scripts/verify_before_commit.sh .git/hooks/pre-commit
+```
+Le hook empêchera le commit si l'analyse ou les tests échouent.

@@ -5,10 +5,21 @@ api:
   # 3. Ou variable d'environnement MISTRAL_API_KEY (en fallback)
   mistral_key: "$MISTRAL_API_KEY"
   mistral_url: "https://api.mistral.ai/v1/chat/completions"
-  mistral_model: "mistral-tiny"
+  mistral_model: "mistral-medium"
 
 splash:
   # Durée minimale d'affichage du splash (en millisecondes)
   min_display_ms: 1500
   # Durée du fade-in de l'application après le splash (en millisecondes)
   fade_duration_ms: 450
+
+calibers:
+  - ".22 LR"
+  - ".32 S&W Long"
+  - "9mm (9x19)"
+  - ".38 Special"
+  - ".357 Magnum"
+  - ".380 ACP"
+  - ".40 S&W"
+  - ".45 ACP"
+  - "Autre"

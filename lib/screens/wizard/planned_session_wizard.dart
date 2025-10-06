@@ -1,0 +1,572 @@
+import 'package:flutter/material.dart';
+import '../../models/shooting_session.dart';
+import '../../models/series.dart';
+import '../../services/session_service.dart';
+import '../../constants/session_constants.dart';
+import '../../services/exercise_service.dart';
+import '../../models/exercise.dart';
+import '../../services/goal_service.dart';
+import '../../models/goal.dart';
+import 'package:hive/hive.dart';
+import '../../services/preferences_service.dart';
+import '../../utils/caliber_autocomplete.dart';
+
+/// Wizard de conversion Session prévue -> réalisée
+class PlannedSessionWizard extends StatefulWidget {
+  final ShootingSession session; // session prévue initiale
+  const PlannedSessionWizard({super.key, required this.session});
+
+  @override
+  State<PlannedSessionWizard> createState() => _PlannedSessionWizardState();
+}
+
+class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
+  late ShootingSession _session; // copie mutable
+  int _step = 0; // 0 = intro, 1..series = séries, last = synthèse
+  final _formIntro = GlobalKey<FormState>();
+  final _formSynthese = GlobalKey<FormState>();
+  String? _weaponDraft;
+  String? _caliberDraft;
+  String? _categoryDraft;
+  String? _syntheseDraft;
+  bool _saving = false;
+  late TextEditingController _caliberCtrl;
+  final FocusNode _caliberFocus = FocusNode();
+  String _lastCalTxt = '';
+  bool _showAll = false;
+  final SessionService _service = SessionService();
+  final ExerciseService _exerciseService = ExerciseService();
+  final GoalService _goalService = GoalService();
+  Exercise? _linkedExercise; // premier exercice associé si présent
+  List<Goal> _goals = [];
+  bool _loadingExercise = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _session = widget.session;
+    _weaponDraft = _session.weapon;
+  _caliberDraft = pickInitialCaliber(existing: _session.caliber, defaultCaliber: PreferencesService().getDefaultCaliber());
+    _caliberCtrl = TextEditingController(text: _caliberDraft ?? '');
+    _lastCalTxt = _caliberCtrl.text;
+    _caliberFocus.addListener((){
+      if (_caliberFocus.hasFocus) {
+        setState(()=> _showAll = true);
+      } else {
+        if (_showAll) setState(()=> _showAll = false);
+      }
+    });
+    _categoryDraft = _session.category;
+    _syntheseDraft = _session.synthese; // peut contenir "Session créée à partir de ..."
+    _loadExerciseAndGoals();
+  }
+
+  @override
+  void dispose() {
+    _caliberCtrl.dispose();
+    _caliberFocus.dispose();
+    super.dispose();
+  }
+
+  int get _seriesCount => _session.series.length;
+  int get _lastStepIndex => 1 + _seriesCount; // intro=0, séries=1..n, synthèse = n+1
+  double get _progressRatio => (_step) / (_lastStepIndex.toDouble());
+
+  Future<void> _loadExerciseAndGoals() async {
+    if (_session.exercises.isEmpty) return;
+    setState(()=> _loadingExercise = true);
+    try {
+      final exId = _session.exercises.first;
+      final exercises = await _exerciseService.listAll();
+      final ex = exercises.where((e)=> e.id == exId).toList();
+      if (ex.isNotEmpty) {
+        final exercise = ex.first;
+        List<Goal> goals = [];
+        if (exercise.goalIds.isNotEmpty) {
+          final goalAll = await _goalService.listAll();
+            goals = goalAll.where((g)=> exercise.goalIds.contains(g.id)).toList();
+        }
+        if (mounted) {
+          setState(() {
+            _linkedExercise = exercise;
+            _goals = goals;
+          });
+        }
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(()=> _loadingExercise = false);
+    }
+  }
+
+  Future<void> _onValidateIntro() async {
+    final ok = _formIntro.currentState?.validate() ?? false;
+    if (!ok) return;
+    _formIntro.currentState?.save();
+    setState(() => _step = _seriesCount == 0 ? _lastStepIndex : 1);
+  }
+
+  Future<void> _onValidateSeries(int index) async {
+    // index wizard -> série index réel = index-1
+    final seriesIdx = index - 1;
+    final controller = _seriesControllers[seriesIdx];
+    // Validation obligatoire: points, groupSize, shotCount, distance, comment (non vide)
+    final missing = <String>[];
+    if (controller.points <= 0) missing.add('Points');
+    if (controller.groupSize <= 0) missing.add('Groupement');
+    if (controller.shotCount <= 0) missing.add('Coups');
+    if (controller.distance <= 0) missing.add('Distance');
+    if ((controller.comment == null) || controller.comment!.trim().isEmpty) missing.add('Commentaire');
+    if (missing.isNotEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Champs requis: ${missing.join(', ')}')),
+        );
+      }
+      setState(()=> controller.showErrors = true);
+      return;
+    }
+    final updated = controller.build();
+    await _service.updateSingleSeries(_session, seriesIdx, updated);
+    setState(() {
+      if (_step < _lastStepIndex) {
+        _step++;
+      }
+    });
+  }
+
+  Future<void> _onFinish() async {
+    final ok = _formSynthese.currentState?.validate() ?? false;
+    if (!ok) return;
+    _formSynthese.currentState?.save();
+    setState(()=> _saving = true);
+    try {
+      await _service.convertPlannedToRealized(
+        session: _session,
+        weapon: _weaponDraft,
+        caliber: _caliberDraft,
+        category: _categoryDraft,
+        synthese: _syntheseDraft,
+      );
+      if (mounted) Navigator.of(context).pop(true); // true => conversion effectuée
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur conversion')));
+      }
+    } finally {
+      if (mounted) setState(()=> _saving = false);
+    }
+  }
+
+  Future<bool> _confirmCancel() async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Annuler la session ?'),
+        content: const Text('La session restera prévue.'),
+        actions: [
+          TextButton(onPressed: ()=> Navigator.pop(c, false), child: const Text('Non')),
+          TextButton(onPressed: ()=> Navigator.pop(c, true), child: const Text('Oui')),
+        ],
+      ),
+    );
+    return res == true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false, // contrôle manuel
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return; // déjà géré
+        if (await _confirmCancel()) {
+            if (mounted) Navigator.of(context).pop(false);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_step == 0 ? 'Session prévue' : _step == _lastStepIndex ? 'Synthèse' : 'Série ${_step} / $_seriesCount'),
+              const SizedBox(height:4),
+              LinearProgressIndicator(
+                value: _progressRatio.clamp(0,1),
+                minHeight: 4,
+                backgroundColor: Colors.white24,
+              ),
+            ],
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () async {
+              if (await _confirmCancel()) {
+                if (mounted) Navigator.pop(context, false);
+              }
+            },
+          ),
+        ),
+        body: _buildStep(),
+      ),
+    );
+  }
+
+  Widget _buildStep() {
+    if (_step == 0) return _buildIntro();
+    if (_step == _lastStepIndex) return _buildSynthese();
+    return _buildSeries(_step - 1);
+  }
+
+  Widget _buildIntro() {
+    final hasExercise = _session.exercises.isNotEmpty;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Form(
+        key: _formIntro,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Démarrage', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Exercice', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    if (!hasExercise) const Text('Pas d\'exercice associé', style: TextStyle(color: Colors.white60))
+                    else if (_loadingExercise) const Padding(
+                      padding: EdgeInsets.symmetric(vertical:8.0),
+                      child: SizedBox(width:24, height:24, child: CircularProgressIndicator(strokeWidth:2)),
+                    )
+                    else if (_linkedExercise != null) ...[
+                      Text(_linkedExercise!.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      if (_linkedExercise!.description != null && _linkedExercise!.description!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(_linkedExercise!.description!, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                      ],
+                      if (_goals.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: _goals.map((g)=> Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Text(g.title, style: const TextStyle(fontSize: 11)),
+                          )).toList(),
+                        ),
+                      ],
+                    ]
+                    else const Text('Exercice introuvable', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Informations session', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            TextFormField(
+              initialValue: _weaponDraft,
+              decoration: const InputDecoration(labelText: 'Arme'),
+              onSaved: (v)=> _weaponDraft = v ?? '',
+            ),
+            Focus(
+              focusNode: _caliberFocus,
+              child: TextFormField(
+                controller: _caliberCtrl,
+                decoration: const InputDecoration(labelText: 'Calibre'),
+                onChanged: (txt){
+                  final wasDeletion = txt.length < _lastCalTxt.length;
+                  _lastCalTxt = txt;
+                  if (!wasDeletion) {
+                    final res = suggestFor(txt);
+                    if (res.autoReplacement != null && _caliberCtrl.text != res.autoReplacement) {
+                      _caliberCtrl.value = TextEditingValue(
+                        text: res.autoReplacement!,
+                        selection: TextSelection.collapsed(offset: res.autoReplacement!.length),
+                      );
+                      _lastCalTxt = res.autoReplacement!;
+                    }
+                  }
+                  _caliberDraft = _caliberCtrl.text;
+                },
+                onSaved: (v)=> _caliberDraft = v ?? '',
+              ),
+            ),
+            TextFormField(
+              initialValue: _categoryDraft,
+              decoration: const InputDecoration(labelText: 'Catégorie'),
+              onSaved: (v)=> _categoryDraft = v ?? SessionConstants.categoryEntrainement,
+            ),
+            const SizedBox(height: 24),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: _onValidateIntro,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Commencer'),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Contrôleurs séries (simple implémentation basique)
+  final List<_SeriesStepController> _seriesControllers = [];
+  void _ensureSeriesControllers() {
+    if (_seriesControllers.length == _session.series.length) return;
+    _seriesControllers.clear();
+    // Préférence prise par défaut
+    String defaultHand = 'two';
+    try { final box = Hive.box('app_preferences'); defaultHand = box.get('default_hand_method', defaultValue: 'two'); } catch(_){ }
+    for (int i = 0; i < _session.series.length; i++) {
+      final s = _session.series[i];
+      final consigneText = s.comment;
+      double defaultDistance;
+      int defaultShot;
+      HandMethod hand;
+      if (i == 0) {
+        defaultDistance = 25;
+        defaultShot = 5;
+        hand = (s.handMethod == HandMethod.twoHands && defaultHand == 'one') ? HandMethod.oneHand : s.handMethod;
+      } else {
+        // Utiliser les valeurs déjà déterminées du contrôleur précédent
+        final prevCtrl = _seriesControllers[i-1];
+        defaultDistance = prevCtrl.distance > 0 ? prevCtrl.distance : 25;
+        defaultShot = prevCtrl.shotCount > 0 ? prevCtrl.shotCount : 5;
+        hand = s.handMethod; // conserve la prise existante; on pourrait hériter du prev si besoin
+      }
+      _seriesControllers.add(_SeriesStepController(
+        points: 0,
+        groupSize: 0,
+        comment: '',
+        shotCount: defaultShot,
+        distance: defaultDistance,
+        handMethod: hand,
+        consigne: consigneText,
+      ));
+    }
+  }
+
+  Widget _buildSeries(int index) {
+    _ensureSeriesControllers();
+    final c = _seriesControllers[index];
+    final consigne = c.consigne.trim().isEmpty ? 'Pas de consigne' : c.consigne;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(consigne, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 16),
+                Row(children:[
+                  Expanded(child: TextFormField(
+                    key: ValueKey('points_${index}_${c.points}'),
+                    initialValue: '',
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Points'),
+                    onChanged: (v){ c.points = int.tryParse(v) ?? 0; },
+                    validator: (_) => (c.showErrors && c.points<=0) ? 'Requis' : null,
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(
+                    key: ValueKey('group_${index}_${c.groupSize}'),
+                    initialValue: '',
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Groupement'),
+                    onChanged: (v){ c.groupSize = double.tryParse(v) ?? 0; },
+                    validator: (_) => (c.showErrors && c.groupSize<=0) ? 'Requis' : null,
+                  )),
+                ]),
+                const SizedBox(height: 12),
+                Row(children:[
+                  Expanded(child: TextFormField(
+                    key: ValueKey('shots_${index}_${c.shotCount}'),
+                    initialValue: c.shotCount.toString(), // visible default (5 or previous)
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Coups'),
+                    onChanged: (v){ c.shotCount = int.tryParse(v) ?? c.shotCount; },
+                    validator: (_) => (c.showErrors && c.shotCount<=0) ? 'Requis' : null,
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(
+                    key: ValueKey('dist_${index}_${c.distance}'),
+                    initialValue: c.distance.toString(), // visible default (25 or previous)
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Distance (m)'),
+                    onChanged: (v){ c.distance = double.tryParse(v) ?? c.distance; },
+                    validator: (_) => (c.showErrors && c.distance<=0) ? 'Requis' : null,
+                  )),
+                ]),
+                const SizedBox(height: 12),
+                _HandMethodSelector(
+                  initial: c.handMethod,
+                  onChanged: (m){ c.handMethod = m; },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: ValueKey('comment_${index}'),
+                  initialValue: '',
+                  decoration: const InputDecoration(labelText: 'Commentaire série'),
+                  onChanged: (v)=> c.comment = v,
+                  maxLines: null,
+                  validator: (_) => (c.showErrors && (c.comment==null || c.comment!.trim().isEmpty)) ? 'Requis' : null,
+                ),
+                const SizedBox(height: 28),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: ElevatedButton(
+                    onPressed: ()=> _onValidateSeries(index+1),
+                    child: Text(index == _seriesCount-1 ? 'Suite' : 'Suivant'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSynthese() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Form(
+        key: _formSynthese,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Synthèse', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            Expanded(
+              child: TextFormField(
+                initialValue: _normalizedSyntheseInitial(),
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: const InputDecoration(
+                  labelText: 'Synthèse de la session',
+                  alignLabelWithHint: true,
+                ),
+                onSaved: (v)=> _syntheseDraft = v ?? '',
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : _onFinish,
+                icon: const Icon(Icons.check),
+                label: _saving ? const SizedBox(width:16, height:16, child: CircularProgressIndicator(strokeWidth:2)) : const Text('Terminer'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SeriesStepController {
+  int points;
+  double groupSize;
+  String? comment;
+  int shotCount;
+  double distance;
+  HandMethod handMethod;
+  String consigne;
+  bool showErrors;
+
+  _SeriesStepController({
+    required this.points,
+    required this.groupSize,
+    required this.comment,
+    required this.shotCount,
+    required this.distance,
+    required this.handMethod,
+    required this.consigne,
+  }) : showErrors = false;
+
+  bool validate() { return true; }
+
+  Series build() => Series(
+    points: points,
+    groupSize: groupSize,
+    comment: comment ?? '',
+    shotCount: shotCount,
+    distance: distance,
+    handMethod: handMethod,
+  );
+}
+
+class _HandMethodSelector extends StatefulWidget {
+  final HandMethod initial;
+  final ValueChanged<HandMethod> onChanged;
+  const _HandMethodSelector({required this.initial, required this.onChanged});
+  @override
+  State<_HandMethodSelector> createState() => _HandMethodSelectorState();
+}
+
+class _HandMethodSelectorState extends State<_HandMethodSelector> {
+  late HandMethod _method;
+  @override
+  void initState() { super.initState(); _method = widget.initial; }
+  void _set(HandMethod m){ setState(()=> _method = m); widget.onChanged(m); }
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text('Prise', style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(width: 12),
+        ToggleButtons(
+          isSelected: [_method == HandMethod.oneHand, _method == HandMethod.twoHands],
+          borderRadius: BorderRadius.circular(12),
+          constraints: const BoxConstraints(minHeight: 34, minWidth: 46),
+          onPressed: (i){ _set(i==0? HandMethod.oneHand : HandMethod.twoHands); },
+          children: const [
+            Padding(padding: EdgeInsets.symmetric(horizontal:8), child: Icon(Icons.front_hand, size:18)),
+            Padding(padding: EdgeInsets.symmetric(horizontal:8), child: _TwoHandsIconMini()),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TwoHandsIconMini extends StatelessWidget {
+  const _TwoHandsIconMini();
+  @override
+  Widget build(BuildContext context) {
+    final color = IconTheme.of(context).color ?? Colors.white;
+    return SizedBox(width: 30, height: 18, child: Stack(children:[
+      Positioned(left: 0, top:0, child: Icon(Icons.front_hand, size:14, color: color.withValues(alpha:0.8))),
+      Positioned(left: 12, top:0, child: Icon(Icons.front_hand, size:16, color: color)),
+    ]));
+  }
+}
+
+// Helper to normaliser synthèse initiale (ajout newline après phrase origine)
+extension _SyntheseInit on _PlannedSessionWizardState {
+  String _normalizedSyntheseInitial() {
+    final base = _syntheseDraft ?? '';
+    if (base.isEmpty) return base;
+    final pattern = RegExp(r'^Session créée à partir de .+');
+    if (pattern.hasMatch(base) && !base.endsWith('\n')) {
+      return base + '\n';
+    }
+    return base;
+  }
+}

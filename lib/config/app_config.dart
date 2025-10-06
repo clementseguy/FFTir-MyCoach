@@ -13,6 +13,7 @@ class AppConfig {
   final String? mistralKey;
   final String mistralUrl;
   final String mistralModel;
+  final List<String> calibers;
 
   AppConfig._({
     required this.splashMinDisplayMs,
@@ -20,6 +21,7 @@ class AppConfig {
     required this.mistralKey,
     required this.mistralUrl,
     required this.mistralModel,
+    required this.calibers,
   });
 
   static AppConfig get I {
@@ -51,6 +53,25 @@ class AppConfig {
       final splash = yaml['splash'];
       final api = yaml['api'] ?? {};
       final apiLocal = local['api'] ?? {};
+      final calibersYaml = (local['calibers'] ?? yaml['calibers']) as dynamic;
+      final defaultCalibers = <String>[
+        '.22 LR',
+        '.32 S&W Long',
+        '9mm (9x19)',
+        '.38 Special',
+        '.357 Magnum',
+        '.380 ACP',
+        '.40 S&W',
+        '.45 ACP',
+        'Autre',
+      ];
+      List<String> _readCalibers(dynamic val) {
+        if (val == null) return defaultCalibers;
+        if (val is Iterable) {
+          return val.map((e) => e.toString()).toList();
+        }
+        return defaultCalibers;
+      }
 
       String? _selectKey() {
         // Priorité: --dart-define > fichier local > env var > config.yaml > placeholder => null
@@ -77,6 +98,7 @@ class AppConfig {
         mistralKey: _selectKey(),
         mistralUrl: (api['mistral_url'] ?? 'https://api.mistral.ai/v1/chat/completions').toString(),
         mistralModel: (api['mistral_model'] ?? 'mistral-tiny').toString(),
+        calibers: _readCalibers(calibersYaml),
       );
       _instance = cfg;
     } catch (e) {
@@ -87,6 +109,17 @@ class AppConfig {
         mistralKey: null,
         mistralUrl: 'https://api.mistral.ai/v1/chat/completions',
         mistralModel: 'mistral-tiny',
+        calibers: const [
+          '.22 LR',
+          '.32 S&W Long',
+          '9mm (9x19)',
+          '.38 Special',
+          '.357 Magnum',
+          '.380 ACP',
+          '.40 S&W',
+          '.45 ACP',
+          'Autre',
+        ],
       );
     }
   }

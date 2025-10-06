@@ -10,6 +10,7 @@ class ShootingSession {
   String? analyse;
   String? synthese;
   String category; // entraînement / match / test matériel
+  List<String> exercises; // exercise IDs linked to this session (can be empty)
 
   ShootingSession({
     this.id,
@@ -21,7 +22,8 @@ class ShootingSession {
     this.analyse,
     this.synthese,
     this.category = 'entraînement',
-  });
+    List<String>? exercises,
+  }) : exercises = exercises ?? <String>[];
 
   Map<String, dynamic> toMap() {
     return {
@@ -34,6 +36,7 @@ class ShootingSession {
       'analyse': analyse,
       'synthese': synthese,
       'category': category,
+      'exercises': exercises,
     };
   }
 
@@ -53,6 +56,9 @@ class ShootingSession {
       analyse: map['analyse'] as String?,
       synthese: map['synthese'] as String?,
       category: map['category'] as String? ?? 'entraînement',
+      exercises: (map['exercises'] is List)
+          ? (map['exercises'] as List).whereType<String>().toList()
+          : <String>[],
     );
   }
 

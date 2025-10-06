@@ -1,79 +1,143 @@
-import 'package:hive/hive.dart';
 import '../models/goal.dart';
 import '../models/shooting_session.dart';
-import '../data/local_db_hive.dart';
+import '../repositories/session_repository.dart';
+import '../repositories/hive_session_repository.dart';
+import '../repositories/goal_repository.dart';
+
+/// Lot B: objet valeur regroupant les stats macro pour l'écran Objectifs.
+class MacroAchievementStats {
+  final int totalCompleted;
+  final int totalActive;
+  final int completedLast7;
+  final int completedLast30;
+  final int completedLast60;
+  final int completedLast90;
+  const MacroAchievementStats({
+    required this.totalCompleted,
+    required this.totalActive,
+    required this.completedLast7,
+    required this.completedLast30,
+    required this.completedLast60,
+    required this.completedLast90,
+  });
+}
 
 class GoalService {
-  static const String goalsBoxName = 'goals';
-  Box<Goal>? _box;
+  final SessionRepository _sessions;
+  final GoalRepository _goals;
+
+  GoalService({SessionRepository? sessionRepository, GoalRepository? goalRepository})
+      : _sessions = sessionRepository ?? HiveSessionRepository(),
+        _goals = goalRepository ?? HiveGoalRepository();
 
   Future<void> init() async {
-    _box ??= await Hive.openBox<Goal>(goalsBoxName);
-    // Migration légère : attribuer des priorités séquentielles si absentes (9999) pour conserver ordre stable.
-    final b = _box!;
-    final goals = b.values.toList();
-    // Si tous ont priorité par défaut ou mélange -> réattribuer ordre actuel d'insertion.
-    final sorted = goals.toList();
+    // Trigger box open via repository
+    final list = await _goals.getAll();
+    // Migration légère : attribuer des priorités séquentielles si absentes (>=9999)
     int idx = 0;
-    for (final g in sorted) {
+    for (final g in list) {
       if (g.priority >= 9999) {
-        final updated = g.copyWith(priority: idx);
-        await b.put(updated.id, updated);
-        // priorité migrée
+        await _goals.put(g.copyWith(priority: idx));
       }
       idx++;
     }
   }
 
-  Box<Goal> _ensureBox() {
-    final b = _box;
-    if (b == null) {
-      throw StateError('GoalService not initialized. Call init().');
-    }
-    return b;
-  }
+  Future<List<Goal>> listAll() => _goals.getAll();
 
-  Future<List<Goal>> listAll() async {
-    final b = _ensureBox();
-    final list = b.values.toList();
-    list.sort((a,b){
-      final pa = a.priority;
-      final pb = b.priority;
-      if (pa != pb) return pa.compareTo(pb);
-      return a.createdAt.compareTo(b.createdAt);
-    });
-    return list;
-  }
+  Future<void> addGoal(Goal goal) => _goals.put(goal);
 
-  Future<void> addGoal(Goal goal) async {
-    final b = _ensureBox();
-    await b.put(goal.id, goal);
-  }
+  Future<void> updateGoal(Goal goal) => _goals.put(goal);
 
-  Future<void> updateGoal(Goal goal) async {
-    final b = _ensureBox();
-    await b.put(goal.id, goal);
-  }
-
-  Future<void> deleteGoal(String id) async {
-    final b = _ensureBox();
-    await b.delete(id);
-  }
+  Future<void> deleteGoal(String id) => _goals.delete(id);
 
   Future<void> recomputeAllProgress() async {
-    final b = _ensureBox();
-    final raw = await LocalDatabaseHive().getSessionsWithSeries();
-    final sessions = raw.map((m) {
-      final sessionMap = Map<String, dynamic>.from(m['session']);
-      final seriesRaw = (m['series'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
-      sessionMap['series'] = seriesRaw;
-      return ShootingSession.fromMap(sessionMap);
-    }).toList();
-    for (final goal in b.values) {
+    final sessions = await _sessions.getAll();
+    final goals = await _goals.getAll();
+    for (final goal in goals) {
       final updated = _computeProgress(goal, sessions);
-      await b.put(updated.id, updated);
+      await _goals.put(updated);
     }
   }
+
+  // --- Lot A additions ---
+  static const double kGoalDeltaNeutralEpsilon = 0.001;
+
+  /// Returns active (non achieved, non archived, non failed) goals sorted by
+  /// lastProgress desc then priority asc (tie-break) limited to n.
+  Future<List<Goal>> topActiveGoals(int n) async {
+    final all = await _goals.getAll();
+    final filtered = all.where((g) => g.status == GoalStatus.active).toList();
+    filtered.sort((a,b){
+      final pa = a.lastProgress ?? 0;
+      final pb = b.lastProgress ?? 0;
+      if (pb.compareTo(pa) != 0) return pb.compareTo(pa);
+      return a.priority.compareTo(b.priority);
+    });
+    if (filtered.length <= n) return filtered;
+    return filtered.sublist(0, n);
+  }
+
+  Future<int> countActiveGoals() async {
+    final all = await _goals.getAll();
+    return all.where((g)=> g.status == GoalStatus.active).length;
+  }
+
+  Future<int> countAchievedGoals() async {
+    final all = await _goals.getAll();
+    return all.where((g)=> g.status == GoalStatus.achieved).length;
+  }
+
+  /// Count goals achieved within the last [days] days (inclusive).
+  Future<int> achievementsWithin(int days) async {
+    if (days <= 0) return 0;
+    final all = await _goals.getAll();
+    final now = DateTime.now();
+    final threshold = now.subtract(Duration(days: days));
+    return all.where((g) {
+      if (g.status != GoalStatus.achieved) return false;
+      final d = g.achievementDate;
+      if (d == null) return false;
+      return !d.isBefore(threshold) && !d.isAfter(now);
+    }).length;
+  }
+  /// --- Lot B additions ---
+  /// Calcule toutes les stats macro en un seul passage sur la liste des objectifs.
+  Future<MacroAchievementStats> macroAchievementStats() async {
+    final all = await _goals.getAll();
+    final now = DateTime.now();
+    final t7 = now.subtract(const Duration(days: 7));
+    final t30 = now.subtract(const Duration(days: 30));
+    final t60 = now.subtract(const Duration(days: 60));
+    final t90 = now.subtract(const Duration(days: 90));
+    int totalCompleted = 0;
+    int totalActive = 0;
+    int c7 = 0; int c30 = 0; int c60 = 0; int c90 = 0;
+    for (final g in all) {
+      if (g.status == GoalStatus.achieved) {
+        totalCompleted++;
+        final d = g.achievementDate;
+        if (d != null) {
+          if (!d.isBefore(t7)) c7++;
+          if (!d.isBefore(t30)) c30++;
+          if (!d.isBefore(t60)) c60++;
+          if (!d.isBefore(t90)) c90++;
+        }
+      } else if (g.status == GoalStatus.active) {
+        totalActive++;
+      }
+    }
+    return MacroAchievementStats(
+      totalCompleted: totalCompleted,
+      totalActive: totalActive,
+      completedLast7: c7,
+      completedLast30: c30,
+      completedLast60: c60,
+      completedLast90: c90,
+    );
+  }
+  /// --- End Lot B additions ---
+  // --- End Lot A additions ---
 
   Goal _computeProgress(Goal goal, List<ShootingSession> sessions) {
     // Filtrer selon la période si définie

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'constants/session_constants.dart';
@@ -13,9 +14,12 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'config/app_config.dart';
 import 'models/goal.dart';
-import 'screens/goals_list_screen.dart';
-import 'widgets/goals_summary_card.dart';
+import 'widgets/goals_at_glance_card.dart';
+import 'widgets/exercises_at_glance_card.dart';
 import 'widgets/series_cards.dart';
+import 'migrations/migration.dart';
+import 'migrations/migration_2_add_exercises_field.dart';
+import 'migrations/migration_3_create_exercises_box.dart';
 
 // Pages vides pour Coach, Exercices et Paramètres
 class CoachScreen extends StatelessWidget {
@@ -33,13 +37,6 @@ class ExercicesScreen extends StatefulWidget {
 }
 
 class _ExercicesScreenState extends State<ExercicesScreen> {
-  final GlobalKey<GoalsSummaryCardState> _summaryKey = GlobalKey<GoalsSummaryCardState>();
-
-  Future<void> _openGoals() async {
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalsListScreen()));
-    // Au retour, recharger la carte (pour refléter nouveau tri / priorités)
-    _summaryKey.currentState?.refresh();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,23 +45,9 @@ class _ExercicesScreenState extends State<ExercicesScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          GoalsSummaryCard(key: _summaryKey),
+          const GoalsAtGlanceCard(),
           const SizedBox(height: 16),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.flag),
-              title: const Text('Tous les objectifs'),
-              subtitle: const Text('Créer ou modifier vos objectifs'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _openGoals,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text('Prochaines évolutions', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
-          const SizedBox(height: 8),
-          Text('- Bibliothèque d’exercices (à venir)', style: TextStyle(color: Colors.white54)),
-          Text('- Suggestions d’objectifs IA', style: TextStyle(color: Colors.white54)),
-          Text('- Suivi des routines', style: TextStyle(color: Colors.white54)),
+          const ExercisesAtGlanceCard(),
         ],
       ),
     );
@@ -78,6 +61,7 @@ class SettingsScreen extends StatelessWidget {
     final sessionService = SessionService();
     final prefBox = Hive.box('app_preferences');
     String current = prefBox.get('default_hand_method', defaultValue: 'two');
+    String? defaultCaliber = prefBox.get('default_caliber');
     return Scaffold(
       appBar: AppBar(title: Text('Paramètres')),
       body: ListView(
@@ -107,6 +91,74 @@ class SettingsScreen extends StatelessWidget {
                           await box.put('default_hand_method', s.first);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Prise par défaut: ${s.first == 'one' ? '1 main' : '2 mains'}')),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Calibre par défaut', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ValueListenableBuilder(
+                    valueListenable: prefBox.listenable(keys: ['default_caliber']),
+                    builder: (context, box, _) {
+                      final calib = (box.get('default_caliber', defaultValue: defaultCaliber) as String?) ?? '';
+                      final ctrl = TextEditingController(text: calib);
+                      final focus = FocusNode();
+                      return RawAutocomplete<String>(
+                        textEditingController: ctrl,
+                        focusNode: focus,
+                        optionsBuilder: (TextEditingValue tev) {
+                          final list = AppConfig.I.calibers;
+                          final q = tev.text.trim();
+                          if (q.isEmpty) return list;
+                          return list.where((c)=> c.toLowerCase().contains(q.toLowerCase()));
+                        },
+                        fieldViewBuilder: (context, c, f, onSubmit) {
+                          return TextFormField(
+                            controller: c,
+                            focusNode: f,
+                            decoration: const InputDecoration(labelText: 'Calibre (prérempli)'),
+                            onFieldSubmitted: (_) => onSubmit(),
+                            onChanged: (_) {},
+                            onEditingComplete: () => onSubmit(),
+                          );
+                        },
+                        optionsViewBuilder: (context, onSelected, options) {
+                          final opts = options.toList();
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              color: Theme.of(context).cardColor,
+                              elevation: 4,
+                              borderRadius: BorderRadius.circular(8),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxHeight: 220, minWidth: 220),
+                                child: ListView.builder(
+                                  padding: EdgeInsets.zero,
+                                  itemCount: opts.length,
+                                  itemBuilder: (context, i) {
+                                    final opt = opts[i];
+                                    return ListTile(
+                                      dense: true,
+                                      title: Text(opt),
+                                      onTap: () => onSelected(opt),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        onSelected: (val) async {
+                          final nv = val.trim();
+                          if (nv.isEmpty) {
+                            await box.delete('default_caliber');
+                          } else {
+                            await box.put('default_caliber', nv);
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(nv.isEmpty ? 'Préférence calibre effacée' : 'Calibre par défaut: $nv')),
                           );
                         },
                       );
@@ -240,6 +292,13 @@ Future<void> main() async {
 
   await AppConfig.load();
   await Hive.initFlutter();
+  // Run schema migrations (Hive structural adjustments) before opening boxes / using data.
+  final schemaStore = SchemaVersionStore();
+  final runner = MigrationRunner([
+    Migration2AddExercisesField(), // v2
+    Migration3CreateExercisesBox(), // v3
+  ], schemaStore);
+  await runner.run();
   // Register adapters goals
   if (!Hive.isAdapterRegistered(40)) Hive.registerAdapter(GoalMetricAdapter());
   if (!Hive.isAdapterRegistered(41)) Hive.registerAdapter(GoalComparatorAdapter());
@@ -365,7 +424,7 @@ class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProvider
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       // Précharge le logo pour éviter frame blanche.
-      try { await precacheImage(const AssetImage('assets/app_logo.png'), context); } catch (_) {}
+  try { await precacheImage(const AssetImage('assets/app_logo.png'), context); } catch (_) {}
       setState(() => _opacity = 1.0);
       _controller.forward();
       final remaining = totalMin - fadeDur;
@@ -409,7 +468,7 @@ class _FadeInWrapperState extends State<FadeInWrapper> with SingleTickerProvider
                             end: Alignment.bottomRight,
                           ),
                           boxShadow: [
-                            BoxShadow(color: const Color(0xFF16FF8B).withOpacity(0.25), blurRadius: 14, spreadRadius: 2, offset: const Offset(0,5)),
+                            BoxShadow(color: const Color(0xFF16FF8B).withValues(alpha: 0.25), blurRadius: 14, spreadRadius: 2, offset: const Offset(0,5)),
                           ],
                         ),
                         alignment: Alignment.center,
@@ -509,15 +568,107 @@ class _MainNavigationState extends State<MainNavigation> {
             Positioned(
               bottom: 24,
               right: 24,
-              child: FloatingActionButton(
-                heroTag: 'fab_create_session',
-                onPressed: () {
-                  Navigator.of(context)
-                      .push(MaterialPageRoute(builder: (ctx) => CreateSessionScreen()))
-                      .then((_) => _historyKey.currentState?.refreshSessions());
+              child: GestureDetector(
+                onLongPress: () {
+                  // Ouvre un menu contextuel pour créer une session prévue
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    builder: (ctx) {
+                      return SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.schedule, color: Colors.blueAccent),
+                              title: const Text('Créer une session prévue'),
+                              subtitle: const Text('Statut prérempli: prévue'),
+                              onTap: () {
+                                Navigator.of(ctx).pop();
+                                final initial = {
+                                  'session': {
+                                    'weapon': '',
+                                    'caliber': '22LR',
+                                    'status': SessionConstants.statusPrevue,
+                                    'category': SessionConstants.categoryEntrainement,
+                                    'series': [],
+                                    'exercises': [],
+                                  },
+                                  'series': [],
+                                };
+                                Navigator.of(context)
+                                    .push(MaterialPageRoute(builder: (c) => CreateSessionScreen(initialSessionData: initial)))
+                                    .then((_) => _historyKey.currentState?.refreshSessions());
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Text('Astuce: simple pression = réalisée', style: Theme.of(context).textTheme.bodySmall),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
                 },
-                child: Icon(Icons.add),
-                tooltip: 'Créer une session',
+                onSecondaryTap: () { // Fallback Web: clic droit
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    builder: (ctx) {
+                      return SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.schedule, color: Colors.blueAccent),
+                              title: const Text('Créer une session prévue'),
+                              subtitle: const Text('Statut prérempli: prévue'),
+                              onTap: () {
+                                Navigator.of(ctx).pop();
+                                final initial = {
+                                  'session': {
+                                    'weapon': '',
+                                    'caliber': '22LR',
+                                    'status': SessionConstants.statusPrevue,
+                                    'category': SessionConstants.categoryEntrainement,
+                                    'series': [],
+                                    'exercises': [],
+                                  },
+                                  'series': [],
+                                };
+                                Navigator.of(context)
+                                    .push(MaterialPageRoute(builder: (c) => CreateSessionScreen(initialSessionData: initial)))
+                                    .then((_) => _historyKey.currentState?.refreshSessions());
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Text('Astuce: appui long / clic droit', style: Theme.of(context).textTheme.bodySmall),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: FloatingActionButton(
+                  heroTag: 'fab_create_session',
+                  onPressed: () {
+                    // Création d'une session réalisée (comportement original)
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (ctx) => CreateSessionScreen()))
+                        .then((_) => _historyKey.currentState?.refreshSessions());
+                  },
+                  child: const Icon(Icons.add),
+                  tooltip: kIsWeb ? 'Créer une session (clic droit pour prévue)' : 'Créer une session (appui long pour prévue)',
+                ),
               ),
             ),
           ],
@@ -543,7 +694,7 @@ class _MainNavigationState extends State<MainNavigation> {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Coach'),
         BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Exercices'),
-        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Accueil'),
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Tableau de bord'),
         BottomNavigationBarItem(icon: Icon(Icons.track_changes), label: 'Sessions'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Paramètres'),
       ],
