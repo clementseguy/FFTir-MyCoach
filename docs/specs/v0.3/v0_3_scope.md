@@ -98,13 +98,12 @@ Statut: 🟡 Partiellement livré (Lots A-D apportent visibilité & tendance) / 
 Statut global: ✅ (cible v0.3 atteinte avec alternative wizard; éléments avancés restants hors scope v0.3)
 
 Livré (différent du scope exact mais répond partiellement à l’intention):
-- ✅ Wizard de conversion session planifiée → réalisée avec progression multi-étapes
+- ✅ Wizard de conversion session planifiée → réalisée avec progression multi-étapes (plein écran)
 - ✅ Champs obligatoires & validations strictes (distance, coups, score, groupement, commentaire)
 - ✅ Inheritance automatisée des valeurs Distance / Coups / Prise entre séries
 - ✅ Sélecteur de prise (1M / 2M) avec préférence utilisateur
 
 Non livré:
-- ⏩ Mode plein écran dédié
 - ⏩ Navigation entre séries
 - ⏩ Feedback temps réel (moyenne cumulée) hors synthèse finale
 
@@ -121,15 +120,15 @@ Statut: ⏩ Non implémenté.
 - Ajustements visuels (espacements, contrastes)
 - Nettoyage code legacy (widgets dupliqués)
 
-Statut global: 🟡 (reste: dernier calibre, harmonisation réseau)
+Statut global: 🟡 (reste: harmonisation réseau)
 
 Livré partiellement:
 - ✅ Ajustements visuels ciblés (cartes sessions planifiées différenciées, couleurs filtres)
 - ✅ Préférences utilisateur (prise par défaut) ajoutées
 - ✅ Nettoyages ponctuels autour des écrans wizard / FAB
+ - ✅ Préservation dernier calibre (préremplissage + aide à la saisie)
 
 Non livré / partiel:
-- ⏩ Préservation dernier calibre (non appliqué)
 - ⏩ Harmonisation messages réseau (reporté)
 
 ### Tableau de bord – Stats (livré v0.3)
@@ -233,7 +232,7 @@ Document vivant – mettre à jour au fur et à mesure.
 - Statistiques 30j / 60j + sparkline
 - Filtrage sessions par exercice dans l’historique
 - Catégories & tags d’exercices
-- Normalisation calibres + dernier calibre
+- Normalisation calibres (approfondissements)
 - Infrastructure de migrations standardisée / fallback corruption
 
 ---
