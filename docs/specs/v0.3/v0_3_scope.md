@@ -126,7 +126,7 @@ Livré partiellement:
 - ✅ Ajustements visuels ciblés (cartes sessions planifiées différenciées, couleurs filtres)
 - ✅ Préférences utilisateur (prise par défaut) ajoutées
 - ✅ Nettoyages ponctuels autour des écrans wizard / FAB
- - ✅ Préservation dernier calibre (préremplissage + aide à la saisie)
+- ✅ Préservation dernier calibre (préremplissage + aide à la saisie)
 
 Non livré / partiel:
 - ⏩ Harmonisation messages réseau (reporté)
