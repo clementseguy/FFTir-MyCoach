@@ -8,6 +8,8 @@ import '../../models/exercise.dart';
 import '../../services/goal_service.dart';
 import '../../models/goal.dart';
 import 'package:hive/hive.dart';
+import '../../services/preferences_service.dart';
+import '../../utils/caliber_autocomplete.dart';
 
 /// Wizard de conversion Session prévue -> réalisée
 class PlannedSessionWizard extends StatefulWidget {
@@ -28,6 +30,10 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
   String? _categoryDraft;
   String? _syntheseDraft;
   bool _saving = false;
+  late TextEditingController _caliberCtrl;
+  final FocusNode _caliberFocus = FocusNode();
+  String _lastCalTxt = '';
+  bool _showAll = false;
   final SessionService _service = SessionService();
   final ExerciseService _exerciseService = ExerciseService();
   final GoalService _goalService = GoalService();
@@ -40,10 +46,26 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
     super.initState();
     _session = widget.session;
     _weaponDraft = _session.weapon;
-    _caliberDraft = _session.caliber;
+  _caliberDraft = pickInitialCaliber(existing: _session.caliber, defaultCaliber: PreferencesService().getDefaultCaliber());
+    _caliberCtrl = TextEditingController(text: _caliberDraft ?? '');
+    _lastCalTxt = _caliberCtrl.text;
+    _caliberFocus.addListener((){
+      if (_caliberFocus.hasFocus) {
+        setState(()=> _showAll = true);
+      } else {
+        if (_showAll) setState(()=> _showAll = false);
+      }
+    });
     _categoryDraft = _session.category;
     _syntheseDraft = _session.synthese; // peut contenir "Session créée à partir de ..."
     _loadExerciseAndGoals();
+  }
+
+  @override
+  void dispose() {
+    _caliberCtrl.dispose();
+    _caliberFocus.dispose();
+    super.dispose();
   }
 
   int get _seriesCount => _session.series.length;
@@ -255,10 +277,28 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
               decoration: const InputDecoration(labelText: 'Arme'),
               onSaved: (v)=> _weaponDraft = v ?? '',
             ),
-            TextFormField(
-              initialValue: _caliberDraft,
-              decoration: const InputDecoration(labelText: 'Calibre'),
-              onSaved: (v)=> _caliberDraft = v ?? '',
+            Focus(
+              focusNode: _caliberFocus,
+              child: TextFormField(
+                controller: _caliberCtrl,
+                decoration: const InputDecoration(labelText: 'Calibre'),
+                onChanged: (txt){
+                  final wasDeletion = txt.length < _lastCalTxt.length;
+                  _lastCalTxt = txt;
+                  if (!wasDeletion) {
+                    final res = suggestFor(txt);
+                    if (res.autoReplacement != null && _caliberCtrl.text != res.autoReplacement) {
+                      _caliberCtrl.value = TextEditingValue(
+                        text: res.autoReplacement!,
+                        selection: TextSelection.collapsed(offset: res.autoReplacement!.length),
+                      );
+                      _lastCalTxt = res.autoReplacement!;
+                    }
+                  }
+                  _caliberDraft = _caliberCtrl.text;
+                },
+                onSaved: (v)=> _caliberDraft = v ?? '',
+              ),
             ),
             TextFormField(
               initialValue: _categoryDraft,

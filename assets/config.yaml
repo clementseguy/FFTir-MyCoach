@@ -12,3 +12,14 @@ splash:
   min_display_ms: 1500
   # Durée du fade-in de l'application après le splash (en millisecondes)
   fade_duration_ms: 450
+
+calibers:
+  - ".22 LR"
+  - ".32 S&W Long"
+  - "9mm (9x19)"
+  - ".38 Special"
+  - ".357 Magnum"
+  - ".380 ACP"
+  - ".40 S&W"
+  - ".45 ACP"
+  - "Autre"

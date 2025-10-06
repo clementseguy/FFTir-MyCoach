@@ -61,6 +61,7 @@ class SettingsScreen extends StatelessWidget {
     final sessionService = SessionService();
     final prefBox = Hive.box('app_preferences');
     String current = prefBox.get('default_hand_method', defaultValue: 'two');
+    String? defaultCaliber = prefBox.get('default_caliber');
     return Scaffold(
       appBar: AppBar(title: Text('Paramètres')),
       body: ListView(
@@ -90,6 +91,74 @@ class SettingsScreen extends StatelessWidget {
                           await box.put('default_hand_method', s.first);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Prise par défaut: ${s.first == 'one' ? '1 main' : '2 mains'}')),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Calibre par défaut', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ValueListenableBuilder(
+                    valueListenable: prefBox.listenable(keys: ['default_caliber']),
+                    builder: (context, box, _) {
+                      final calib = (box.get('default_caliber', defaultValue: defaultCaliber) as String?) ?? '';
+                      final ctrl = TextEditingController(text: calib);
+                      final focus = FocusNode();
+                      return RawAutocomplete<String>(
+                        textEditingController: ctrl,
+                        focusNode: focus,
+                        optionsBuilder: (TextEditingValue tev) {
+                          final list = AppConfig.I.calibers;
+                          final q = tev.text.trim();
+                          if (q.isEmpty) return list;
+                          return list.where((c)=> c.toLowerCase().contains(q.toLowerCase()));
+                        },
+                        fieldViewBuilder: (context, c, f, onSubmit) {
+                          return TextFormField(
+                            controller: c,
+                            focusNode: f,
+                            decoration: const InputDecoration(labelText: 'Calibre (prérempli)'),
+                            onFieldSubmitted: (_) => onSubmit(),
+                            onChanged: (_) {},
+                            onEditingComplete: () => onSubmit(),
+                          );
+                        },
+                        optionsViewBuilder: (context, onSelected, options) {
+                          final opts = options.toList();
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              color: Theme.of(context).cardColor,
+                              elevation: 4,
+                              borderRadius: BorderRadius.circular(8),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxHeight: 220, minWidth: 220),
+                                child: ListView.builder(
+                                  padding: EdgeInsets.zero,
+                                  itemCount: opts.length,
+                                  itemBuilder: (context, i) {
+                                    final opt = opts[i];
+                                    return ListTile(
+                                      dense: true,
+                                      title: Text(opt),
+                                      onTap: () => onSelected(opt),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        onSelected: (val) async {
+                          final nv = val.trim();
+                          if (nv.isEmpty) {
+                            await box.delete('default_caliber');
+                          } else {
+                            await box.put('default_caliber', nv);
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(nv.isEmpty ? 'Préférence calibre effacée' : 'Calibre par défaut: $nv')),
                           );
                         },
                       );
