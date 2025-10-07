@@ -11,6 +11,13 @@ Toutes les modifications notables de ce projet seront listées ici.
     - Anti‑doublons: garde qui évite les exécutions redondantes (push vs PR) et `concurrency` par ref.
     - Analyse de `main` sans push direct: triggers `workflow_dispatch` (manuel) et `schedule` quotidien.
 
+### Docs
+- T2: Cahier de recette (tests manuels)
+    - Générateur: `scripts/generate_cahier_recette.dart`
+    - Source: `docs/specs/cahier_recette.yaml`
+    - Sortie: `docs/cahier_recette_v0.4.md`
+    - Politique: jouer le cahier de recette avant toute MR vers `main`; mettre à jour le YAML + régénérer si comportement modifié.
+
 ## [0.3.0] - 2025-09-29
 ### Added
 - Sessions :
