@@ -9,6 +9,7 @@ import 'migrations/migration_3_create_exercises_box.dart';
 import 'constants/session_constants.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/home_screen_provider.dart';
 import 'app/my_app.dart';
 
 Future<void> main() async {
@@ -43,6 +44,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => HomeScreenProvider()),
       ],
       child: const MyApp(),
     ),
