@@ -2,7 +2,7 @@
 assets/config.local.yaml
 app_preferences.hive
 app_preferences.lock
-assets/coach_prompt.yaml
+assets/coach_prompt.local.yaml
 # Miscellaneous
 *.class
 *.log
@@ -27,6 +27,9 @@ migrate_working_dir/
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
 #.vscode/
+
+# CI stray files
+.github/workflows/build.yaml
 
 # Flutter/Dart/Pub related
 **/doc/api/
