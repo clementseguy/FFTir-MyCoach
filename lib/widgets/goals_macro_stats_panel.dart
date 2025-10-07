@@ -3,19 +3,25 @@ import '../services/goal_service.dart';
 
 /// Panel affichant les 6 indicateurs macro (Lot B)
 class GoalsMacroStatsPanel extends StatefulWidget {
+  /// Constructeur standard
   const GoalsMacroStatsPanel({super.key});
+
+  /// Service pour les tests unitaires
+  static GoalService? testService;
+
   @override
   GoalsMacroStatsPanelState createState() => GoalsMacroStatsPanelState();
 }
 
 class GoalsMacroStatsPanelState extends State<GoalsMacroStatsPanel> {
-  final _service = GoalService();
+  late final GoalService _service;
   bool _loading = true;
   MacroAchievementStats? _stats;
 
   @override
   void initState() {
     super.initState();
+    _service = GoalsMacroStatsPanel.testService ?? GoalService();
     _load();
   }
 

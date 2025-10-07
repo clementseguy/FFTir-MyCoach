@@ -31,6 +31,8 @@ dev_dependencies:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.0
+  mockito: ^5.5.1
+  build_runner: ^2.9.0
 
 flutter_icons:
   android: true
