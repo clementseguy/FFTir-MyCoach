@@ -6,7 +6,6 @@ import 'package:tir_sportif/services/backup_service.dart';
 import 'package:tir_sportif/services/session_service.dart';
 import 'package:tir_sportif/models/shooting_session.dart';
 import 'package:tir_sportif/models/series.dart';
-import 'package:flutter/widgets.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -23,11 +22,26 @@ void main() {
     });
 
     tearDown(() async {
+      // Fermer les boîtes Hive
       for (final name in ['sessions','exercises']) {
-        if (Hive.isBoxOpen(name)) await Hive.box(name).close();
+        if (Hive.isBoxOpen(name)) {
+          try {
+            await Hive.box(name).close();
+          } catch (e) {
+            print('Erreur lors de la fermeture de la boîte Hive $name: $e');
+          }
+        }
       }
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
+      
+      // Supprimer le répertoire temporaire avec gestion d'erreur
+      try {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      } catch (e) {
+        print('Erreur lors de la suppression du répertoire temporaire: $e');
+        // Ne pas échouer le test à cause de problèmes de nettoyage
+        // qui peuvent se produire dans l'environnement CI
       }
     });
     
