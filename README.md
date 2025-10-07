@@ -1,11 +1,18 @@
 # NexTarget
 
+<!-- SonarCloud Badges -->
+![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=clementseguy_NexTarget-app&metric=alert_status)
+![Coverage](https://sonarcloud.io/api/project_badges/measure?project=clementseguy_NexTarget-app&metric=coverage)
+![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=clementseguy_NexTarget-app&metric=sqale_rating)
+![Reliability](https://sonarcloud.io/api/project_badges/measure?project=clementseguy_NexTarget-app&metric=reliability_rating)
+![Security](https://sonarcloud.io/api/project_badges/measure?project=clementseguy_NexTarget-app&metric=security_rating)
+
 Application mobile pour suivre et analyser les entraînements de tir sportif (NexTarget).
 
 ## Fonctionnalités principales
 - Suivi des sessions de tir (date, arme, calibre, séries...)
 - Statistiques générales (points, groupement, etc.)
-- Interface sombre, élégante, logo applicatif
+- Interface sombre, logo applicatif
 - Stockage local, aucune authentification
 
 ## Lancer le projet
