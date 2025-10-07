@@ -10,12 +10,14 @@ abstract class GoalRepository {
 }
 
 class HiveGoalRepository implements GoalRepository {
-  static const String boxName = 'goals';
+  static const String defaultBoxName = 'goals';
+  final String _boxName;
+  HiveGoalRepository({String? boxName}) : _boxName = boxName ?? defaultBoxName;
   Box<Goal>? _box;
 
   Future<Box<Goal>> _ensureBox() async {
     if (_box != null) return _box!;
-    _box = await Hive.openBox<Goal>(boxName);
+    _box = await Hive.openBox<Goal>(_boxName);
     return _box!;
   }
 

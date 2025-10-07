@@ -3,8 +3,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:tir_sportif/services/backup_service.dart';
-import 'package:tir_sportif/models/series.dart';
-import 'package:tir_sportif/models/shooting_session.dart';
 import 'package:tir_sportif/services/session_service.dart';
 
 void main() {
