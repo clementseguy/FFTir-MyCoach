@@ -283,6 +283,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 8),
                       _BucketsChart(pointBuckets: pointBuckets),
+                      const SizedBox(height: 24),
+                    ],
+                    
+                    // Répartition distances 30j
+                    if (distDistrib.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('Répartition distances (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _DistanceChart(distDistrib: distDistrib),
                       const SizedBox(height: 12),
                     ],
                   ],
@@ -441,18 +454,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 32),
                     ],
-                    // F11 Répartition distances 30j
-                    if (distDistrib.isNotEmpty) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text('Répartition distances (30j)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _DistanceChart(distDistrib: distDistrib),
-                      const SizedBox(height: 32),
-                    ],
+                    // F11 (Répartition distances déplacé vers l'onglet Synthèse)
                     const SizedBox(height: 8),
                     // 1M / 2M Combined charts at the bottom (30 dernières séries)
                     if (oneHand.isNotEmpty) ...[
@@ -549,7 +551,7 @@ class _KpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-  color: Colors.white.withValues(alpha: 0.08),
+  color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white12),
       ),
@@ -666,8 +668,8 @@ class _PointsLineChart extends StatelessWidget {
                 show: true,
                 gradient: LinearGradient(
                   colors: [
-                    Colors.amberAccent.withValues(alpha: 0.35),
-                    Colors.amberAccent.withValues(alpha: 0.05),
+                    Colors.amberAccent.withOpacity(0.35),
+                    Colors.amberAccent.withOpacity(0.05),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -764,8 +766,8 @@ class _GroupementLineChart extends StatelessWidget {
                   show: true,
                   gradient: LinearGradient(
                     colors: [
-                      Colors.lightGreenAccent.withValues(alpha: 0.30),
-                      Colors.lightGreenAccent.withValues(alpha: 0.05),
+                      Colors.lightGreenAccent.withOpacity(0.30),
+                      Colors.lightGreenAccent.withOpacity(0.05),
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -818,7 +820,7 @@ class _BucketsChart extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     Colors.orangeAccent,
-                    Colors.orangeAccent.withValues(alpha: 0.15),
+                    Colors.orangeAccent.withOpacity(0.15),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -876,7 +878,7 @@ class _DistanceChart extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         Colors.purpleAccent,
-                        Colors.purpleAccent.withValues(alpha: 0.1),
+                        Colors.purpleAccent.withOpacity(0.1),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -903,7 +905,7 @@ class _PerfBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-  color: Colors.white.withValues(alpha: 0.06),
+  color: Colors.white.withOpacity(0.06),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white12),
       ),
@@ -1030,7 +1032,7 @@ class _CategorySegment extends StatelessWidget {
     return Expanded(
       flex: flex,
       child: Container(
-  color: color.withValues(alpha: 0.85),
+  color: color.withOpacity(0.85),
         child: label == null ? null : Center(
           child: Text(
             label!,
