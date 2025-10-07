@@ -1,0 +1,99 @@
+version: v0.4
+last_updated: 2025-10-07
+features:
+  - id: SESS-01
+    name: Sessions – création/édition
+    objectif: Créer une session réalisée avec armes/séries, puis l’éditer sans perte de données.
+    preconditions:
+      - Application installée
+      - Aucune session obligatoire
+    steps:
+      - Ouvrir l’app et aller sur “+” → “Nouvelle session (réalisée)”
+      - Renseigner arme, calibre, prise, au moins 1 série (coups, distance, points, groupement)
+      - Enregistrer la session
+      - Ouvrir la session et modifier un champ (ex: commentaire)
+      - Enregistrer à nouveau
+    expected:
+      - La session apparaît dans l’historique réalisée
+      - Les champs saisis sont persistés fidèlement
+      - La modification est bien visible après réouverture
+
+  - id: SESS-02
+    name: Sessions prévues (planification) + conversion wizard
+    objectif: Planifier une session, puis la convertir en réalisée via l’assistant.
+    steps:
+      - Depuis un exercice, planifier une session prévue
+      - Vérifier l’icône “prévue” et la présence dans la liste dédiée
+      - Lancer la conversion (wizard), compléter séries et synthèse
+      - Valider la conversion
+    expected:
+      - La session disparaît des “prévues” et figure dans les sessions réalisées
+      - Les séries saisies via le wizard sont bien persistées
+
+  - id: DASH-01
+    name: Tableau de bord – statistiques récap
+    objectif: Afficher les statistiques macro et les dernières tendances.
+    steps:
+      - Ouvrir l’accueil/Tableau de bord
+      - Vérifier l’affichage des indicateurs (réalisés total, 7/30/60/90j) et cartes récap
+    expected:
+      - Les valeurs sont cohérentes avec les sessions existantes
+
+  - id: GOAL-01
+    name: Objectifs – création/édition et listing
+    objectif: Créer un objectif, vérifier son affichage et sa progression.
+    steps:
+      - Créer un objectif (nom, période, métriques)
+      - Vérifier la présence dans le listing et la carte “Top”
+      - Modifier l’objectif et enregistrer
+    expected:
+      - L’objectif est visible avec ses informations correctes
+      - La modification est persistée
+
+  - id: EX-01
+    name: Exercices – création et association aux sessions
+    objectif: Créer un exercice et l’associer à une session.
+    steps:
+      - Créer un exercice (nom, catégorie, type, durée, matériel, consignes)
+      - Depuis l’exercice, planifier puis convertir une session (cf. SESS-02)
+    expected:
+      - L’exercice apparaît dans la liste et l’association session ↔ exercice est visible
+
+  - id: CAL-01
+    name: Calibres – autocomplétion + préférence par défaut
+    objectif: Saisie de calibre assistée et préremplie si préférence définie.
+    steps:
+      - Ouvrir création de session, focus sur calibre → voir liste complète
+      - Taper un alias (ex: 9mm) et sélectionner une option
+      - Dans Réglages, définir “Calibre par défaut”, créer une nouvelle session
+    expected:
+      - La liste s’affiche au focus
+      - La sélection remplit le champ correctement
+      - Le champ calibre est prérempli si une préférence est définie (sinon vide)
+
+  - id: PREF-01
+    name: Réglages – préférences utilisateur (Hive)
+    objectif: Mettre à jour une préférence et vérifier l’effet dans l’app.
+    steps:
+      - Ouvrir l’écran Réglages, modifier une préférence (ex: main dominante, calibre par défaut)
+      - Créer une nouvelle ressource impactée (session/exercice) et vérifier le préremplissage
+    expected:
+      - La préférence est persistée et appliquée
+
+  - id: EXP-01
+    name: Export sessions
+    objectif: Exporter les sessions et vérifier le fichier généré.
+    steps:
+      - Ouvrir le module d’export, choisir un dossier
+      - Lancer l’export
+    expected:
+      - Un fichier est généré dans le dossier choisi
+
+  - id: SEC-01
+    name: Règles de sécurité (dashboard)
+    objectif: Afficher le bloc de règles FFTir et vérifier sa lisibilité.
+    steps:
+      - Ouvrir l’accueil/Tableau de bord
+      - Vérifier la section “Règles de sécurité”
+    expected:
+      - Le contenu est à jour et lisible (révision FFTir 2024)
