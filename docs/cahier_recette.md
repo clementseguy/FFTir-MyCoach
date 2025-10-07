@@ -1,4 +1,4 @@
-# Cahier de Recette v0.4
+# Cahier de Recette
 
 - Dernière mise à jour: 2025-10-07
 - Généré automatiquement depuis `docs/specs/cahier_recette.yaml`

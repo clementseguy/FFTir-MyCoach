@@ -66,7 +66,7 @@ Un fichier `assets/config.example.yaml` est fourni comme modèle.
 
 ## Cahier de Recette (tests manuels)
 
-- Document: `docs/cahier_recette_v0.4.md`
+- Document: `docs/cahier_recette.md`
 - Source (inventaire): `docs/specs/cahier_recette.yaml`
 - Objectif: vérifier manuellement les fonctionnalités principales après refactor/évolutions.
 
@@ -80,13 +80,6 @@ dart run scripts/generate_cahier_recette.dart
 Avant toute MR vers `main`:
 - Jouer le cahier de recette (tests manuels) et s’assurer que les résultats attendus sont conformes.
 - Si une fonctionnalité change: mettre à jour `docs/specs/cahier_recette.yaml`, régénérer le Markdown, et committer.
-
-## À faire
-- Écrans de gestion des sessions et séries
-- Statistiques détaillées
-- Amélioration du logo applicatif (optimisation tailles si besoin)
-- Coach IA (intégration prompts et UI)
-- Améliorations statistiques
 
 ## Qualité / Pré-commit
 

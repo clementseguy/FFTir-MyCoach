@@ -1,4 +1,4 @@
-// Simple generator: reads docs/specs/cahier_recette.yaml and writes docs/cahier_recette_v0.4.md
+// Simple generator: reads docs/specs/cahier_recette.yaml and writes docs/cahier_recette.md
 import 'dart:io';
 import 'package:yaml/yaml.dart';
 
@@ -22,12 +22,11 @@ void main(List<String> args) async {
     return s;
   }
 
-  final version = data['version'] ?? 'v0.4';
   final lastUpdated = data['last_updated'] ?? DateTime.now().toIso8601String();
   final features = (data['features'] as YamlList?) ?? YamlList();
 
   final buf = StringBuffer();
-  buf.writeln('# Cahier de Recette $version');
+  buf.writeln('# Cahier de Recette');
   buf.writeln();
   buf.writeln('- Dernière mise à jour: $lastUpdated');
   buf.writeln('- Généré automatiquement depuis `docs/specs/cahier_recette.yaml`');
@@ -75,7 +74,7 @@ void main(List<String> args) async {
     buf.writeln();
   }
 
-  final outFile = File('$repoRoot/docs/cahier_recette_v0.4.md');
+  final outFile = File('$repoRoot/docs/cahier_recette.md');
   await outFile.writeAsString(buf.toString());
   stdout.writeln('Generated ${outFile.path}');
 }
