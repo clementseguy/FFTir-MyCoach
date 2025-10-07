@@ -9,6 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:io';
 import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
+import 'package:tir_sportif/app/my_app.dart';
+import 'package:tir_sportif/providers/navigation_provider.dart';
+import 'package:tir_sportif/providers/settings_provider.dart';
 
 import 'package:tir_sportif/main.dart';
 import 'package:tir_sportif/config/app_config.dart';
@@ -104,7 +108,15 @@ void main() {
   });
 
   testWidgets('App boots and shows bottom navigation items', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => NavigationProvider()),
+          ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ],
+        child: const MyApp(),
+      )
+    );
     // Premier frame + animations éventuelles
     await tester.pump(const Duration(milliseconds: 50));
 

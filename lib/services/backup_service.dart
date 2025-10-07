@@ -19,6 +19,14 @@ import '../services/goal_service.dart';
 class BackupService {
   final SessionService _sessionService = SessionService();
   final GoalService _goalService = GoalService();
+  
+  /// Lire un fichier JSON.
+  /// 
+  /// Retourne: Le contenu du fichier sous forme de chaîne.
+  Future<String> readJsonFile(String path) async {
+    final file = File(path);
+    return await file.readAsString();
+  }
 
   Future<File> exportAllSessionsToJsonFile() async {
     final sessions = await _sessionService.getAllSessions();
