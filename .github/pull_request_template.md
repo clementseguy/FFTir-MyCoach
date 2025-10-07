@@ -14,3 +14,4 @@ Décrivez brièvement les changements, motivations, et impacts.
 - [ ] `flutter test --coverage` exécuté en local
 - [ ] `dart analyze` (optionnel) ne remonte pas d’erreurs
 - [ ] Mise à jour des docs si nécessaire (README, specs)
+- [ ] Cahier de recette mis à jour et recette manuelle validée
