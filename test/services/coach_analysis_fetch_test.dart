@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -31,5 +32,17 @@ void main() {
     final client = MockClient((req) async => http.Response('{"choices":[{"message":{}}]}', 200));
     final svc = CoachAnalysisService(apiKey: 'k', apiUrl: 'http://x', model: 'm', promptTemplate: 'p', client: client);
     expect(()=> svc.fetchAnalysis('p'), throwsA(predicate((e)=> e.toString().contains('Réponse vide'))));
+  });
+
+  test('fetchAnalysis SocketException produces user-friendly message', () async {
+    final client = MockClient((req) async => throw SocketException('Failed host lookup: api'));
+    final svc = CoachAnalysisService(apiKey: 'k', apiUrl: 'http://x', model: 'm', promptTemplate: 'p', client: client);
+    expect(()=> svc.fetchAnalysis('p'), throwsA(predicate((e)=> e.toString().contains('Connexion impossible'))));
+  });
+
+  test('fetchAnalysis unexpected error is wrapped as user-friendly', () async {
+    final client = MockClient((req) async => throw StateError('boom'));
+    final svc = CoachAnalysisService(apiKey: 'k', apiUrl: 'http://x', model: 'm', promptTemplate: 'p', client: client);
+    expect(()=> svc.fetchAnalysis('p'), throwsA(predicate((e)=> e.toString().contains('Erreur réseau inattendue'))));
   });
 }

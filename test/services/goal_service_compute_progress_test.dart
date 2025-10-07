@@ -76,5 +76,87 @@ void main() {
       expect(updated.lastMeasuredValue, closeTo(22.5, 1e-9));
       expect(updated.lastProgress! >= 1.0, isTrue);
     });
+
+    test('totalPoints metric sums series and achieves when >= target', () async {
+      final now = DateTime.now();
+      final s = ShootingSession(
+        weapon: 'P', caliber: '22LR', date: now, status: 'réalisée',
+        series: [Series(distance: 10, points: 15, groupSize: 20), Series(distance: 10, points: 10, groupSize: 18)],
+      );
+      final goals = _MemGoalRepo();
+      final svc = GoalService(sessionRepository: _MemSessionRepo([s]), goalRepository: goals);
+      final g = Goal(title: 'Total>=25', metric: GoalMetric.totalPoints, comparator: GoalComparator.greaterOrEqual, targetValue: 25);
+      await goals.put(g);
+      await svc.recomputeAllProgress();
+      final updated = (await goals.getAll()).first;
+      expect(updated.lastMeasuredValue, 25);
+      expect(updated.lastProgress, 1);
+      // achieved may be set with achievementDate
+      if (updated.status == GoalStatus.achieved) {
+        expect(updated.achievementDate, isNotNull);
+      }
+    });
+
+    test('bestSessionPoints picks highest session total', () async {
+      final now = DateTime.now();
+      final s1 = ShootingSession(weapon: 'P', caliber: '22LR', date: now, status: 'réalisée', series: [Series(distance: 10, points: 10, groupSize: 20)]);
+      final s2 = ShootingSession(weapon: 'P', caliber: '22LR', date: now, status: 'réalisée', series: [Series(distance: 10, points: 30, groupSize: 20), Series(distance: 10, points: 5, groupSize: 15)]);
+      final goals = _MemGoalRepo();
+      final svc = GoalService(sessionRepository: _MemSessionRepo([s1, s2]), goalRepository: goals);
+      final g = Goal(title: 'BestSess>=34', metric: GoalMetric.bestSessionPoints, comparator: GoalComparator.greaterOrEqual, targetValue: 34);
+      await goals.put(g);
+      await svc.recomputeAllProgress();
+      final updated = (await goals.getAll()).first;
+      expect(updated.lastMeasuredValue, 35);
+      expect(updated.lastProgress! >= 1.0, isTrue);
+    });
+
+    test('bestGroupSize finds minimal positive and achieves for <= comparator', () async {
+      final now = DateTime.now();
+      final s = ShootingSession(weapon: 'P', caliber: '22LR', date: now, status: 'réalisée', series: [
+        Series(distance: 10, points: 10, groupSize: 12),
+        Series(distance: 10, points: 10, groupSize: 8),
+        Series(distance: 10, points: 10, groupSize: 9),
+      ]);
+      final goals = _MemGoalRepo();
+      final svc = GoalService(sessionRepository: _MemSessionRepo([s]), goalRepository: goals);
+      final g = Goal(title: 'BestGroup<=9', metric: GoalMetric.bestGroupSize, comparator: GoalComparator.lessOrEqual, targetValue: 9);
+      await goals.put(g);
+      await svc.recomputeAllProgress();
+      final updated = (await goals.getAll()).first;
+      expect(updated.lastMeasuredValue, 8);
+      expect(updated.lastProgress, 1);
+    });
+
+    test('empty series edge: groupSize average remains null, progress stays null', () async {
+      final now = DateTime.now();
+      final s = ShootingSession(weapon: 'P', caliber: '22LR', date: now, status: 'réalisée', series: []);
+      final goals = _MemGoalRepo();
+      final svc = GoalService(sessionRepository: _MemSessionRepo([s]), goalRepository: goals);
+      final g = Goal(title: 'AvgGroup<=10', metric: GoalMetric.groupSize, comparator: GoalComparator.lessOrEqual, targetValue: 10);
+      await goals.put(g);
+      await svc.recomputeAllProgress();
+      final updated = (await goals.getAll()).first;
+      expect(updated.lastMeasuredValue, isNull);
+      expect(updated.lastProgress, isNull);
+    });
+
+    test('achieved date is set once when reaching target from active', () async {
+      final now = DateTime.now();
+      final s = ShootingSession(weapon: 'P', caliber: '22LR', date: now, status: 'réalisée', series: [Series(distance: 10, points: 50, groupSize: 10)]);
+      final goals = _MemGoalRepo();
+      final svc = GoalService(sessionRepository: _MemSessionRepo([s]), goalRepository: goals);
+      final g = Goal(title: 'Avg>=40', metric: GoalMetric.averagePoints, comparator: GoalComparator.greaterOrEqual, targetValue: 40, status: GoalStatus.active);
+      await goals.put(g);
+      await svc.recomputeAllProgress();
+      var updated = (await goals.getAll()).first;
+      expect(updated.status, GoalStatus.achieved);
+      expect(updated.achievementDate, isNotNull);
+      final firstAchievedDate = updated.achievementDate;
+      // Recompute again should keep the same achievementDate (not reset)
+      await svc.recomputeAllProgress();
+      updated = (await goals.getAll()).first;
+      expect(updated.achievementDate, firstAchievedDate);
+    });
   });
 }
