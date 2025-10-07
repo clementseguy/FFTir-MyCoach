@@ -68,5 +68,34 @@ void main() {
       expect(ds.length <= 61, isTrue); // allow +1 for forced last
       expect(ds.last['date'].isAtSameMomentAs(list.last['date']), isTrue);
     });
+
+    test('adaptive returns all when <=20 within window', () {
+      final now = DateTime(2025, 10, 3, 12);
+      final within = List.generate(20, (i) => {
+        'date': now.subtract(Duration(days: 1, minutes: 20 - i)),
+        'points': i.toDouble(),
+        'group_size': i.toDouble(),
+      });
+      final picked = selectScatterSeries(within, now: now, mode: ScatterMode.adaptive);
+      expect(picked.length, 20);
+    });
+
+    test('adaptive caps to 40 when between 21 and 60', () {
+      final now = DateTime(2025, 10, 3, 12);
+      final within = List.generate(50, (i) => {
+        'date': now.subtract(Duration(days: 1, minutes: 50 - i)),
+        'points': i.toDouble(),
+        'group_size': i.toDouble(),
+      });
+      final picked = selectScatterSeries(within, now: now, mode: ScatterMode.adaptive);
+      expect(picked.length, 40);
+      // most recent preserved
+      expect(picked.last['date'].isAtSameMomentAs(within.last['date']), isTrue);
+    });
+
+    test('empty input returns empty list', () {
+      final picked = selectScatterSeries([], now: DateTime(2025, 10, 3), mode: ScatterMode.last10);
+      expect(picked, isEmpty);
+    });
   });
 }
