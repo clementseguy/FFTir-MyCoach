@@ -2,6 +2,15 @@
 
 Toutes les modifications notables de ce projet seront listées ici.
 
+## [0.4.0] - Unreleased
+### Technical
+- T1: Intégration SonarCloud (acceptation: badge visible, Quality Gate ≥ B, couverture ≥ 20%).
+    - CI GitHub Actions: analyse automatique à chaque push sur `dev` et sur chaque PR vers `main`.
+    - Import de la couverture via LCOV (`flutter test --coverage` → `coverage/lcov.info`).
+    - Badges SonarCloud ajoutés au README (Quality Gate, Coverage, Maintainability, Reliability, Security).
+    - Anti‑doublons: garde qui évite les exécutions redondantes (push vs PR) et `concurrency` par ref.
+    - Analyse de `main` sans push direct: triggers `workflow_dispatch` (manuel) et `schedule` quotidien.
+
 ## [0.3.0] - 2025-09-29
 ### Added
 - Sessions :
