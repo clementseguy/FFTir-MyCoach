@@ -16,13 +16,15 @@ class CoachAnalysisService {
   final String apiUrl;
   final String model;
   final String promptTemplate; // Contenu de coach_prompt.yaml -> key 'prompt'
+  final http.Client _client;
 
   CoachAnalysisService({
     required this.apiKey,
     required this.apiUrl,
     required this.model,
     required this.promptTemplate,
-  });
+    http.Client? client,
+  }) : _client = client ?? http.Client();
 
   /// Construit le prompt complet à partir du template et de la session.
   /// Idempotent / sans effet de bord.
@@ -62,7 +64,7 @@ class CoachAnalysisService {
   Future<String> fetchAnalysis(String fullPrompt) async {
     http.Response response;
     try {
-      response = await http
+      response = await _client
           .post(
             Uri.parse(apiUrl),
             headers: {
