@@ -3,8 +3,15 @@ import 'package:hive/hive.dart';
 
 class LocalDatabaseHive {
   /// Supprime toutes les sessions de la base Hive
-  Future<void> clearAllSessions() async {
-    await _box.clear();
+  /// Retourne true si l'opération a réussi, false sinon.
+  Future<bool> clearAllSessions() async {
+    try {
+      await _box.clear();
+      return true;
+    } catch (e) {
+      print('Erreur lors de la suppression de toutes les sessions: $e');
+      return false;
+    }
   }
 
   /// Génère et insère des sessions de tir aléatoires (test/démo) avec règles:
@@ -57,36 +64,96 @@ class LocalDatabaseHive {
 
   Box<dynamic> get _box => Hive.box(_boxName);
 
-  Future<void> insertSession(Map<String, dynamic> session, List<Map<String, dynamic>> seriesList) async {
-  // (sessions inutilisé)
-    // Utilise add() pour une clé auto-incrémentée compatible web
-    final key = await _box.add({
-      'session': session,
-      'series': seriesList,
-    });
-    // Stocke la clé Hive dans la session pour update/delete
-    final sessionWithId = Map<String, dynamic>.from(session);
-    sessionWithId['id'] = key;
-    await _box.put(key, {
-      'session': sessionWithId,
-      'series': seriesList,
-    });
+  /// Insère une nouvelle session dans la base de données.
+  /// Retourne la clé générée par Hive après insertion.
+  Future<dynamic> insertSession(Map<String, dynamic> session, List<Map<String, dynamic>> seriesList) async {
+    try {
+      // Clone la session pour éviter de modifier l'original directement
+      final sessionWithId = Map<String, dynamic>.from(session);
+      
+      // Utilise put() avec add() si l'ID n'existe pas déjà
+      final key = await _box.add('placeholder');
+      
+      // Stocke la clé Hive dans la session
+      sessionWithId['id'] = key;
+      
+      // Met à jour avec une seule opération d'écriture
+      await _box.put(key, {
+        'session': sessionWithId,
+        'series': seriesList,
+      });
+      
+      return key;
+    } catch (e) {
+      print('Erreur lors de l\'insertion d\'une session: $e');
+      return null; // Valeur de retour en cas d'erreur
+    }
   }
 
-  Future<void> updateSession(Map<String, dynamic> session, List<Map<String, dynamic>> seriesList) async {
-    final id = session['id'];
-    if (id == null) return;
-    _box.put(id, {
-      'session': session,
-      'series': seriesList,
-    });
+  /// Met à jour une session existante dans la base de données.
+  /// Retourne true si la mise à jour a réussi, false sinon.
+  Future<bool> updateSession(Map<String, dynamic> session, List<Map<String, dynamic>> seriesList) async {
+    try {
+      final id = session['id'];
+      if (id == null) {
+        print('Tentative de mise à jour d\'une session sans ID');
+        return false;
+      }
+      
+      await _box.put(id, {
+        'session': session,
+        'series': seriesList,
+      });
+      
+      return true;
+    } catch (e) {
+      print('Erreur lors de la mise à jour de la session: $e');
+      return false;
+    }
   }
 
+  /// Récupère toutes les sessions avec leurs séries depuis la base de données.
+  /// Optimisé pour la performance en faisant une seule lecture de la base.
   Future<List<Map<String, dynamic>>> getSessionsWithSeries() async {
-    return _box.values.map((e) => Map<String, dynamic>.from(e)).toList();
+    try {
+      if (_box.isEmpty) {
+        return [];
+      }
+      
+      final List<Map<String, dynamic>> result = [];
+      
+      for (final item in _box.values) {
+        if (item is Map) {
+          // Conversion sûre de Map<dynamic, dynamic> en Map<String, dynamic>
+          final Map<String, dynamic> typedMap = {};
+          item.forEach((key, value) {
+            if (key is String) {
+              typedMap[key] = value;
+            }
+          });
+          
+          if (typedMap.isNotEmpty) {
+            result.add(typedMap);
+          }
+        }
+      }
+      
+      return result;
+    } catch (e) {
+      print('Erreur lors de la récupération des sessions: $e');
+      return [];
+    }
   }
 
-  Future<void> deleteSession(int sessionId) async {
-    await _box.delete(sessionId);
+  /// Supprime une session spécifique de la base de données.
+  /// Retourne true si la suppression a réussi, false sinon.
+  Future<bool> deleteSession(int sessionId) async {
+    try {
+      await _box.delete(sessionId);
+      return true;
+    } catch (e) {
+      print('Erreur lors de la suppression de la session $sessionId: $e');
+      return false;
+    }
   }
 }

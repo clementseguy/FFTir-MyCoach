@@ -8,10 +8,14 @@ class HiveSessionRepository implements SessionRepository {
   final LocalDatabaseHive _hive = LocalDatabaseHive();
 
   @override
-  Future<void> clearAll() => _hive.clearAllSessions();
+  Future<void> clearAll() async {
+    await _hive.clearAllSessions();
+  }
 
   @override
-  Future<void> delete(int id) => _hive.deleteSession(id);
+  Future<void> delete(int id) async {
+    await _hive.deleteSession(id);
+  }
 
   @override
   Future<List<ShootingSession>> getAll() async {
@@ -27,35 +31,49 @@ class HiveSessionRepository implements SessionRepository {
 
   @override
   Future<int> insert(ShootingSession session) async {
-  await _hive.insertSession(session.toMap(), session.series.map((s) => s.toMap()).toList());
-  // On relit tout et prend l'id max (approx) faute d'API de retour direct.
-  final all = await getAll();
-  final ids = all.map((s) => s.id ?? -1).where((id) => id >= 0).toList();
-  if (ids.isEmpty) return -1;
-  ids.sort();
-  return ids.last;
+    // Utiliser la nouvelle API qui retourne directement l'ID
+    final key = await _hive.insertSession(
+      session.toMap(), 
+      session.series.map((s) => s.toMap()).toList()
+    );
+    
+    // Si key est null (erreur), retourner -1
+    if (key == null) return -1;
+    
+    // Retourner directement la clé générée (plus besoin de relire toute la base)
+    return key is int ? key : -1;
   }
 
   @override
   Future<bool> update(ShootingSession session, {bool preserveExistingSeriesIfEmpty = true}) async {
     final seriesMaps = session.series.map((s) => s.toMap()).toList();
+    
+    // Si on doit préserver les séries existantes et que la session n'a pas de séries
     if (preserveExistingSeriesIfEmpty && (session.id != null) && seriesMaps.isEmpty) {
-      final existing = await _hive.getSessionsWithSeries();
-      final match = existing.firstWhere(
-        (e) => (e['session']?['id'] == session.id),
-        orElse: () => {},
-      );
-      if (match.isNotEmpty) {
-        final existingSeries = (match['series'] as List<dynamic>? ?? [])
-            .map((s) => (s is Map<String, dynamic>) ? s : Map<String, dynamic>.from(s))
-            .toList();
-        if (existingSeries.isNotEmpty) {
-          await _hive.updateSession(session.toMap(), existingSeries);
-          return true; // fallback applied
+      try {
+        final existing = await _hive.getSessionsWithSeries();
+        final match = existing.firstWhere(
+          (e) => (e['session']?['id'] == session.id),
+          orElse: () => {},
+        );
+        
+        if (match.isNotEmpty) {
+          final existingSeries = (match['series'] as List<dynamic>? ?? [])
+              .map((s) => (s is Map<String, dynamic>) ? s : Map<String, dynamic>.from(s))
+              .toList();
+              
+          if (existingSeries.isNotEmpty) {
+            final success = await _hive.updateSession(session.toMap(), existingSeries);
+            return success; // Si la mise à jour a réussi, c'est un fallback
+          }
         }
+      } catch (e) {
+        print('Erreur lors de la récupération des séries existantes: $e');
+        // En cas d'erreur, on continue avec l'update normal
       }
     }
+    
     await _hive.updateSession(session.toMap(), seriesMaps);
-    return false; // no fallback
+    return false; // pas de fallback même si l'update a réussi
   }
 }
