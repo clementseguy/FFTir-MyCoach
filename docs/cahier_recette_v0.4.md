@@ -33,10 +33,19 @@ Résultats attendus:
 ## DASH-01 — Tableau de bord – statistiques récap
 Objectif: Afficher les statistiques macro et les dernières tendances.
 Étapes:
-1. Ouvrir l’accueil/Tableau de bord
-2. Vérifier l’affichage des indicateurs (réalisés total, 7/30/60/90j) et cartes récap
+1. Créer/ajouter une session avec au moins 1 série
+2. Ouvrir l’accueil/Tableau de bord (onglet Synthèse)
+3. Vérifier l’affichage des indicateurs (réalisés total, 7/30/60/90j) et cartes récap
 Résultats attendus:
 - Les valeurs sont cohérentes avec les sessions existantes
+
+## DASH-02 — Tableau de bord – statistiques avancées
+Objectif: Vérifier la mise à jour des statistiques dans l’onglet Avancé.
+Étapes:
+1. Créer/ajouter une session avec au moins 1 série
+2. Ouvrir le Tableau de bord (onglet Avancé)
+Résultats attendus:
+- Les statistiques et graphes sont mis à jour avec la nouvelle session
 
 ## GOAL-01 — Objectifs – création/édition et listing
 Objectif: Créer un objectif, vérifier son affichage et sa progression.
@@ -56,24 +65,46 @@ Objectif: Créer un exercice et l’associer à une session.
 Résultats attendus:
 - L’exercice apparaît dans la liste et l’association session ↔ exercice est visible
 
+## EX-02 — Exercices – session prévue depuis un exercice d’entraînement
+Objectif: Vérifier que le nombre de séries prévues correspond au nombre de consignes.
+Étapes:
+1. Créer un exercice de type "entraînement" avec 3 consignes
+2. Transformer cet exercice en session prévue
+Résultats attendus:
+- La session prévue est créée avec un nombre de séries égal au nombre de consignes (3)
+
 ## CAL-01 — Calibres – autocomplétion + préférence par défaut
 Objectif: Saisie de calibre assistée et préremplie si préférence définie.
 Étapes:
 1. Ouvrir création de session, focus sur calibre → voir liste complète
 2. Taper un alias (ex: 9mm) et sélectionner une option
-3. Dans Réglages, définir “Calibre par défaut”, créer une nouvelle session
 Résultats attendus:
 - La liste s’affiche au focus
 - La sélection remplit le champ correctement
-- Le champ calibre est prérempli si une préférence est définie (sinon vide)
+
+## CAL-02 — Calibres – préférence par défaut
+Objectif: Préremplir le champ calibre depuis la préférence utilisateur.
+Étapes:
+1. Aller dans Préférences et sélectionner un calibre par défaut
+2. Créer une nouvelle session
+Résultats attendus:
+- Le champ calibre est prérempli avec le calibre par défaut
 
 ## PREF-01 — Réglages – préférences utilisateur (Hive)
-Objectif: Mettre à jour une préférence et vérifier l’effet dans l’app.
+Objectif: Tester la préférence "1 main / 2 mains" et son effet de préremplissage.
 Étapes:
-1. Ouvrir l’écran Réglages, modifier une préférence (ex: main dominante, calibre par défaut)
-2. Créer une nouvelle ressource impactée (session/exercice) et vérifier le préremplissage
+1. Ouvrir l’écran Réglages et régler la préférence de prise d’arme (1 main / 2 mains)
+2. Créer une nouvelle session et vérifier le préremplissage de la prise
 Résultats attendus:
-- La préférence est persistée et appliquée
+- La préférence est persistée et appliquée au formulaire de session
+
+## PREF-02 — Réglages – préférence calibre
+Objectif: Tester la préférence de calibre (saisie assistée + persistance).
+Étapes:
+1. Ouvrir l’écran Réglages et modifier la préférence de calibre (autocomplétion: la liste apparaît lors de la saisie)
+2. Sauvegarder, puis rouvrir les préférences pour vérifier la persistance
+Résultats attendus:
+- La liste de calibres apparaît bien lors de la saisie et la valeur choisie est persistée
 
 ## EXP-01 — Export sessions
 Objectif: Exporter les sessions et vérifier le fichier généré.

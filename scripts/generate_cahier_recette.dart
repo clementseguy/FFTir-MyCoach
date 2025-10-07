@@ -12,6 +12,16 @@ void main(List<String> args) async {
   final yamlContent = await yamlFile.readAsString();
   final data = loadYaml(yamlContent) as YamlMap;
 
+  String norm(Object? v) {
+    if (v == null) return '';
+    var s = v.toString();
+    // Strip accidental leading/trailing braces that sometimes appear
+    if (s.length >= 2 && s.startsWith('{') && s.endsWith('}')) {
+      s = s.substring(1, s.length - 1);
+    }
+    return s;
+  }
+
   final version = data['version'] ?? 'v0.4';
   final lastUpdated = data['last_updated'] ?? DateTime.now().toIso8601String();
   final features = (data['features'] as YamlList?) ?? YamlList();
@@ -25,12 +35,18 @@ void main(List<String> args) async {
 
   for (final f in features) {
     final m = f as YamlMap;
-    final id = m['id'] ?? '';
-    final name = m['name'] ?? '';
-    final objectif = m['objectif'] ?? '';
-    final preconditions = (m['preconditions'] as YamlList?)?.cast() ?? const [];
-    final steps = (m['steps'] as YamlList?)?.cast() ?? const [];
-    final expected = (m['expected'] as YamlList?)?.cast() ?? const [];
+  final id = norm(m['id']);
+  final name = norm(m['name']);
+  final objectif = norm(m['objectif']);
+  final preconditions = ((m['preconditions'] as YamlList?)?.toList() ?? const [])
+    .map((e) => norm(e))
+    .toList();
+  final steps = ((m['steps'] as YamlList?)?.toList() ?? const [])
+    .map((e) => norm(e))
+    .toList();
+  final expected = ((m['expected'] as YamlList?)?.toList() ?? const [])
+    .map((e) => norm(e))
+    .toList();
 
     buf.writeln('## $id — $name');
     if (objectif.toString().isNotEmpty) {
