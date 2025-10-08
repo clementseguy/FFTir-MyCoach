@@ -14,7 +14,6 @@ import 'package:tir_sportif/app/my_app.dart';
 import 'package:tir_sportif/providers/navigation_provider.dart';
 import 'package:tir_sportif/providers/settings_provider.dart';
 
-import 'package:tir_sportif/main.dart';
 import 'package:tir_sportif/config/app_config.dart';
 import 'package:tir_sportif/constants/session_constants.dart';
 import 'package:tir_sportif/migrations/migration.dart';
