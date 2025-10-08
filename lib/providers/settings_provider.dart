@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../services/backup_service.dart';
 import '../services/session_service.dart';
-import 'dart:io';
 
 /// Provider pour gérer l'état de l'écran des paramètres
 class SettingsProvider extends ChangeNotifier {
