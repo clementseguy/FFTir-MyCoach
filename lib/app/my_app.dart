@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_config.dart';
-import '../navigation/main_navigation.dart';
+import '../navigation/app_router.dart';
 import '../widgets/fade_in_wrapper.dart';
 import '../theme/app_theme.dart';
 
@@ -14,8 +14,10 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.darkTheme,
       home: FadeInWrapper(
         duration: Duration(milliseconds: AppConfig.I.splashFadeDurationMs),
-        child: MainNavigation(),
+        child: AppNavigator(),
       ),
+      onGenerateRoute: AppRouter.generateRoute,
+      initialRoute: AppRouter.home,
     );
   }
 }

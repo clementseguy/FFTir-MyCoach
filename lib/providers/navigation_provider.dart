@@ -7,12 +7,20 @@ class NavigationProvider extends ChangeNotifier {
   /// Index de la page actuellement sélectionnée
   int get selectedIndex => _selectedIndex;
   
+  /// Pour la compatibilité avec AppRouter (alias de selectedIndex)
+  int get currentIndex => _selectedIndex;
+  
   /// Définir la page actuellement sélectionnée
   set selectedIndex(int index) {
     if (index != _selectedIndex && index >= 0 && index <= 4) {
       _selectedIndex = index;
       notifyListeners();
     }
+  }
+  
+  /// Changer l'index courant (pour AppRouter)
+  void changeIndex(int index) {
+    selectedIndex = index;
   }
   
   /// Naviguer vers la page d'accueil
