@@ -7,11 +7,13 @@ import '../services/rolling_stats_service.dart';
 import '../repositories/hive_session_repository.dart';
 import '../constants/session_constants.dart';
 import '../services/stats_contract.dart';
+import '../interfaces/session_service_interface.dart';
+import '../interfaces/rolling_stats_service_interface.dart';
 
 /// Provider qui gère l'état et la logique métier de l'écran d'accueil (HomeScreen)
 class HomeScreenProvider with ChangeNotifier {
-  final SessionService _sessionService = SessionService();
-  final RollingStatsService _rollingService = RollingStatsService(HiveSessionRepository());
+  final ISessionService _sessionService;
+  final IRollingStatsService _rollingService;
 
   List<ShootingSession>? _sessions;
   StatsService? _statsService;
@@ -82,7 +84,15 @@ class HomeScreenProvider with ChangeNotifier {
   List<FlSpot> get pts2 => _pts2;
   List<FlSpot> get grp2 => _grp2;
 
-  HomeScreenProvider() {
+  /// Getter pour accéder aux sessions filtrées
+  List<ShootingSession> get filteredSessions => _sessions ?? [];
+
+  /// Constructeur avec injection de dépendances
+  HomeScreenProvider({
+    ISessionService? sessionService,
+    IRollingStatsService? rollingService,
+  }) : _sessionService = sessionService ?? SessionService(),
+       _rollingService = rollingService ?? RollingStatsService(HiveSessionRepository()) {
     fetchSessions();
   }
 

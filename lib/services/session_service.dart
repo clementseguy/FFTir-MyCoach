@@ -1,11 +1,12 @@
 import '../models/shooting_session.dart';
 import '../repositories/session_repository.dart';
 import '../repositories/hive_session_repository.dart';
+import '../interfaces/session_service_interface.dart';
 import 'logger.dart';
 import '../models/exercise.dart';
 import '../models/series.dart';
 
-class SessionService {
+class SessionService implements ISessionService {
   final SessionRepository _repo;
 
   SessionService({SessionRepository? repository}) : _repo = repository ?? HiveSessionRepository();

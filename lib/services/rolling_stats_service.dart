@@ -1,9 +1,10 @@
 import '../repositories/session_repository.dart';
 import '../utils/session_filters.dart';
+import '../interfaces/rolling_stats_service_interface.dart';
 import 'stats_contract.dart';
 import 'logger.dart';
 
-class RollingStatsService implements RollingStatsCalculator {
+class RollingStatsService implements IRollingStatsService {
   final SessionRepository _repo;
   RollingStatsService(this._repo);
 

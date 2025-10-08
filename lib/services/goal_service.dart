@@ -3,6 +3,7 @@ import '../models/shooting_session.dart';
 import '../repositories/session_repository.dart';
 import '../repositories/hive_session_repository.dart';
 import '../repositories/goal_repository.dart';
+import '../interfaces/goal_service_interface.dart';
 
 /// Lot B: objet valeur regroupant les stats macro pour l'écran Objectifs.
 class MacroAchievementStats {
@@ -22,7 +23,7 @@ class MacroAchievementStats {
   });
 }
 
-class GoalService {
+class GoalService implements IGoalService {
   final SessionRepository _sessions;
   final GoalRepository _goals;
 

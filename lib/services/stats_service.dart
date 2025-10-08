@@ -1,5 +1,6 @@
 import '../models/shooting_session.dart';
 import '../utils/session_filters.dart';
+import '../interfaces/stats_service_interface.dart';
 
 class SeriesStat {
   final DateTime date; // date de la session associée
@@ -16,7 +17,7 @@ class SeriesStat {
   });
 }
 
-class StatsService {
+class StatsService implements IStatsService {
   final List<ShootingSession> sessions;
   late final List<SeriesStat> _series; // séries aplaties
   // Freeze a reference "now" to ensure deterministic date-based computations (useful for tests)
