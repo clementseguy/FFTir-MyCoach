@@ -1,9 +1,48 @@
 import 'package:flutter/material.dart';
 import '../widgets/rules_bottom_sheet.dart';
+import '../widgets/dashboard/dashboard_tab_view.dart';
+import '../services/session_service.dart';
+import '../models/shooting_session.dart';
 
-/// Écran tableau de bord - Contenu supprimé
-class HomeScreen extends StatelessWidget {
+/// Écran tableau de bord avec statistiques
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final SessionService _sessionService = SessionService();
+  List<ShootingSession> _sessions = [];
+  bool _isLoading = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadSessions();
+  }
+  
+  Future<void> _loadSessions() async {
+    try {
+      final sessions = await _sessionService.getAllSessions();
+      if (mounted) {
+        setState(() {
+          _sessions = sessions;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur de chargement: $error')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,34 +58,9 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.construction,
-              size: 64,
-              color: Colors.orange,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Page supprimée',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Le contenu du tableau de bord a été supprimé.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : DashboardTabView(sessions: _sessions),
     );
   }
 }
