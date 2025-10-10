@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../models/shooting_session.dart';
+import '../../models/series.dart';
 import '../../services/dashboard_service.dart';
 import '../../models/dashboard_data.dart';
 import 'stats_summary_cards.dart';
 import 'evolution_chart.dart';
 import 'distribution_bar.dart';
 import 'points_histogram_chart.dart';
+import 'advanced_stats_cards.dart';
+import 'evolution_comparison_widget.dart';
+import 'correlation_scatter_chart.dart';
+import 'hand_specific_chart.dart';
 
 /// Widget principal du dashboard avec onglets Synthèse/Avancé
 class DashboardTabView extends StatefulWidget {
@@ -32,6 +37,13 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
   PointsHistogramData? _pointsHistogram;
   DistributionData? _distanceDistribution;
   
+  // Données avancées
+  AdvancedStatsData? _advancedStats;
+  EvolutionComparisonData? _evolutionComparison;
+  CorrelationData? _correlationData;
+  HandSpecificData? _oneHandData;
+  HandSpecificData? _twoHandsData;
+  
   @override
   void initState() {
     super.initState();
@@ -55,12 +67,20 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
       // Simulation d'un délai de chargement pour montrer l'état loading
       await Future.delayed(const Duration(milliseconds: 200));
       
+      // Données onglet Synthèse
       final summary = _dashboardService.generateSummary();
       final scoreEvolution = _dashboardService.generateScoreEvolution();
       final groupSizeEvolution = _dashboardService.generateGroupSizeEvolution();
       final categoryDistribution = _dashboardService.generateCategoryDistribution();
       final pointsHistogram = _dashboardService.generatePointsDistribution();
       final distanceDistribution = _dashboardService.generateDistanceDistribution();
+      
+      // Données onglet Avancé
+      final advancedStats = _dashboardService.generateAdvancedStats();
+      final evolutionComparison = _dashboardService.generateEvolutionComparison();
+      final correlationData = _dashboardService.generateCorrelationData();
+      final oneHandData = _dashboardService.generateHandSpecificData(HandMethod.oneHand);
+      final twoHandsData = _dashboardService.generateHandSpecificData(HandMethod.twoHands);
       
       if (mounted) {
         setState(() {
@@ -70,6 +90,14 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           _categoryDistribution = categoryDistribution;
           _pointsHistogram = pointsHistogram;
           _distanceDistribution = distanceDistribution;
+          
+          // Données avancées
+          _advancedStats = advancedStats;
+          _evolutionComparison = evolutionComparison;
+          _correlationData = correlationData;
+          _oneHandData = oneHandData;
+          _twoHandsData = twoHandsData;
+          
           _isLoading = false;
         });
       }
@@ -169,40 +197,46 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
   }
   
   Widget _buildAvanceTab() {
-    return const SingleChildScrollView(
-      padding: EdgeInsets.all(16),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Card(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.construction,
-                    size: 64,
-                    color: Colors.orange,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Onglet Avancé',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Statistiques avancées à venir dans une prochaine version.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
+          // Cartes statistiques avancées
+          AdvancedStatsCards(
+            data: _advancedStats,
+            isLoading: _isLoading,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Évolution 30j vs 90j
+          EvolutionComparisonWidget(
+            data: _evolutionComparison,
+            isLoading: _isLoading,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Corrélation Points/Groupement
+          CorrelationScatterChart(
+            data: _correlationData,
+            isLoading: _isLoading,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Points et groupement - 1 main
+          HandSpecificChart(
+            data: _oneHandData ?? const HandSpecificData.empty('Points et groupement - 1 main'),
+            isLoading: _isLoading,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Points et groupement - 2 mains
+          HandSpecificChart(
+            data: _twoHandsData ?? const HandSpecificData.empty('Points et groupement - 2 mains'),
+            isLoading: _isLoading,
           ),
         ],
       ),

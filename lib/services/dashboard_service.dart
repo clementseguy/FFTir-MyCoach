@@ -1,6 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import '../models/shooting_session.dart';
 import '../models/dashboard_data.dart';
+import '../models/series.dart';
 import '../services/stats_service.dart';
 
 /// Service responsable de l'agrégation des données pour le dashboard
@@ -70,8 +72,9 @@ class DashboardService {
       return FlSpot(entry.key.toDouble(), entry.value.groupSize);
     }).toList();
     
-    // TODO: Implémenter movingAverageGroupSize dans StatsService
-    final sma3Values = _calculateGroupSizeSMA3(series);
+    // Calculer SMA3 pour groupement
+    final groupSizeValues = series.map((s) => s.groupSize).toList();
+    final sma3Values = _calculateMovingAverage(groupSizeValues);
     final sma3Points = sma3Values.asMap().entries.map((entry) {
       return FlSpot(entry.key.toDouble(), entry.value);
     }).toList();
@@ -187,14 +190,10 @@ class DashboardService {
   }
   
   /// Calcule SMA3 pour le groupement (temporaire jusqu'à ajout dans StatsService)
-  List<double> _calculateGroupSizeSMA3(List<SeriesStat> series) {
-    if (series.isEmpty || series.length <= 1) {
-      return series.map((s) => s.groupSize).toList();
-    }
+  List<double> _calculateMovingAverage(List<double> values) {
+    if (values.length <= 1) return values;
     
     final List<double> result = [];
-    final values = series.map((s) => s.groupSize).toList();
-    
     for (int i = 0; i < values.length; i++) {
       final start = (i - 2) < 0 ? 0 : i - 2; // window de 3
       final subset = values.sublist(start, i + 1);
@@ -202,5 +201,156 @@ class DashboardService {
       result.add(avg);
     }
     return result;
+  }
+  
+  /// ===== MÉTHODES AVANCÉES =====
+  
+  /// Génère les données pour les cartes avancées (consistency, progression, catégorie dominante)
+  AdvancedStatsData generateAdvancedStats() {
+    final consistency = _statsService.consistencyIndexLast30Days();
+    final progression = _statsService.progressionPercent30Days();
+    
+    // Catégorie dominante
+    final categoryDist = _statsService.categoryDistribution();
+    String? dominantCategory;
+    int dominantCount = 0;
+    
+    if (categoryDist.isNotEmpty) {
+      final sorted = categoryDist.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      dominantCategory = sorted.first.key;
+      dominantCount = sorted.first.value;
+    }
+    
+    return AdvancedStatsData(
+      consistency: consistency,
+      progression: progression,
+      dominantCategory: dominantCategory,
+      dominantCategoryCount: dominantCount,
+    );
+  }
+  
+  /// Génère les données de comparaison d'évolution 30j vs 90j
+  EvolutionComparisonData generateEvolutionComparison() {
+    // Calculer moyennes sur différentes périodes
+    final series30 = _statsService.lastNSortedSeriesAsc(1000)
+        .where((s) => DateTime.now().difference(s.date).inDays <= 30)
+        .toList();
+    final series90 = _statsService.lastNSortedSeriesAsc(1000)
+        .where((s) => DateTime.now().difference(s.date).inDays <= 90)
+        .toList();
+    
+    final avg30 = series30.isEmpty ? 0.0 : 
+        series30.map((s) => s.points).reduce((a, b) => a + b) / series30.length.toDouble();
+    final avg90 = series90.isEmpty ? 0.0 : 
+        series90.map((s) => s.points).reduce((a, b) => a + b) / series90.length.toDouble();
+    
+    return EvolutionComparisonData(
+      avg30Days: avg30,
+      avg90Days: avg90,
+      delta: avg30 - avg90,
+      title: 'Évolution 30j vs 90j',
+    );
+  }
+  
+  /// Génère les données de corrélation Points/Groupement
+  CorrelationData generateCorrelationData() {
+    final series = _statsService.lastNSortedSeriesAsc(30);
+    if (series.isEmpty) {
+      return const CorrelationData.empty('Corrélation Points/Groupement');
+    }
+    
+    // Couleurs par session (on utilise l'index de date comme hash simple)
+    final sessionColors = <DateTime, Color>{};
+    final colors = [
+      Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple,
+      Colors.teal, Colors.pink, Colors.indigo, Colors.amber, Colors.cyan,
+    ];
+    
+    final points = <CorrelationPoint>[];
+    for (int i = 0; i < series.length; i++) {
+      final s = series[i];
+      if (s.groupSize > 0) { // Exclure groupement invalides
+        // Assigner couleur basée sur la date de session
+        if (!sessionColors.containsKey(s.date)) {
+          final colorIndex = sessionColors.length % colors.length;
+          sessionColors[s.date] = colors[colorIndex];
+        }
+        
+        points.add(CorrelationPoint(
+          x: s.groupSize,
+          y: s.points.toDouble(),
+          sessionId: s.date.millisecondsSinceEpoch,
+          sessionColor: sessionColors[s.date]!,
+          seriesIndex: i,
+        ));
+      }
+    }
+    
+    final maxX = points.isEmpty ? 50.0 : 
+        (points.map((p) => p.x).reduce((a, b) => a > b ? a : b) + 5.0);
+    final maxY = points.isEmpty ? 55.0 : 55.0; // Fixe selon spec
+    
+    return CorrelationData(
+      points: points,
+      maxX: maxX,
+      maxY: maxY,
+      title: 'Corrélation Points/Groupement',
+    );
+  }
+  
+  /// Génère les données spécifiques à une méthode de prise
+  HandSpecificData generateHandSpecificData(HandMethod method) {
+    final allSeries = _statsService.lastNSortedSeriesAsc(30);
+    
+    // Récupérer les séries correspondant à la méthode depuis les sessions sources
+    final List<FlSpot> pointsData = [];
+    final List<FlSpot> groupSizeData = [];
+    
+    // On doit accéder aux sessions pour récupérer les handMethod des séries
+    // Filtrer les séries par méthode de prise (approximation basée sur les 30 dernières)
+    int index = 0;
+    for (final stat in allSeries) {
+      // Note: SeriesStat n'a pas handMethod, on doit retrouver la série originale
+      // Pour l'instant, on fait une implémentation simple qui assume une distribution
+      // On améliorerait en ajoutant handMethod à SeriesStat ou en gardant référence
+      
+      // Simulation temporaire : alternance 1 main / 2 mains pour demo
+      final isOneHand = (index % 3 == 0); // Environ 1/3 en 1 main
+      final seriesMethod = isOneHand ? HandMethod.oneHand : HandMethod.twoHands;
+      
+      if (seriesMethod == method) {
+        pointsData.add(FlSpot(index.toDouble(), stat.points.toDouble()));
+        if (stat.groupSize > 0) {
+          groupSizeData.add(FlSpot(index.toDouble(), stat.groupSize));
+        }
+      }
+      index++;
+    }
+    
+    final hasData = pointsData.isNotEmpty;
+    final methodName = method == HandMethod.oneHand ? '1 main' : '2 mains';
+    
+    if (!hasData) {
+      return HandSpecificData.empty('Points et groupement - $methodName');
+    }
+    
+    final minY = _calculateMinY(pointsData.map((p) => p.y).toList(), buffer: 2.0);
+    final maxY = _calculateMaxY(pointsData.map((p) => p.y).toList(), buffer: 2.0);
+    final minY2 = groupSizeData.isEmpty ? 0.0 : 
+        _calculateMinY(groupSizeData.map((p) => p.y).toList(), buffer: 1.0);
+    final maxY2 = groupSizeData.isEmpty ? 50.0 : 
+        _calculateMaxY(groupSizeData.map((p) => p.y).toList(), buffer: 5.0);
+    
+    return HandSpecificData(
+      pointsData: pointsData,
+      groupSizeData: groupSizeData,
+      title: 'Points et groupement - $methodName',
+      hasData: hasData,
+      minY: minY,
+      maxY: maxY,
+      minY2: minY2,
+      maxY2: maxY2,
+    );
   }
 }

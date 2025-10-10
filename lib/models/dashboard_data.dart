@@ -1,4 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 
 /// Modèle de données pour le récapitulatif dashboard (5 cartes)
 class DashboardSummary {
@@ -105,4 +106,119 @@ class HistogramBucket {
     required this.startValue,
     required this.endValue,
   });
+}
+
+/// ===== MODÈLES AVANCÉS =====
+
+/// Données pour les cartes statistiques avancées
+class AdvancedStatsData {
+  final double consistency; // 0-100 ou -1 si pas assez de données
+  final double progression; // pourcentage ou NaN si pas assez de données  
+  final String? dominantCategory; // null si pas de données
+  final int dominantCategoryCount;
+  
+  const AdvancedStatsData({
+    required this.consistency,
+    required this.progression,
+    required this.dominantCategory,
+    required this.dominantCategoryCount,
+  });
+  
+  const AdvancedStatsData.empty()
+      : consistency = -1,
+        progression = double.nan,
+        dominantCategory = null,
+        dominantCategoryCount = 0;
+}
+
+/// Données pour la comparaison d'évolutions 30j/90j
+class EvolutionComparisonData {
+  final double avg30Days;
+  final double avg90Days;
+  final double delta; // avg30 - avg90
+  final String title;
+  
+  const EvolutionComparisonData({
+    required this.avg30Days,
+    required this.avg90Days,
+    required this.delta,
+    required this.title,
+  });
+  
+  const EvolutionComparisonData.empty(String title)
+      : avg30Days = 0,
+        avg90Days = 0,
+        delta = 0,
+        title = title;
+}
+
+/// Point pour le nuage de corrélation
+class CorrelationPoint {
+  final double x; // groupement
+  final double y; // score
+  final int sessionId;
+  final Color sessionColor;
+  final int seriesIndex;
+  
+  const CorrelationPoint({
+    required this.x,
+    required this.y,
+    required this.sessionId,
+    required this.sessionColor,
+    required this.seriesIndex,
+  });
+}
+
+/// Données pour le nuage de corrélation Points/Groupement
+class CorrelationData {
+  final List<CorrelationPoint> points;
+  final double maxX;
+  final double maxY;
+  final String title;
+  
+  const CorrelationData({
+    required this.points,
+    required this.maxX,
+    required this.maxY,
+    required this.title,
+  });
+  
+  const CorrelationData.empty(String title)
+      : points = const [],
+        maxX = 50,
+        maxY = 55,
+        title = title;
+}
+
+/// Données pour les graphiques spécifiques à une méthode de prise
+class HandSpecificData {
+  final List<FlSpot> pointsData; // courbe points
+  final List<FlSpot> groupSizeData; // courbe groupement
+  final String title;
+  final bool hasData; // true si au moins une série avec cette méthode
+  final double minY;
+  final double maxY;
+  final double minY2; // pour groupement
+  final double maxY2; // pour groupement
+  
+  const HandSpecificData({
+    required this.pointsData,
+    required this.groupSizeData,
+    required this.title,
+    required this.hasData,
+    required this.minY,
+    required this.maxY,
+    required this.minY2,
+    required this.maxY2,
+  });
+  
+  const HandSpecificData.empty(String title)
+      : pointsData = const [],
+        groupSizeData = const [],
+        title = title,
+        hasData = false,
+        minY = 0,
+        maxY = 50,
+        minY2 = 0,
+        maxY2 = 50;
 }
