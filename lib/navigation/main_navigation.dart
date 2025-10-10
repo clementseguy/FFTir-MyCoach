@@ -15,7 +15,7 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  int _selectedIndex = 2; // 0: Coach, 1: Exercices, 2: Accueil, 3: Historique, 4: Paramètres
+  int _selectedIndex = 3; // 0: Coach, 1: Exercices, 2: Accueil, 3: Historique, 4: Paramètres
 
   final GlobalKey<SessionsHistoryScreenState> _historyKey = GlobalKey<SessionsHistoryScreenState>();
 

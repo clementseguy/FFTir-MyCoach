@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Provider pour gérer la navigation principale de l'application
 class NavigationProvider extends ChangeNotifier {
-  int _selectedIndex = 2; // Par défaut: tableau de bord
+  int _selectedIndex = 3; // Par défaut: sessions
   
   /// Index de la page actuellement sélectionnée
   int get selectedIndex => _selectedIndex;

@@ -2,6 +2,10 @@
 
 Portée: décrit UNIQUEMENT l'existant (implémenté) pour l'écran Accueil. Aucune projection future.
 
+## 0. Révision
+2025-10-03 Réécriture propre (existant only).
+2025-10-10 Ajout section 
+
 ## 1. Sources & Préparation (Lot C)
 - Filtrage centralisé AVANT tout calcul: `SessionFilters.realizedWithDate` exclut systématiquement les sessions au statut `prévue` et sans date. Utilisé par `StatsService` et `RollingStatsService`.
 - Construction `_series` (`StatsService`): sur la base des sessions filtrées, chaque série hérite de la date session, puis l’ensemble est trié par date ASC. Ordre strict intra-session respecté (F14).
@@ -93,5 +97,48 @@ Prendre les 30 dernières séries (après aplatissement ASC) → spots (group_si
 - Rolling: filtrage statut appliqué (Lot C) → cohérence avec les autres métriques.
 - Scatter biaisé: sélection d'abord des 10 dernières sessions puis découpe à 10 séries → certaines séries récentes hors de ces sessions peuvent être exclues.
 
-## 8. Révision
-2025-10-03 Réécriture propre (existant only).
+## 8. Présentation
+- Onglet "Synthèse"
+	- Carré :
+		Moyenne points 30 jours
+		Groupement moyen 30 jours
+		Best série : min absolu > 0
+		Sessions ce mois : nombre de sessions du mois en cours
+	- Evolution points par série
+		- 30 dernières séries
+		- Points
+		- Tendance SMA3
+	- Evolution groupement (cm)
+		- 30 dernières séries
+		- Groupement
+	- Répartition catégorie
+		- flat bar
+	- Distribution points 
+		- barres
+		- par score de série
+		- par dizaine
+	Répartition distances (30j)
+		- barres
+		- par distances (10, 25 et 50)
+- Onglet "Avancé"
+	- Cartes
+		Consistency : x% (c'est quoi ?)
+		Progression : +/- x% (c'est quoi ?)
+		Distance fréquente : x m (nb série)
+		Catégorie dominante
+	- Rolling 30 jours vs 60 jours
+		- Moyenne 30 : score session ?
+		- Moyenne 60 : score session ?
+		- Delta : moy30 - moy60
+	- Badges
+		Streak : x J (useless)
+		Charge : x (+/- x) (comprends pas)
+		Best groupement : x cm
+	- Corrélation Points / Groupement
+		- Graphe à point
+	- Points et groupement - 1 main
+		- Score série
+		- Groupement série
+	- Points et groupement - 2 mains
+		- Score série
+		- Groupement série
