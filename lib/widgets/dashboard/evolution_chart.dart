@@ -151,8 +151,8 @@ class EvolutionChart extends StatelessWidget {
             ),
             belowBarData: BarAreaData(show: false),
           ),
-          // Courbe SMA3 (tendance) - temporairement désactivée pour Evolution Score
-          if (data.sma3Points.isNotEmpty && data.title != 'Évolution Score')
+          // Courbe SMA3 (tendance)
+          if (data.sma3Points.isNotEmpty)
             LineChartBarData(
               spots: data.sma3Points,
               isCurved: true,
@@ -220,7 +220,7 @@ class EvolutionChart extends StatelessWidget {
           label: data.unit == 'pts' ? 'Points' : 'Groupement',
         ),
         const SizedBox(width: 16),
-        if (data.sma3Points.isNotEmpty && data.title != 'Évolution Score')
+        if (data.sma3Points.isNotEmpty)
           _LegendItem(
             color: _getSecondaryColor(),
             label: 'Tendance SMA3',

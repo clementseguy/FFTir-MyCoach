@@ -43,7 +43,9 @@ class DashboardService {
       return FlSpot(entry.key.toDouble(), entry.value.points.toDouble());
     }).toList();
     
-    final sma3Values = _statsService.movingAveragePoints(window: 3);
+    // Calculer SMA3 pour les scores (même logique que pour groupement)
+    final scoreValues = series.map((s) => s.points.toDouble()).toList();
+    final sma3Values = _calculateMovingAverage(scoreValues);
     final sma3Points = sma3Values.asMap().entries.map((entry) {
       return FlSpot(entry.key.toDouble(), entry.value);
     }).toList();
