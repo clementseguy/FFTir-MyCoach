@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../models/dashboard_data.dart';
+import '../../utils/mobile_utils.dart';
 
 /// Widget réutilisable pour afficher l'évolution des scores ou groupements
 class EvolutionChart extends StatelessWidget {
@@ -30,9 +31,12 @@ class EvolutionChart extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            // Légende pour améliorer la lisibilité
+            _buildLegend(context),
+            const SizedBox(height: 12),
             Expanded(
-              child: isLoading ? _buildLoadingChart() : _buildChart(),
+              child: isLoading ? _buildLoadingChart() : _buildChart(context),
             ),
           ],
         ),
@@ -52,7 +56,7 @@ class EvolutionChart extends StatelessWidget {
     );
   }
 
-  Widget _buildChart() {
+  Widget _buildChart(BuildContext context) {
     if (data.dataPoints.isEmpty) {
       return _buildEmptyState();
     }
@@ -70,6 +74,30 @@ class EvolutionChart extends StatelessWidget {
               strokeWidth: 1,
             );
           },
+        ),
+        // Configuration des tooltips améliorés
+        lineTouchData: LineTouchData(
+          enabled: !MobileUtils.isMobile(context), // Désactiver sur mobile pour éviter les interactions non voulues
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (List<LineBarSpot> touchedSpots) {
+              return touchedSpots.map((LineBarSpot touchedSpot) {
+                // Déterminer quelle courbe est touchée
+                final isMainData = touchedSpot.barIndex == 0;
+                final curveName = isMainData 
+                    ? (data.unit == 'pts' ? 'Points' : 'Groupement')
+                    : 'Tendance SMA3';
+                
+                return LineTooltipItem(
+                  '$curveName\n${touchedSpot.y.toStringAsFixed(1)}${data.unit}',
+                  TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                );
+              }).toList();
+            },
+          ),
         ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
@@ -92,17 +120,7 @@ class EvolutionChart extends StatelessWidget {
                   ? (data.dataPoints.length / 5).ceil().toDouble()
                   : 1,
               getTitlesWidget: (value, meta) {
-                final index = value.toInt();
-                if (index >= 0 && index < data.dataPoints.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      '${index + 1}',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
+                return _buildDateLabel(value.toInt());
               },
             ),
           ),
@@ -133,8 +151,8 @@ class EvolutionChart extends StatelessWidget {
             ),
             belowBarData: BarAreaData(show: false),
           ),
-          // Courbe SMA3 (tendance)
-          if (data.sma3Points.isNotEmpty)
+          // Courbe SMA3 (tendance) - temporairement désactivée pour Evolution Score
+          if (data.sma3Points.isNotEmpty && data.title != 'Évolution Score')
             LineChartBarData(
               spots: data.sma3Points,
               isCurved: true,
@@ -192,11 +210,109 @@ class EvolutionChart extends StatelessWidget {
     );
   }
 
+  /// Construit la légende pour améliorer la lisibilité
+  Widget _buildLegend(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _LegendItem(
+          color: _getPrimaryColor(),
+          label: data.unit == 'pts' ? 'Points' : 'Groupement',
+        ),
+        const SizedBox(width: 16),
+        if (data.sma3Points.isNotEmpty && data.title != 'Évolution Score')
+          _LegendItem(
+            color: _getSecondaryColor(),
+            label: 'Tendance SMA3',
+          ),
+      ],
+    );
+  }
+
   Color _getPrimaryColor() {
     return data.unit == 'pts' ? Colors.amber : Colors.blue;
   }
 
   Color _getSecondaryColor() {
-    return data.unit == 'pts' ? Colors.orange : Colors.lightBlue;
+    // Amélioration du contraste pour meilleure lisibilité - SMA3 plus contrastée
+    return data.unit == 'pts' ? Colors.deepOrange : Colors.red.shade700;
+  }
+
+  /// Construit l'étiquette de date avec déduplication intelligente
+  Widget _buildDateLabel(int index) {
+    if (index < 0 || index >= data.seriesDates.length) {
+      return const SizedBox.shrink();
+    }
+    
+    final currentDate = data.seriesDates[index];
+    
+    // Afficher la date seulement si c'est la première série de cette date
+    bool shouldShowDate = true;
+    if (index > 0) {
+      final previousDate = data.seriesDates[index - 1];
+      // Si même jour que la série précédente, ne pas afficher
+      if (_isSameDay(currentDate, previousDate)) {
+        shouldShowDate = false;
+      }
+    }
+    
+    if (!shouldShowDate) {
+      return const SizedBox.shrink();
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        '${currentDate.day}/${currentDate.month}',
+        style: const TextStyle(fontSize: 9),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+  
+  /// Vérifie si deux dates sont le même jour
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+           date1.month == date2.month &&
+           date1.day == date2.day;
+  }
+
+
+
+}
+
+/// Widget pour un élément de légende
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendItem({
+    required this.color,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
   }
 }

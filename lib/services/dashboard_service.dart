@@ -48,12 +48,16 @@ class DashboardService {
       return FlSpot(entry.key.toDouble(), entry.value);
     }).toList();
     
+    // Extraire les dates des séries
+    final seriesDates = series.map((s) => s.date).toList();
+    
     final minY = _calculateMinY(series.map((s) => s.points.toDouble()).toList(), buffer: 5.0);
     final maxY = _calculateMaxY(series.map((s) => s.points.toDouble()).toList(), buffer: 5.0);
     
     return EvolutionData(
       dataPoints: dataPoints,
       sma3Points: sma3Points,
+      seriesDates: seriesDates,
       title: 'Évolution Score',
       unit: 'pts',
       minY: minY,
@@ -79,12 +83,16 @@ class DashboardService {
       return FlSpot(entry.key.toDouble(), entry.value);
     }).toList();
     
+    // Extraire les dates des séries
+    final seriesDates = series.map((s) => s.date).toList();
+    
     final minY = _calculateMinY(series.map((s) => s.groupSize).toList(), buffer: 1.0);
     final maxY = _calculateMaxY(series.map((s) => s.groupSize).toList(), buffer: 1.0);
     
     return EvolutionData(
       dataPoints: dataPoints,
       sma3Points: sma3Points,
+      seriesDates: seriesDates,
       title: 'Évolution Groupement',
       unit: 'cm',
       minY: minY,

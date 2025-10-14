@@ -36,6 +36,7 @@ class DashboardSummary {
 class EvolutionData {
   final List<FlSpot> dataPoints;
   final List<FlSpot> sma3Points;
+  final List<DateTime> seriesDates; // dates des séries pour affichage axe X
   final String title;
   final String unit;
   final double minY;
@@ -44,6 +45,7 @@ class EvolutionData {
   const EvolutionData({
     required this.dataPoints,
     required this.sma3Points,
+    required this.seriesDates,
     required this.title,
     required this.unit,
     required this.minY,
@@ -54,6 +56,7 @@ class EvolutionData {
   const EvolutionData.empty(String title, String unit)
       : dataPoints = const [],
         sma3Points = const [],
+        seriesDates = const [],
         title = title,
         unit = unit,
         minY = 0.0,

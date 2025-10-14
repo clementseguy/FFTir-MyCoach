@@ -5,7 +5,7 @@ import '../../services/dashboard_service.dart';
 import '../../models/dashboard_data.dart';
 import 'stats_summary_cards.dart';
 import 'evolution_chart.dart';
-import 'distribution_bar.dart';
+import 'flat_distribution_bar.dart';
 import 'points_histogram_chart.dart';
 import 'advanced_stats_cards.dart';
 import 'evolution_comparison_widget.dart';
@@ -170,8 +170,8 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           
           const SizedBox(height: 16),
           
-          // Répartition catégories
-          DistributionBar(
+          // Répartition catégories - flat bar segmentée
+          FlatDistributionBar(
             data: _categoryDistribution ?? const DistributionData.empty('Répartition Catégories'),
             isLoading: _isLoading,
           ),
@@ -186,8 +186,8 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           
           const SizedBox(height: 16),
           
-          // Répartition distances
-          DistributionBar(
+          // Répartition distances - flat bar segmentée
+          FlatDistributionBar(
             data: _distanceDistribution ?? const DistributionData.empty('Répartition Distances'),
             isLoading: _isLoading,
           ),

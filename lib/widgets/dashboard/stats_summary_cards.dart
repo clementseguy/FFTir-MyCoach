@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/dashboard_data.dart';
+import '../../utils/mobile_utils.dart';
 
 /// Widget affichant les 5 cartes de récapitulatif du dashboard
 class StatsSummaryCards extends StatelessWidget {
@@ -18,13 +19,17 @@ class StatsSummaryCards extends StatelessWidget {
       return const _LoadingCards();
     }
     
+    // Adaptation responsive pour optimiser l'espace écran
+    final spacing = MobileUtils.getSpacing(context);
+    final isMobile = MobileUtils.isMobile(context);
+    
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.4,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
+      childAspectRatio: isMobile ? 2.2 : 1.6, // Encore plus compactes pour maximiser l'espace
+      crossAxisSpacing: spacing,
+      mainAxisSpacing: spacing,
       children: [
         _StatCard(
           title: 'Moyenne Points 30j',
@@ -84,12 +89,14 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Padding encore plus réduit pour maximiser l'espace écran
+    final padding = MobileUtils.isMobile(context) ? 8.0 : 12.0;
     
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(padding),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
@@ -103,17 +110,19 @@ class _StatCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 8),
+                Icon(icon, color: color, size: MobileUtils.isMobile(context) ? 18 : 20),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     title,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w500,
                       color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.8),
+                      fontSize: MobileUtils.isMobile(context) ? 11 : null,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -121,16 +130,20 @@ class _StatCard extends StatelessWidget {
                 ),
               ],
             ),
-            const Spacer(),
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(
-                  value,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
+                Flexible(
+                  child: Text(
+                    value,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      // Réduction de la taille sur mobile pour éviter l'overflow
+                      fontSize: MobileUtils.isMobile(context) ? 20 : null,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (unit.isNotEmpty) ...[
