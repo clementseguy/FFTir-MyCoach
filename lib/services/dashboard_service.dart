@@ -2,7 +2,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../models/shooting_session.dart';
 import '../models/dashboard_data.dart';
-import '../models/series.dart';
 import '../services/stats_service.dart';
 
 /// Service responsable de l'agrégation des données pour le dashboard
@@ -317,108 +316,4 @@ class DashboardService {
     );
   }
   
-  /// Génère les données d'évolution des scores pour une méthode de prise spécifique
-  EvolutionData generateHandSpecificPointsEvolution(HandMethod method) {
-    final allSeries = _statsService.lastNSortedSeriesAsc(30);
-    
-    // Filtrer les séries par méthode de prise et construire les données d'évolution
-    final List<FlSpot> pointsData = [];
-    final List<DateTime> seriesDates = [];
-    final List<int> seriesIndices = [];
-    
-    int index = 0;
-    for (final stat in allSeries) {
-      // Simulation temporaire : alternance 1 main / 2 mains pour demo
-      // Note: SeriesStat n'a pas handMethod, on doit retrouver la série originale
-      final isOneHand = (index % 3 == 0); // Environ 1/3 en 1 main
-      final seriesMethod = isOneHand ? HandMethod.oneHand : HandMethod.twoHands;
-      
-      if (seriesMethod == method) {
-        final dataIndex = pointsData.length;
-        pointsData.add(FlSpot(dataIndex.toDouble(), stat.points.toDouble()));
-        seriesDates.add(stat.date);
-        seriesIndices.add(stat.seriesIndexInSession);
-      }
-      index++;
-    }
-    
-    final methodName = method == HandMethod.oneHand ? '1 main' : '2 mains';
-    
-    if (pointsData.isEmpty) {
-      return EvolutionData.empty('Points - $methodName', 'pts');
-    }
-    
-    // Calculer SMA3 pour les points
-    final pointsValues = pointsData.map((p) => p.y).toList();
-    final sma3Values = _calculateMovingAverage(pointsValues);
-    final sma3Points = sma3Values.asMap().entries.map((entry) {
-      return FlSpot(entry.key.toDouble(), entry.value);
-    }).toList();
-    
-    final minY = _calculateMinY(pointsValues, buffer: 2.0);
-    final maxY = _calculateMaxY(pointsValues, buffer: 2.0);
-    
-    return EvolutionData(
-      dataPoints: pointsData,
-      sma3Points: sma3Points,
-      seriesDates: seriesDates,
-      seriesIndices: seriesIndices,
-      title: 'Points - $methodName',
-      unit: 'pts',
-      minY: minY,
-      maxY: maxY,
-    );
-  }
-  
-  /// Génère les données d'évolution du groupement pour une méthode de prise spécifique
-  EvolutionData generateHandSpecificGroupSizeEvolution(HandMethod method) {
-    final allSeries = _statsService.lastNSortedSeriesAsc(30);
-    
-    // Filtrer les séries par méthode de prise et construire les données d'évolution
-    final List<FlSpot> groupSizeData = [];
-    final List<DateTime> seriesDates = [];
-    final List<int> seriesIndices = [];
-    
-    int index = 0;
-    for (final stat in allSeries) {
-      // Simulation temporaire : alternance 1 main / 2 mains pour demo
-      final isOneHand = (index % 3 == 0); // Environ 1/3 en 1 main
-      final seriesMethod = isOneHand ? HandMethod.oneHand : HandMethod.twoHands;
-      
-      if (seriesMethod == method && stat.groupSize > 0) {
-        final dataIndex = groupSizeData.length;
-        groupSizeData.add(FlSpot(dataIndex.toDouble(), stat.groupSize));
-        seriesDates.add(stat.date);
-        seriesIndices.add(stat.seriesIndexInSession);
-      }
-      index++;
-    }
-    
-    final methodName = method == HandMethod.oneHand ? '1 main' : '2 mains';
-    
-    if (groupSizeData.isEmpty) {
-      return EvolutionData.empty('Groupement - $methodName', 'cm');
-    }
-    
-    // Calculer SMA3 pour le groupement
-    final groupSizeValues = groupSizeData.map((p) => p.y).toList();
-    final sma3Values = _calculateMovingAverage(groupSizeValues);
-    final sma3Points = sma3Values.asMap().entries.map((entry) {
-      return FlSpot(entry.key.toDouble(), entry.value);
-    }).toList();
-    
-    final minY = _calculateMinY(groupSizeValues, buffer: 1.0);
-    final maxY = _calculateMaxY(groupSizeValues, buffer: 1.0);
-    
-    return EvolutionData(
-      dataPoints: groupSizeData,
-      sma3Points: sma3Points,
-      seriesDates: seriesDates,
-      seriesIndices: seriesIndices,
-      title: 'Groupement - $methodName',
-      unit: 'cm',
-      minY: minY,
-      maxY: maxY,
-    );
-  }
 }

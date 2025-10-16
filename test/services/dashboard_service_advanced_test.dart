@@ -54,24 +54,6 @@ void main() {
       }
     });
 
-    test('generateHandSpecificEvolution handles empty data gracefully', () {
-      final oneHandPointsData = service.generateHandSpecificPointsEvolution(HandMethod.oneHand);
-      final oneHandGroupData = service.generateHandSpecificGroupSizeEvolution(HandMethod.oneHand);
-      final twoHandsPointsData = service.generateHandSpecificPointsEvolution(HandMethod.twoHands);
-      final twoHandsGroupData = service.generateHandSpecificGroupSizeEvolution(HandMethod.twoHands);
-      
-      expect(oneHandPointsData.title, contains('1 main'));
-      expect(oneHandGroupData.title, contains('1 main'));
-      expect(twoHandsPointsData.title, contains('2 mains'));
-      expect(twoHandsGroupData.title, contains('2 mains'));
-      
-      // Vérifie que les données sont cohérentes
-      expect(oneHandPointsData.unit, equals('pts'));
-      expect(oneHandGroupData.unit, equals('cm'));
-      expect(twoHandsPointsData.unit, equals('pts'));
-      expect(twoHandsGroupData.unit, equals('cm'));
-    });
-
     test('advanced stats handle empty sessions', () {
       final emptyService = DashboardService([], now: now);
       
@@ -86,25 +68,6 @@ void main() {
       final evolutionComparison = emptyService.generateEvolutionComparison();
       expect(evolutionComparison.avg30Days, equals(0.0));
       expect(evolutionComparison.avg90Days, equals(0.0));
-    });
-
-    test('hand specific evolution data respects empty state', () {
-      final oneHandPointsData = service.generateHandSpecificPointsEvolution(HandMethod.oneHand);
-      final oneHandGroupData = service.generateHandSpecificGroupSizeEvolution(HandMethod.oneHand);
-      
-      // Vérification de la cohérence des données d'évolution
-      expect(oneHandPointsData.minY, lessThanOrEqualTo(oneHandPointsData.maxY));
-      expect(oneHandGroupData.minY, lessThanOrEqualTo(oneHandGroupData.maxY));
-      
-      if (oneHandPointsData.dataPoints.isNotEmpty) {
-        expect(oneHandPointsData.seriesDates.length, equals(oneHandPointsData.dataPoints.length));
-        expect(oneHandPointsData.seriesIndices.length, equals(oneHandPointsData.dataPoints.length));
-      }
-      
-      if (oneHandGroupData.dataPoints.isNotEmpty) {
-        expect(oneHandGroupData.seriesDates.length, equals(oneHandGroupData.dataPoints.length));
-        expect(oneHandGroupData.seriesIndices.length, equals(oneHandGroupData.dataPoints.length));
-      }
     });
   });
 }
@@ -124,7 +87,6 @@ List<ShootingSession> _createTestSessions(DateTime now) {
         distance: [10, 25, 50][j % 3].toDouble(),
         points: 30 + (i * 2) + j + (i % 5), // Variation réaliste
         groupSize: 15.0 + (i * 0.5) + j,
-        handMethod: j % 2 == 0 ? HandMethod.twoHands : HandMethod.oneHand,
       ));
     }
     
@@ -147,7 +109,6 @@ List<ShootingSession> _createTestSessions(DateTime now) {
         distance: 25,
         points: 25 + i, // Scores légèrement plus bas pour tester progression
         groupSize: 20.0 + i,
-        handMethod: HandMethod.twoHands,
       ),
     ];
     
