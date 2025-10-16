@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tir_sportif/widgets/dashboard/advanced_stats_cards.dart';
+import 'package:tir_sportif/widgets/dashboard/stat_card.dart';
 import 'package:tir_sportif/models/dashboard_data.dart';
 
 void main() {
@@ -10,14 +11,14 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: AdvancedStatsCards(
+              summary: DashboardSummary.empty(),
               isLoading: true,
             ),
           ),
         ),
       );
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Chargement des statistiques...'), findsOneWidget);
+      expect(find.byType(StatCardLoading), findsNWidgets(4));
     });
 
     testWidgets('displays empty state with proper fallbacks', (WidgetTester tester) async {
@@ -28,12 +29,13 @@ void main() {
           home: Scaffold(
             body: AdvancedStatsCards(
               data: emptyData,
+              summary: DashboardSummary.empty(),
             ),
           ),
         ),
       );
 
-      expect(find.text('Consistency'), findsOneWidget);
+      expect(find.text('Régularité'), findsOneWidget);
       expect(find.text('Progression'), findsOneWidget);
       expect(find.text('Catégorie dominante'), findsOneWidget);
       
@@ -54,6 +56,7 @@ void main() {
           home: Scaffold(
             body: AdvancedStatsCards(
               data: data,
+              summary: DashboardSummary.empty(),
             ),
           ),
         ),
@@ -77,6 +80,7 @@ void main() {
           home: Scaffold(
             body: AdvancedStatsCards(
               data: data,
+              summary: DashboardSummary.empty(),
             ),
           ),
         ),
@@ -100,6 +104,7 @@ void main() {
           home: Scaffold(
             body: AdvancedStatsCards(
               data: data,
+              summary: DashboardSummary.empty(),
             ),
           ),
         ),
@@ -110,7 +115,7 @@ void main() {
       expect(find.text('test matériel (1)'), findsOneWidget);
     });
 
-    testWidgets('adapts layout for mobile', (WidgetTester tester) async {
+    testWidgets('displays widgets correctly', (WidgetTester tester) async {
       const data = AdvancedStatsData(
         consistency: 80.0,
         progression: 5.0,
@@ -118,39 +123,27 @@ void main() {
         dominantCategoryCount: 2,
       );
       
-      // Test avec contrainte mobile (width < 600)
+      // Test simple sans contraintes spécifiques
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: SizedBox(
-              width: 400, // Mobile width
-              child: AdvancedStatsCards(
-                data: data,
-              ),
+            body: AdvancedStatsCards(
+              data: data,
+              summary: DashboardSummary.empty(),
             ),
           ),
         ),
       );
 
-      // Vérifier que les cartes sont en colonne (mobile)
-      expect(find.byType(Column), findsAtLeastNWidgets(1));
+      // Vérifier que les cartes utilisent GridView
+      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byType(StatCard), findsNWidgets(4));
       
-      // Maintenant test avec contrainte desktop (width >= 600)
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 800, // Desktop width
-              child: AdvancedStatsCards(
-                data: data,
-              ),
-            ),
-          ),
-        ),
-      );
-
-      // Vérifier que les cartes sont en ligne (desktop)
-      expect(find.byType(Row), findsAtLeastNWidgets(1));
+      // Vérifier le contenu
+      expect(find.text('Sessions ce mois'), findsOneWidget);
+      expect(find.text('Régularité'), findsOneWidget);
+      expect(find.text('Progression'), findsOneWidget);
+      expect(find.text('Catégorie dominante'), findsOneWidget);
     });
   });
 }

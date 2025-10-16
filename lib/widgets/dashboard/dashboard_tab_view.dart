@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../models/shooting_session.dart';
 import '../../models/series.dart';
 import '../../services/dashboard_service.dart';
@@ -10,7 +11,6 @@ import 'points_histogram_chart.dart';
 import 'advanced_stats_cards.dart';
 import 'evolution_comparison_widget.dart';
 import 'correlation_scatter_chart.dart';
-import 'hand_specific_chart.dart';
 
 /// Widget principal du dashboard avec onglets Synthèse/Avancé
 class DashboardTabView extends StatefulWidget {
@@ -41,8 +41,10 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
   AdvancedStatsData? _advancedStats;
   EvolutionComparisonData? _evolutionComparison;
   CorrelationData? _correlationData;
-  HandSpecificData? _oneHandData;
-  HandSpecificData? _twoHandsData;
+  EvolutionData? _oneHandPointsData;
+  EvolutionData? _oneHandGroupSizeData;
+  EvolutionData? _twoHandsPointsData;
+  EvolutionData? _twoHandsGroupSizeData;
   
   @override
   void initState() {
@@ -64,9 +66,6 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
     });
     
     try {
-      // Simulation d'un délai de chargement pour montrer l'état loading
-      await Future.delayed(const Duration(milliseconds: 200));
-      
       // Données onglet Synthèse
       final summary = _dashboardService.generateSummary();
       final scoreEvolution = _dashboardService.generateScoreEvolution();
@@ -79,8 +78,10 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
       final advancedStats = _dashboardService.generateAdvancedStats();
       final evolutionComparison = _dashboardService.generateEvolutionComparison();
       final correlationData = _dashboardService.generateCorrelationData();
-      final oneHandData = _dashboardService.generateHandSpecificData(HandMethod.oneHand);
-      final twoHandsData = _dashboardService.generateHandSpecificData(HandMethod.twoHands);
+      final oneHandPointsData = _dashboardService.generateHandSpecificPointsEvolution(HandMethod.oneHand);
+      final oneHandGroupSizeData = _dashboardService.generateHandSpecificGroupSizeEvolution(HandMethod.oneHand);
+      final twoHandsPointsData = _dashboardService.generateHandSpecificPointsEvolution(HandMethod.twoHands);
+      final twoHandsGroupSizeData = _dashboardService.generateHandSpecificGroupSizeEvolution(HandMethod.twoHands);
       
       if (mounted) {
         setState(() {
@@ -95,8 +96,10 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           _advancedStats = advancedStats;
           _evolutionComparison = evolutionComparison;
           _correlationData = correlationData;
-          _oneHandData = oneHandData;
-          _twoHandsData = twoHandsData;
+          _oneHandPointsData = oneHandPointsData;
+          _oneHandGroupSizeData = oneHandGroupSizeData;
+          _twoHandsPointsData = twoHandsPointsData;
+          _twoHandsGroupSizeData = twoHandsGroupSizeData;
           
           _isLoading = false;
         });
@@ -204,6 +207,7 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           // Cartes statistiques avancées
           AdvancedStatsCards(
             data: _advancedStats,
+            summary: _summary ?? const DashboardSummary.empty(),
             isLoading: _isLoading,
           ),
           
@@ -225,17 +229,33 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           
           const SizedBox(height: 16),
           
-          // Points et groupement - 1 main
-          HandSpecificChart(
-            data: _oneHandData ?? const HandSpecificData.empty('Points et groupement - 1 main'),
+          // Points - 1 main
+          EvolutionChart(
+            data: _oneHandPointsData ?? const EvolutionData.empty('Points - 1 main', 'pts'),
             isLoading: _isLoading,
           ),
           
           const SizedBox(height: 16),
           
-          // Points et groupement - 2 mains
-          HandSpecificChart(
-            data: _twoHandsData ?? const HandSpecificData.empty('Points et groupement - 2 mains'),
+          // Groupement - 1 main
+          EvolutionChart(
+            data: _oneHandGroupSizeData ?? const EvolutionData.empty('Groupement - 1 main', 'cm'),
+            isLoading: _isLoading,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Points - 2 mains
+          EvolutionChart(
+            data: _twoHandsPointsData ?? const EvolutionData.empty('Points - 2 mains', 'pts'),
+            isLoading: _isLoading,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Groupement - 2 mains
+          EvolutionChart(
+            data: _twoHandsGroupSizeData ?? const EvolutionData.empty('Groupement - 2 mains', 'cm'),
             isLoading: _isLoading,
           ),
         ],

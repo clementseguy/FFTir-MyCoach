@@ -233,21 +233,7 @@ class CorrelationScatterChart extends StatelessWidget {
             ),
           ),
           lineTouchData: LineTouchData(
-            enabled: true,
-            touchTooltipData: LineTouchTooltipData(
-              getTooltipItems: (touchedSpots) {
-                return touchedSpots.map((spot) {
-                  return LineTooltipItem(
-                    'Score: ${spot.y.toInt()} pts\nGroupement: ${spot.x.toStringAsFixed(1)} cm',
-                    const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  );
-                }).toList();
-              },
-            ),
+            enabled: false, // Tooltip désactivé comme demandé
           ),
         ),
       ),

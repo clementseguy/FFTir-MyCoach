@@ -29,7 +29,6 @@ void main() {
       expect(find.text('8.9'), findsOneWidget);
       expect(find.text('48'), findsOneWidget);
       expect(find.text('7.8'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget);
 
       // Vérifier les unités
       expect(find.text('pts'), findsNWidgets(2)); // Points + Meilleur Score
@@ -40,7 +39,6 @@ void main() {
       expect(find.text('Groupement Moy. 30j'), findsOneWidget);
       expect(find.text('Meilleur Score'), findsOneWidget);
       expect(find.text('Meilleur Groupement'), findsOneWidget);
-      expect(find.text('Sessions ce mois'), findsOneWidget);
     });
 
     testWidgets('affiche "-" pour les valeurs vides', (WidgetTester tester) async {
@@ -59,7 +57,6 @@ void main() {
       
       // Vérifier que les valeurs zéro sont affichées normalement
       expect(find.text('0.0'), findsNWidgets(2)); // Moyennes
-      expect(find.text('0'), findsOneWidget); // Sessions ce mois
     });
 
     testWidgets('affiche l\'état de chargement', (WidgetTester tester) async {
@@ -103,15 +100,14 @@ void main() {
       // Vérifier que les cartes sont dans un GridView
       expect(find.byType(GridView), findsOneWidget);
       
-      // Vérifier qu'il y a 5 cartes
-      expect(find.byType(Card), findsNWidgets(5));
+      // Vérifier qu'il y a 4 cartes
+      expect(find.byType(Card), findsNWidgets(4));
 
       // Vérifier que les icônes sont présentes
       expect(find.byIcon(Icons.trending_up), findsOneWidget);
       expect(find.byIcon(Icons.center_focus_strong), findsOneWidget);
       expect(find.byIcon(Icons.star), findsOneWidget);
       expect(find.byIcon(Icons.track_changes), findsOneWidget);
-      expect(find.byIcon(Icons.calendar_today), findsOneWidget);
     });
   });
 }

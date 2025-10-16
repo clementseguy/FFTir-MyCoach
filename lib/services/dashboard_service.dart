@@ -317,58 +317,108 @@ class DashboardService {
     );
   }
   
-  /// Génère les données spécifiques à une méthode de prise
-  HandSpecificData generateHandSpecificData(HandMethod method) {
+  /// Génère les données d'évolution des scores pour une méthode de prise spécifique
+  EvolutionData generateHandSpecificPointsEvolution(HandMethod method) {
     final allSeries = _statsService.lastNSortedSeriesAsc(30);
     
-    // Récupérer les séries correspondant à la méthode depuis les sessions sources
+    // Filtrer les séries par méthode de prise et construire les données d'évolution
     final List<FlSpot> pointsData = [];
-    final List<FlSpot> groupSizeData = [];
+    final List<DateTime> seriesDates = [];
+    final List<int> seriesIndices = [];
     
-    // On doit accéder aux sessions pour récupérer les handMethod des séries
-    // Filtrer les séries par méthode de prise (approximation basée sur les 30 dernières)
     int index = 0;
     for (final stat in allSeries) {
-      // Note: SeriesStat n'a pas handMethod, on doit retrouver la série originale
-      // Pour l'instant, on fait une implémentation simple qui assume une distribution
-      // On améliorerait en ajoutant handMethod à SeriesStat ou en gardant référence
-      
       // Simulation temporaire : alternance 1 main / 2 mains pour demo
+      // Note: SeriesStat n'a pas handMethod, on doit retrouver la série originale
       final isOneHand = (index % 3 == 0); // Environ 1/3 en 1 main
       final seriesMethod = isOneHand ? HandMethod.oneHand : HandMethod.twoHands;
       
       if (seriesMethod == method) {
-        pointsData.add(FlSpot(index.toDouble(), stat.points.toDouble()));
-        if (stat.groupSize > 0) {
-          groupSizeData.add(FlSpot(index.toDouble(), stat.groupSize));
-        }
+        final dataIndex = pointsData.length;
+        pointsData.add(FlSpot(dataIndex.toDouble(), stat.points.toDouble()));
+        seriesDates.add(stat.date);
+        seriesIndices.add(stat.seriesIndexInSession);
       }
       index++;
     }
     
-    final hasData = pointsData.isNotEmpty;
     final methodName = method == HandMethod.oneHand ? '1 main' : '2 mains';
     
-    if (!hasData) {
-      return HandSpecificData.empty('Points et groupement - $methodName');
+    if (pointsData.isEmpty) {
+      return EvolutionData.empty('Points - $methodName', 'pts');
     }
     
-    final minY = _calculateMinY(pointsData.map((p) => p.y).toList(), buffer: 2.0);
-    final maxY = _calculateMaxY(pointsData.map((p) => p.y).toList(), buffer: 2.0);
-    final minY2 = groupSizeData.isEmpty ? 0.0 : 
-        _calculateMinY(groupSizeData.map((p) => p.y).toList(), buffer: 1.0);
-    final maxY2 = groupSizeData.isEmpty ? 50.0 : 
-        _calculateMaxY(groupSizeData.map((p) => p.y).toList(), buffer: 5.0);
+    // Calculer SMA3 pour les points
+    final pointsValues = pointsData.map((p) => p.y).toList();
+    final sma3Values = _calculateMovingAverage(pointsValues);
+    final sma3Points = sma3Values.asMap().entries.map((entry) {
+      return FlSpot(entry.key.toDouble(), entry.value);
+    }).toList();
     
-    return HandSpecificData(
-      pointsData: pointsData,
-      groupSizeData: groupSizeData,
-      title: 'Points et groupement - $methodName',
-      hasData: hasData,
+    final minY = _calculateMinY(pointsValues, buffer: 2.0);
+    final maxY = _calculateMaxY(pointsValues, buffer: 2.0);
+    
+    return EvolutionData(
+      dataPoints: pointsData,
+      sma3Points: sma3Points,
+      seriesDates: seriesDates,
+      seriesIndices: seriesIndices,
+      title: 'Points - $methodName',
+      unit: 'pts',
       minY: minY,
       maxY: maxY,
-      minY2: minY2,
-      maxY2: maxY2,
+    );
+  }
+  
+  /// Génère les données d'évolution du groupement pour une méthode de prise spécifique
+  EvolutionData generateHandSpecificGroupSizeEvolution(HandMethod method) {
+    final allSeries = _statsService.lastNSortedSeriesAsc(30);
+    
+    // Filtrer les séries par méthode de prise et construire les données d'évolution
+    final List<FlSpot> groupSizeData = [];
+    final List<DateTime> seriesDates = [];
+    final List<int> seriesIndices = [];
+    
+    int index = 0;
+    for (final stat in allSeries) {
+      // Simulation temporaire : alternance 1 main / 2 mains pour demo
+      final isOneHand = (index % 3 == 0); // Environ 1/3 en 1 main
+      final seriesMethod = isOneHand ? HandMethod.oneHand : HandMethod.twoHands;
+      
+      if (seriesMethod == method && stat.groupSize > 0) {
+        final dataIndex = groupSizeData.length;
+        groupSizeData.add(FlSpot(dataIndex.toDouble(), stat.groupSize));
+        seriesDates.add(stat.date);
+        seriesIndices.add(stat.seriesIndexInSession);
+      }
+      index++;
+    }
+    
+    final methodName = method == HandMethod.oneHand ? '1 main' : '2 mains';
+    
+    if (groupSizeData.isEmpty) {
+      return EvolutionData.empty('Groupement - $methodName', 'cm');
+    }
+    
+    // Calculer SMA3 pour le groupement
+    final groupSizeValues = groupSizeData.map((p) => p.y).toList();
+    final sma3Values = _calculateMovingAverage(groupSizeValues);
+    final sma3Points = sma3Values.asMap().entries.map((entry) {
+      return FlSpot(entry.key.toDouble(), entry.value);
+    }).toList();
+    
+    final minY = _calculateMinY(groupSizeValues, buffer: 1.0);
+    final maxY = _calculateMaxY(groupSizeValues, buffer: 1.0);
+    
+    return EvolutionData(
+      dataPoints: groupSizeData,
+      sma3Points: sma3Points,
+      seriesDates: seriesDates,
+      seriesIndices: seriesIndices,
+      title: 'Groupement - $methodName',
+      unit: 'cm',
+      minY: minY,
+      maxY: maxY,
     );
   }
 }

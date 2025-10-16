@@ -54,16 +54,22 @@ void main() {
       }
     });
 
-    test('generateHandSpecificData handles empty data gracefully', () {
-      final oneHandData = service.generateHandSpecificData(HandMethod.oneHand);
-      final twoHandsData = service.generateHandSpecificData(HandMethod.twoHands);
+    test('generateHandSpecificEvolution handles empty data gracefully', () {
+      final oneHandPointsData = service.generateHandSpecificPointsEvolution(HandMethod.oneHand);
+      final oneHandGroupData = service.generateHandSpecificGroupSizeEvolution(HandMethod.oneHand);
+      final twoHandsPointsData = service.generateHandSpecificPointsEvolution(HandMethod.twoHands);
+      final twoHandsGroupData = service.generateHandSpecificGroupSizeEvolution(HandMethod.twoHands);
       
-      expect(oneHandData.title, contains('1 main'));
-      expect(twoHandsData.title, contains('2 mains'));
+      expect(oneHandPointsData.title, contains('1 main'));
+      expect(oneHandGroupData.title, contains('1 main'));
+      expect(twoHandsPointsData.title, contains('2 mains'));
+      expect(twoHandsGroupData.title, contains('2 mains'));
       
       // Vérifie que les données sont cohérentes
-      expect(oneHandData.pointsData.length, equals(oneHandData.groupSizeData.length));
-      expect(twoHandsData.pointsData.length, equals(twoHandsData.groupSizeData.length));
+      expect(oneHandPointsData.unit, equals('pts'));
+      expect(oneHandGroupData.unit, equals('cm'));
+      expect(twoHandsPointsData.unit, equals('pts'));
+      expect(twoHandsGroupData.unit, equals('cm'));
     });
 
     test('advanced stats handle empty sessions', () {
@@ -82,16 +88,22 @@ void main() {
       expect(evolutionComparison.avg90Days, equals(0.0));
     });
 
-    test('hand specific data respects hasData flag', () {
-      final oneHandData = service.generateHandSpecificData(HandMethod.oneHand);
+    test('hand specific evolution data respects empty state', () {
+      final oneHandPointsData = service.generateHandSpecificPointsEvolution(HandMethod.oneHand);
+      final oneHandGroupData = service.generateHandSpecificGroupSizeEvolution(HandMethod.oneHand);
       
-      if (oneHandData.hasData) {
-        expect(oneHandData.pointsData, isNotEmpty);
-        expect(oneHandData.minY, lessThanOrEqualTo(oneHandData.maxY));
-        expect(oneHandData.minY2, lessThanOrEqualTo(oneHandData.maxY2));
-      } else {
-        expect(oneHandData.pointsData, isEmpty);
-        expect(oneHandData.groupSizeData, isEmpty);
+      // Vérification de la cohérence des données d'évolution
+      expect(oneHandPointsData.minY, lessThanOrEqualTo(oneHandPointsData.maxY));
+      expect(oneHandGroupData.minY, lessThanOrEqualTo(oneHandGroupData.maxY));
+      
+      if (oneHandPointsData.dataPoints.isNotEmpty) {
+        expect(oneHandPointsData.seriesDates.length, equals(oneHandPointsData.dataPoints.length));
+        expect(oneHandPointsData.seriesIndices.length, equals(oneHandPointsData.dataPoints.length));
+      }
+      
+      if (oneHandGroupData.dataPoints.isNotEmpty) {
+        expect(oneHandGroupData.seriesDates.length, equals(oneHandGroupData.dataPoints.length));
+        expect(oneHandGroupData.seriesIndices.length, equals(oneHandGroupData.dataPoints.length));
       }
     });
   });
