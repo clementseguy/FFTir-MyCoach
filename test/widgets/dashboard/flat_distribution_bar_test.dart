@@ -68,10 +68,10 @@ void main() {
       expect(find.text('match'), findsOneWidget);
       expect(find.text('test matériel'), findsOneWidget);
       
-      // Vérifier la présence des pourcentages calculés
-      expect(find.textContaining('60 (60%)'), findsOneWidget);
-      expect(find.textContaining('30 (30%)'), findsOneWidget);
-      expect(find.textContaining('10 (10%)'), findsOneWidget);
+      // Vérifier la présence des valeurs brutes exactes dans la légende (plus de pourcentages affichés)
+      expect(find.text('60'), findsOneWidget);
+      expect(find.text('30'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
     });
 
     testWidgets('handles percentage data correctly', (WidgetTester tester) async {
@@ -98,10 +98,14 @@ void main() {
 
       expect(find.text('Répartition Distances'), findsOneWidget);
       
-      // Avec isPercentage = true, devrait afficher les pourcentages directement
-      expect(find.textContaining('50.0%'), findsOneWidget);
-      expect(find.textContaining('30.0%'), findsOneWidget);
-      expect(find.textContaining('20.0%'), findsOneWidget);
+      // Avec isPercentage = true, ne devrait plus afficher les pourcentages dans la légende
+      expect(find.text('10m'), findsOneWidget);
+      expect(find.text('25m'), findsOneWidget);
+      expect(find.text('50m'), findsOneWidget);
+      // Les pourcentages ne sont plus affichés dans la légende
+      expect(find.textContaining('50.0%'), findsNothing);
+      expect(find.textContaining('30.0%'), findsNothing);
+      expect(find.textContaining('20.0%'), findsNothing);
     });
 
     testWidgets('responsive design on mobile', (WidgetTester tester) async {

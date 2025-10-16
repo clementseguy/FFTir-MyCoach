@@ -148,9 +148,10 @@ class FlatDistributionBar extends StatelessWidget {
           spacing: 16,
           runSpacing: 8,
           children: segments.map((segment) {
+            // Ne pas afficher les pourcentages dans la légende
             final valueText = data.isPercentage 
-                ? '${segment.percentage.toStringAsFixed(1)}%'
-                : '${segment.value.toInt()} (${segment.percentage.toStringAsFixed(0)}%)';
+                ? '' // Pas de pourcentage affiché
+                : '${segment.value.toInt()}'; // Juste la valeur brute
             
             return Row(
               mainAxisSize: MainAxisSize.min,
@@ -170,13 +171,16 @@ class FlatDistributionBar extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  valueText,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
+                // Afficher la valeur seulement si elle n'est pas vide
+                if (valueText.isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    valueText,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
                   ),
-                ),
+                ],
               ],
             );
           }).toList(),
