@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'dart:developer' as developer;
 import '../../models/dashboard_data.dart';
 import '../../utils/mobile_utils.dart';
 
@@ -116,11 +117,9 @@ class EvolutionChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 30,
-              interval: data.dataPoints.length > 10 
-                  ? (data.dataPoints.length / 5).ceil().toDouble()
-                  : 1,
+              interval: 5, // Afficher 1 label sur 5
               getTitlesWidget: (value, meta) {
-                return _buildDateLabel(value.toInt());
+                return _buildDateIndexLabel(value.toInt());
               },
             ),
           ),
@@ -238,43 +237,69 @@ class EvolutionChart extends StatelessWidget {
     return data.unit == 'pts' ? Colors.deepOrange : Colors.red.shade700;
   }
 
-  /// Construit l'étiquette de date avec déduplication intelligente
-  Widget _buildDateLabel(int index) {
-    if (index < 0 || index >= data.seriesDates.length) {
+  /// Construit un label au format DD/MM[index] pour l'axe X.
+  ///
+  /// Affiche 1 label sur 5 (géré par `interval`) et échoue rapidement
+  /// si `seriesDates` est manquant ou incohérent (log + throw).
+  Widget _buildDateIndexLabel(int index) {
+    // Vérification stricte : on doit avoir des dates pour chaque série
+    if (data.seriesDates.isEmpty) {
+      developer.log(
+        'EvolutionChart: seriesDates is empty for "${data.title}"',
+        level: 900, // error
+      );
+      throw StateError('EvolutionChart: seriesDates missing for "${data.title}"');
+    }
+
+    if (data.seriesIndices.isEmpty) {
+      developer.log(
+        'EvolutionChart: seriesIndices is empty for "${data.title}"',
+        level: 900, // error
+      );
+      throw StateError('EvolutionChart: seriesIndices missing for "${data.title}"');
+    }
+
+    if (index < 0 || index >= data.dataPoints.length) {
       return const SizedBox.shrink();
     }
-    
-    final currentDate = data.seriesDates[index];
-    
-    // Afficher la date seulement si c'est la première série de cette date
-    bool shouldShowDate = true;
-    if (index > 0) {
-      final previousDate = data.seriesDates[index - 1];
-      // Si même jour que la série précédente, ne pas afficher
-      if (_isSameDay(currentDate, previousDate)) {
-        shouldShowDate = false;
-      }
-    }
-    
-    if (!shouldShowDate) {
+
+    // Ne pas afficher le dernier label pour éviter l'overflow
+    if (index >= data.dataPoints.length - 1) {
       return const SizedBox.shrink();
     }
-    
+
+    if (index >= data.seriesDates.length) {
+      developer.log(
+        'EvolutionChart: seriesDates length (${data.seriesDates.length}) < required index (${index}) for "${data.title}"',
+        level: 900,
+      );
+      throw RangeError.index(index, data.seriesDates, 'seriesDates',
+          'Index out of range for seriesDates');
+    }
+
+    if (index >= data.seriesIndices.length) {
+      developer.log(
+        'EvolutionChart: seriesIndices length (${data.seriesIndices.length}) < required index (${index}) for "${data.title}"',
+        level: 900,
+      );
+      throw RangeError.index(index, data.seriesIndices, 'seriesIndices',
+          'Index out of range for seriesIndices');
+    }
+
+    final dt = data.seriesDates[index];
+    final seriesIndexInSession = data.seriesIndices[index];
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = dt.month.toString().padLeft(2, '0');
+    final label = '$day/$month[$seriesIndexInSession]';
+
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Text(
-        '${currentDate.day}/${currentDate.month}',
+        label,
         style: const TextStyle(fontSize: 9),
         textAlign: TextAlign.center,
       ),
     );
-  }
-  
-  /// Vérifie si deux dates sont le même jour
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-           date1.month == date2.month &&
-           date1.day == date2.day;
   }
 
 

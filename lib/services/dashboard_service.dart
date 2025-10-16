@@ -53,6 +53,9 @@ class DashboardService {
     // Extraire les dates des séries
     final seriesDates = series.map((s) => s.date).toList();
     
+    // Extraire les indices de série dans la session
+    final seriesIndices = series.map((s) => s.seriesIndexInSession).toList();
+    
     final minY = _calculateMinY(series.map((s) => s.points.toDouble()).toList(), buffer: 5.0);
     final maxY = _calculateMaxY(series.map((s) => s.points.toDouble()).toList(), buffer: 5.0);
     
@@ -60,6 +63,7 @@ class DashboardService {
       dataPoints: dataPoints,
       sma3Points: sma3Points,
       seriesDates: seriesDates,
+      seriesIndices: seriesIndices,
       title: 'Évolution Score',
       unit: 'pts',
       minY: minY,
@@ -88,6 +92,9 @@ class DashboardService {
     // Extraire les dates des séries
     final seriesDates = series.map((s) => s.date).toList();
     
+    // Extraire les indices de série dans la session
+    final seriesIndices = series.map((s) => s.seriesIndexInSession).toList();
+    
     final minY = _calculateMinY(series.map((s) => s.groupSize).toList(), buffer: 1.0);
     final maxY = _calculateMaxY(series.map((s) => s.groupSize).toList(), buffer: 1.0);
     
@@ -95,6 +102,7 @@ class DashboardService {
       dataPoints: dataPoints,
       sma3Points: sma3Points,
       seriesDates: seriesDates,
+      seriesIndices: seriesIndices,
       title: 'Évolution Groupement',
       unit: 'cm',
       minY: minY,

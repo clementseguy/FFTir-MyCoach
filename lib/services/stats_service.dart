@@ -8,12 +8,14 @@ class SeriesStat {
   final double groupSize;
   final double distance;
   final String category;
+  final int seriesIndexInSession; // position de la série dans sa session (1-based)
   SeriesStat({
     required this.date,
     required this.points,
     required this.groupSize,
     required this.distance,
     required this.category,
+    required this.seriesIndexInSession,
   });
 }
 
@@ -36,13 +38,15 @@ class StatsService implements IStatsService {
       ..sort((a, b) => (a.date ?? DateTime(1970)).compareTo(b.date ?? DateTime(1970)));
     for (final s in ordered) {
       final date = s.date ?? DateTime.fromMillisecondsSinceEpoch(0);
-      for (final serie in s.series) {
+      for (int i = 0; i < s.series.length; i++) {
+        final serie = s.series[i];
         list.add(SeriesStat(
           date: date,
           points: serie.points,
           groupSize: serie.groupSize,
           distance: serie.distance,
           category: s.category,
+          seriesIndexInSession: i + 1, // 1-based index
         ));
       }
     }

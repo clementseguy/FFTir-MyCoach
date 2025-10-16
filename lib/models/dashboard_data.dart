@@ -37,6 +37,7 @@ class EvolutionData {
   final List<FlSpot> dataPoints;
   final List<FlSpot> sma3Points;
   final List<DateTime> seriesDates; // dates des séries pour affichage axe X
+  final List<int> seriesIndices; // indices de série dans la session (1-based)
   final String title;
   final String unit;
   final double minY;
@@ -46,6 +47,7 @@ class EvolutionData {
     required this.dataPoints,
     required this.sma3Points,
     required this.seriesDates,
+    required this.seriesIndices,
     required this.title,
     required this.unit,
     required this.minY,
@@ -57,6 +59,7 @@ class EvolutionData {
       : dataPoints = const [],
         sma3Points = const [],
         seriesDates = const [],
+        seriesIndices = const [],
         title = title,
         unit = unit,
         minY = 0.0,
