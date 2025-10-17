@@ -143,7 +143,7 @@ void main() {
       expect(find.text('Sessions ce mois'), findsOneWidget);
       expect(find.text('Régularité'), findsOneWidget);
       expect(find.text('Progression'), findsOneWidget);
-      expect(find.text('Catégorie dominante'), findsOneWidget);
+      expect(find.text('Prise dominante'), findsOneWidget);
     });
   });
 }

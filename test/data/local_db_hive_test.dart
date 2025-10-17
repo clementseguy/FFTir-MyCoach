@@ -2,12 +2,16 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:tir_sportif/data/local_db_hive.dart';
+import 'package:tir_sportif/config/app_config.dart';
 
 void main() {
   setUp(() async {
     final dir = await Directory.systemTemp.createTemp('nt_local_hive_');
     Hive.init(dir.path);
     await Hive.openBox('sessions');
+    
+    // Charger AppConfig avant d'utiliser LocalDatabaseHive
+    await AppConfig.load();
   });
 
   tearDown(() async {

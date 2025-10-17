@@ -190,7 +190,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<ExerciseCategory>(
-              value: _category,
+              initialValue: _category,
               items: ExerciseCategory.values.map((c) => DropdownMenuItem(
                 value: c,
                 child: Text(Exercise(
@@ -206,7 +206,7 @@ class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<ExerciseType>(
-              value: _type,
+              initialValue: _type,
               items: ExerciseType.values.map((t) => DropdownMenuItem(
                 value: t,
                 child: Text(Exercise(
