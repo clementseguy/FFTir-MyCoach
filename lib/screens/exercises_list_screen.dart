@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import '../services/exercise_service.dart';
 import '../models/exercise.dart';
-import '../services/goal_service.dart';
-import '../models/goal.dart';
 import '../services/session_service.dart';
 import '../widgets/exercises_total_card.dart';
 import 'session_detail_screen.dart';
+import 'exercise_form_screen.dart';
 import '../utils/exercise_sorting.dart';
 
+/// Liste des exercices avec filtrage et tri
+/// Refactorisé pour séparer la logique de listing du formulaire (voir exercise_form_screen.dart)
+/// 
+/// Architecture:
+/// - Liste avec filtres repliables (catégorie, type)
+/// - Badge indicateur sessions prévues
+/// - Navigation vers formulaire extraction dans fichier séparé
 class ExercisesListScreen extends StatefulWidget {
   const ExercisesListScreen({super.key});
   @override
@@ -425,323 +431,18 @@ class _ActiveCountBadge extends StatelessWidget {
   }
 }
 
-class ExerciseFormScreen extends StatefulWidget {
-  final Exercise? editing;
-  const ExerciseFormScreen({super.key, this.editing});
-  @override
-  State<ExerciseFormScreen> createState() => _ExerciseFormScreenState();
-}
-
-class _ExerciseFormScreenState extends State<ExerciseFormScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  final _durationCtrl = TextEditingController();
-  final _equipmentCtrl = TextEditingController();
-  ExerciseCategory _category = ExerciseCategory.technique;
-  ExerciseType _type = ExerciseType.stand;
-  final GoalService _goalService = GoalService();
-  List<Goal> _allGoals = [];
-  final Set<String> _selectedGoals = {};
-  bool _saving = false;
-  final ExerciseService _service = ExerciseService();
-  final List<TextEditingController> _consigneCtrls = [];
-
-  void _addConsigneField([String initial='']) {
-    final c = TextEditingController(text: initial);
-    setState(()=> _consigneCtrls.add(c));
-  }
-
-  void _removeConsigneField(int index) {
-    if (index <0 || index>=_consigneCtrls.length) return;
-    setState(()=> _consigneCtrls.removeAt(index));
-  }
-
-  Future<void> _initGoals() async {
-    // GoalService requires init for priority migration; ignore if already
-    try { await _goalService.init(); } catch (_) {}
-    final goals = await _goalService.listAll();
-    if (mounted) setState(() => _allGoals = goals);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.editing != null) {
-      _nameCtrl.text = widget.editing!.name;
-      _category = widget.editing!.categoryEnum;
-      _type = widget.editing!.type;
-      _selectedGoals.addAll(widget.editing!.goalIds);
-      _descCtrl.text = widget.editing!.description ?? '';
-      if (widget.editing!.durationMinutes != null) {
-        _durationCtrl.text = widget.editing!.durationMinutes.toString();
-      }
-      _equipmentCtrl.text = widget.editing!.equipment ?? '';
-      for (final step in widget.editing!.consignes) {
-        _consigneCtrls.add(TextEditingController(text: step));
-      }
-    }
-    if (_consigneCtrls.isEmpty) {
-      // Start with one empty field for usability
-      _addConsigneField();
-    }
-    _initGoals();
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(()=> _saving = true);
-    try {
-      if (widget.editing == null) {
-        await _service.addExercise(
-          name: _nameCtrl.text,
-          category: _category,
-          type: _type,
-          description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-          goalIds: _selectedGoals.toList(),
-          durationMinutes: int.tryParse(_durationCtrl.text.trim()),
-          equipment: _equipmentCtrl.text.trim().isEmpty ? null : _equipmentCtrl.text.trim(),
-          consignes: _consigneCtrls.map((c)=>c.text).toList(),
-        );
-      } else {
-        final updated = widget.editing!.copyWith(
-          name: _nameCtrl.text,
-          category: _category,
-          type: _type,
-          description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-          goalIds: _selectedGoals.toList(),
-          durationMinutes: int.tryParse(_durationCtrl.text.trim()),
-          equipment: _equipmentCtrl.text.trim().isEmpty ? null : _equipmentCtrl.text.trim(),
-          consignes: _consigneCtrls.map((c)=>c.text).toList(),
-        );
-        await _service.updateExercise(updated);
-      }
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(()=> _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.editing == null ? 'Nouvel exercice' : 'Modifier exercice'),
-        actions: [
-          IconButton(
-            icon: _saving ? const SizedBox(width:18,height:18,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.save),
-            tooltip: 'Enregistrer',
-            onPressed: _saving ? null : _save,
-          ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextFormField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Nom'),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Nom requis';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _descCtrl,
-              minLines: 3,
-              maxLines: 10,
-              decoration: const InputDecoration(
-                labelText: 'Consigne détaillée',
-                hintText: 'Décris étape par étape :\nSérie 1 : ...\nSérie 2 : ...',
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _durationCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Durée estimée (min)',
-                      hintText: 'ex: 15',
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (v) {
-                      if (v==null || v.trim().isEmpty) return null; // optional
-                      final n = int.tryParse(v.trim());
-                      if (n==null || n<=0) return 'Valeur invalide';
-                      if (n>600) return '>600 ?';
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _equipmentCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Matériel requis',
-                      hintText: 'ex: timer, cibles...',
-                    ),
-                    minLines: 1,
-                    maxLines: 3,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<ExerciseCategory>(
-              value: _category,
-              items: ExerciseCategory.values.map((c) => DropdownMenuItem(
-                value: c,
-                child: Text(Exercise(
-                  id: '_tmp',
-                  name: '',
-                  categoryEnum: c,
-                  type: ExerciseType.stand,
-                  createdAt: DateTime.now(),
-                ).categoryLabelFr),
-              )).toList(),
-              onChanged: (v) => setState(()=> _category = v ?? ExerciseCategory.technique),
-              decoration: const InputDecoration(labelText: 'Catégorie'),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<ExerciseType>(
-              value: _type,
-              items: ExerciseType.values.map((t) => DropdownMenuItem(
-                value: t,
-                child: Text(t == ExerciseType.stand ? 'Stand' : 'Maison'),
-              )).toList(),
-              onChanged: (v) => setState(()=> _type = v ?? ExerciseType.stand),
-              decoration: const InputDecoration(labelText: 'Type'),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                const Icon(Icons.list_alt, size: 18, color: Colors.amberAccent),
-                const SizedBox(width: 8),
-                Text('Consignes', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(width: 6),
-                Text('(${_consigneCtrls.where((c)=>c.text.trim().isNotEmpty).length})', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline),
-                  tooltip: 'Ajouter une consigne',
-                  onPressed: () => _addConsigneField(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (_consigneCtrls.isEmpty)
-              const Text('Aucune consigne', style: TextStyle(color: Colors.white54))
-            else
-              ReorderableListView(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                onReorder: (oldIndex, newIndex) {
-                  setState(() {
-                    if (newIndex>oldIndex) newIndex--;
-                    final item = _consigneCtrls.removeAt(oldIndex);
-                    _consigneCtrls.insert(newIndex, item);
-                  });
-                },
-                children: [
-                  for (int i=0;i<_consigneCtrls.length;i++)
-                    Dismissible(
-                      key: ValueKey('consigne_$i'),
-                      background: Container(color: Colors.redAccent),
-                      onDismissed: (_){ _removeConsigneField(i); },
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ReorderableDragStartListener(
-                              index: i,
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 14, right: 8),
-                                child: Icon(Icons.drag_indicator, size: 20, color: Colors.white54),
-                              ),
-                            ),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _consigneCtrls[i],
-                                decoration: InputDecoration(
-                                  labelText: 'Consigne ${i+1}',
-                                ),
-                                minLines: 1,
-                                maxLines: 4,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              tooltip: 'Supprimer',
-                              onPressed: () => _removeConsigneField(i),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                const Icon(Icons.flag, size: 18, color: Colors.amberAccent),
-                const SizedBox(width: 8),
-                Text('Objectifs associés', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(width: 6),
-                Text('(${_selectedGoals.length})', style: TextStyle(color: Colors.white70, fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (_allGoals.isEmpty)
-              const Text('Aucun objectif existant', style: TextStyle(color: Colors.white54))
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _allGoals.map((g) {
-                  final selected = _selectedGoals.contains(g.id);
-                  return FilterChip(
-                    label: Text(g.title, overflow: TextOverflow.ellipsis),
-                    selected: selected,
-                    onSelected: (s) {
-                      setState(() {
-                        if (s) {
-                          _selectedGoals.add(g.id);
-                        } else {
-                          _selectedGoals.remove(g.id);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            const SizedBox(height: 32),
-            // Bouton de bas de page retiré (sauvegarde via AppBar)
-          ],
-        ),
-      ),
-    );
-  }
-}
-
+/// Badge informatif compact pour afficher icône + texte
 class _Badge extends StatelessWidget {
   final IconData icon;
   final String text;
   final double? maxWidth;
-  const _Badge({required this.icon, required this.text, this.maxWidth});
+  
+  const _Badge({
+    required this.icon,
+    required this.text,
+    this.maxWidth,
+  });
+
   @override
   Widget build(BuildContext context) {
     final content = Row(
@@ -758,9 +459,14 @@ class _Badge extends StatelessWidget {
         ),
       ],
     );
+    
     final child = maxWidth != null
-        ? ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth!), child: content)
+        ? ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth!),
+            child: content,
+          )
         : content;
+        
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
