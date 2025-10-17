@@ -13,14 +13,14 @@ Le script `scripts/build_apk.sh` permet de générer des APK de test (DEBUG ou R
 ## 📋 Fonctionnalités
 
 ### Version automatique
-- ✅ Lit la version depuis `pubspec.yaml` (actuellement **v0.4.0**)
-- ✅ Génère un APK nommé : `NexTarget-v0.4.0-<mode>-<timestamp>.apk`
+- ✅ Lit la version depuis `pubspec.yaml`
+- ✅ Génère un APK nommé : `NexTarget-<version>-<mode>-<timestamp>.apk`
 
 ### Gestion des prompts Mistral
 
 L'application charge automatiquement les prompts selon cette priorité :
 
-1. **`assets/coach_prompt.local.yaml`** (non versionné) ← **PRIORITAIRE**
+1. **`assets/coach_prompt.local.yaml`** (non versionné, prioritaire)
 2. `assets/coach_prompt.yaml` (versionné, fallback)
 
 **Important** : Assurez-vous que `assets/coach_prompt.local.yaml` existe avec votre prompt personnalisé.
@@ -190,4 +190,3 @@ Quand vous passez à une nouvelle version (ex: 0.4.0 → 0.5.0) :
 ---
 
 **Dernière mise à jour** : 17 octobre 2025  
-**Version app** : 0.4.0

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tir_sportif/widgets/session_form/session_form_components.dart';
 import 'package:tir_sportif/models/exercise.dart';
-import 'package:tir_sportif/models/shooting_session.dart';
 
 void main() {
   group('FormSummaryHeader', () {
