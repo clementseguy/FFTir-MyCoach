@@ -8,6 +8,11 @@ set -euo pipefail
 # - Lecture automatique de la version (pubspec.yaml)
 # - Renommage: NexTarget-v<version>-<mode>-<timestamp>.apk
 #
+# Comportement prompt Mistral:
+#   L'app charge automatiquement coach_prompt.local.yaml (non versionné)
+#   en priorité, sinon fallback sur coach_prompt.yaml (versionné).
+#   Assurez-vous que assets/coach_prompt.local.yaml existe.
+#
 # Usage de base:
 #   ./build_apk.sh                 # build release
 #   ./build_apk.sh --debug         # build debug
@@ -21,8 +26,8 @@ set -euo pipefail
 #   --flavor <f>     (réservé future extension flavors)
 #
 # Exemples noms générés:
-#   NexTarget-v0.2.0-release-20250928-1432.apk
-#   NexTarget-v0.2.0-debug-20250928-1434.apk
+#   NexTarget-v0.4.0-release-20251017-1432.apk
+#   NexTarget-v0.4.0-debug-20251017-1434.apk
 #############################################
 
 ASK_KEY=true

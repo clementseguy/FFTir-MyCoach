@@ -5,7 +5,7 @@ description: >
 
 publish_to: 'none'
 
-version: 0.3.0
+version: 0.4.0
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -49,4 +49,5 @@ flutter:
   assets:
     - assets/app_logo.png # conservé temporairement (legacy)
     - assets/coach_prompt.yaml
+    - assets/coach_prompt.local.yaml # Priorité sur .yaml si présent
     - assets/config.yaml
