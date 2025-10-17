@@ -10,6 +10,7 @@ import '../../models/goal.dart';
 import 'package:hive/hive.dart';
 import '../../services/preferences_service.dart';
 import '../../utils/caliber_autocomplete.dart';
+import 'wizard_steps.dart';
 
 /// Wizard de conversion Session prévue -> réalisée
 class PlannedSessionWizard extends StatefulWidget {
@@ -217,111 +218,39 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
   }
 
   Widget _buildIntro() {
-    final hasExercise = _session.exercises.isNotEmpty;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formIntro,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Démarrage', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Exercice', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    if (!hasExercise) const Text('Pas d\'exercice associé', style: TextStyle(color: Colors.white60))
-                    else if (_loadingExercise) const Padding(
-                      padding: EdgeInsets.symmetric(vertical:8.0),
-                      child: SizedBox(width:24, height:24, child: CircularProgressIndicator(strokeWidth:2)),
-                    )
-                    else if (_linkedExercise != null) ...[
-                      Text(_linkedExercise!.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      if (_linkedExercise!.description != null && _linkedExercise!.description!.trim().isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(_linkedExercise!.description!, style: const TextStyle(fontSize: 12, color: Colors.white70)),
-                      ],
-                      if (_goals.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: _goals.map((g)=> Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: Colors.white12),
-                            ),
-                            child: Text(g.title, style: const TextStyle(fontSize: 11)),
-                          )).toList(),
-                        ),
-                      ],
-                    ]
-                    else const Text('Exercice introuvable', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text('Informations session', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            TextFormField(
-              initialValue: _weaponDraft,
-              decoration: const InputDecoration(labelText: 'Arme'),
-              onSaved: (v)=> _weaponDraft = v ?? '',
-            ),
-            Focus(
-              focusNode: _caliberFocus,
-              child: TextFormField(
-                controller: _caliberCtrl,
-                decoration: const InputDecoration(labelText: 'Calibre'),
-                onChanged: (txt){
-                  final wasDeletion = txt.length < _lastCalTxt.length;
-                  _lastCalTxt = txt;
-                  if (!wasDeletion) {
-                    final res = suggestFor(txt);
-                    if (res.autoReplacement != null && _caliberCtrl.text != res.autoReplacement) {
-                      _caliberCtrl.value = TextEditingValue(
-                        text: res.autoReplacement!,
-                        selection: TextSelection.collapsed(offset: res.autoReplacement!.length),
-                      );
-                      _lastCalTxt = res.autoReplacement!;
-                    }
-                  }
-                  _caliberDraft = _caliberCtrl.text;
-                },
-                onSaved: (v)=> _caliberDraft = v ?? '',
-              ),
-            ),
-            TextFormField(
-              initialValue: _categoryDraft,
-              decoration: const InputDecoration(labelText: 'Catégorie'),
-              onSaved: (v)=> _categoryDraft = v ?? SessionConstants.categoryEntrainement,
-            ),
-            const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: _onValidateIntro,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Commencer'),
-              ),
-            )
-          ],
-        ),
-      ),
+    return WizardIntroStep(
+      formKey: _formIntro,
+      loadingExercise: _loadingExercise,
+      linkedExercise: _linkedExercise,
+      goals: _goals,
+      weaponDraft: _weaponDraft,
+      caliberController: _caliberCtrl,
+      caliberFocusNode: _caliberFocus,
+      categoryDraft: _categoryDraft,
+      onCaliberChanged: (txt) {
+        final wasDeletion = txt.length < _lastCalTxt.length;
+        _lastCalTxt = txt;
+        if (!wasDeletion) {
+          final res = suggestFor(txt);
+          if (res.autoReplacement != null && _caliberCtrl.text != res.autoReplacement) {
+            _caliberCtrl.value = TextEditingValue(
+              text: res.autoReplacement!,
+              selection: TextSelection.collapsed(offset: res.autoReplacement!.length),
+            );
+            _lastCalTxt = res.autoReplacement!;
+          }
+        }
+        _caliberDraft = _caliberCtrl.text;
+      },
+      onWeaponSaved: (v) => _weaponDraft = v ?? '',
+      onCaliberSaved: (v) => _caliberDraft = v ?? '',
+      onCategorySaved: (v) => _categoryDraft = v ?? SessionConstants.categoryEntrainement,
+      onValidate: _onValidateIntro,
     );
   }
 
   // Contrôleurs séries (simple implémentation basique)
-  final List<_SeriesStepController> _seriesControllers = [];
+  final List<SeriesStepController> _seriesControllers = [];
   void _ensureSeriesControllers() {
     if (_seriesControllers.length == _session.series.length) return;
     _seriesControllers.clear();
@@ -345,7 +274,7 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
         defaultShot = prevCtrl.shotCount > 0 ? prevCtrl.shotCount : 5;
         hand = s.handMethod; // conserve la prise existante; on pourrait hériter du prev si besoin
       }
-      _seriesControllers.add(_SeriesStepController(
+      _seriesControllers.add(SeriesStepController(
         points: 0,
         groupSize: 0,
         comment: '',
@@ -359,207 +288,26 @@ class _PlannedSessionWizardState extends State<PlannedSessionWizard> {
 
   Widget _buildSeries(int index) {
     _ensureSeriesControllers();
-    final c = _seriesControllers[index];
-    final consigne = c.consigne.trim().isEmpty ? 'Pas de consigne' : c.consigne;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(consigne, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 16),
-                Row(children:[
-                  Expanded(child: TextFormField(
-                    key: ValueKey('points_${index}_${c.points}'),
-                    initialValue: '',
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Points'),
-                    onChanged: (v){ c.points = int.tryParse(v) ?? 0; },
-                    validator: (_) => (c.showErrors && c.points<=0) ? 'Requis' : null,
-                  )),
-                  const SizedBox(width: 12),
-                  Expanded(child: TextFormField(
-                    key: ValueKey('group_${index}_${c.groupSize}'),
-                    initialValue: '',
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Groupement'),
-                    onChanged: (v){ c.groupSize = double.tryParse(v) ?? 0; },
-                    validator: (_) => (c.showErrors && c.groupSize<=0) ? 'Requis' : null,
-                  )),
-                ]),
-                const SizedBox(height: 12),
-                Row(children:[
-                  Expanded(child: TextFormField(
-                    key: ValueKey('shots_${index}_${c.shotCount}'),
-                    initialValue: c.shotCount.toString(), // visible default (5 or previous)
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Coups'),
-                    onChanged: (v){ c.shotCount = int.tryParse(v) ?? c.shotCount; },
-                    validator: (_) => (c.showErrors && c.shotCount<=0) ? 'Requis' : null,
-                  )),
-                  const SizedBox(width: 12),
-                  Expanded(child: TextFormField(
-                    key: ValueKey('dist_${index}_${c.distance}'),
-                    initialValue: c.distance.toString(), // visible default (25 or previous)
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Distance (m)'),
-                    onChanged: (v){ c.distance = double.tryParse(v) ?? c.distance; },
-                    validator: (_) => (c.showErrors && c.distance<=0) ? 'Requis' : null,
-                  )),
-                ]),
-                const SizedBox(height: 12),
-                _HandMethodSelector(
-                  initial: c.handMethod,
-                  onChanged: (m){ c.handMethod = m; },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  key: ValueKey('comment_${index}'),
-                  initialValue: '',
-                  decoration: const InputDecoration(labelText: 'Commentaire série'),
-                  onChanged: (v)=> c.comment = v,
-                  maxLines: null,
-                  validator: (_) => (c.showErrors && (c.comment==null || c.comment!.trim().isEmpty)) ? 'Requis' : null,
-                ),
-                const SizedBox(height: 28),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: ElevatedButton(
-                    onPressed: ()=> _onValidateSeries(index+1),
-                    child: Text(index == _seriesCount-1 ? 'Suite' : 'Suivant'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    final controller = _seriesControllers[index];
+    return WizardSeriesStep(
+      seriesIndex: index,
+      controller: controller,
+      isLastSeries: index == _seriesCount - 1,
+      onValidate: () => _onValidateSeries(index + 1),
     );
   }
 
   Widget _buildSynthese() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Form(
-        key: _formSynthese,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Synthèse', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-            Expanded(
-              child: TextFormField(
-                initialValue: _normalizedSyntheseInitial(),
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  labelText: 'Synthèse de la session',
-                  alignLabelWithHint: true,
-                ),
-                onSaved: (v)=> _syntheseDraft = v ?? '',
-              ),
-            ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: _saving ? null : _onFinish,
-                icon: const Icon(Icons.check),
-                label: _saving ? const SizedBox(width:16, height:16, child: CircularProgressIndicator(strokeWidth:2)) : const Text('Terminer'),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return WizardSyntheseStep(
+      formKey: _formSynthese,
+      initialSynthese: _normalizedSyntheseInitial(),
+      saving: _saving,
+      onSaved: (v) => _syntheseDraft = v ?? '',
+      onFinish: _onFinish,
     );
   }
-}
 
-class _SeriesStepController {
-  int points;
-  double groupSize;
-  String? comment;
-  int shotCount;
-  double distance;
-  HandMethod handMethod;
-  String consigne;
-  bool showErrors;
-
-  _SeriesStepController({
-    required this.points,
-    required this.groupSize,
-    required this.comment,
-    required this.shotCount,
-    required this.distance,
-    required this.handMethod,
-    required this.consigne,
-  }) : showErrors = false;
-
-  bool validate() { return true; }
-
-  Series build() => Series(
-    points: points,
-    groupSize: groupSize,
-    comment: comment ?? '',
-    shotCount: shotCount,
-    distance: distance,
-    handMethod: handMethod,
-  );
-}
-
-class _HandMethodSelector extends StatefulWidget {
-  final HandMethod initial;
-  final ValueChanged<HandMethod> onChanged;
-  const _HandMethodSelector({required this.initial, required this.onChanged});
-  @override
-  State<_HandMethodSelector> createState() => _HandMethodSelectorState();
-}
-
-class _HandMethodSelectorState extends State<_HandMethodSelector> {
-  late HandMethod _method;
-  @override
-  void initState() { super.initState(); _method = widget.initial; }
-  void _set(HandMethod m){ setState(()=> _method = m); widget.onChanged(m); }
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text('Prise', style: Theme.of(context).textTheme.bodyMedium),
-        const SizedBox(width: 12),
-        ToggleButtons(
-          isSelected: [_method == HandMethod.oneHand, _method == HandMethod.twoHands],
-          borderRadius: BorderRadius.circular(12),
-          constraints: const BoxConstraints(minHeight: 34, minWidth: 46),
-          onPressed: (i){ _set(i==0? HandMethod.oneHand : HandMethod.twoHands); },
-          children: const [
-            Padding(padding: EdgeInsets.symmetric(horizontal:8), child: Icon(Icons.front_hand, size:18)),
-            Padding(padding: EdgeInsets.symmetric(horizontal:8), child: _TwoHandsIconMini()),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _TwoHandsIconMini extends StatelessWidget {
-  const _TwoHandsIconMini();
-  @override
-  Widget build(BuildContext context) {
-    final color = IconTheme.of(context).color ?? Colors.white;
-    return SizedBox(width: 30, height: 18, child: Stack(children:[
-      Positioned(left: 0, top:0, child: Icon(Icons.front_hand, size:14, color: color.withValues(alpha:0.8))),
-      Positioned(left: 12, top:0, child: Icon(Icons.front_hand, size:16, color: color)),
-    ]));
-  }
-}
-
-// Helper to normaliser synthèse initiale (ajout newline après phrase origine)
-extension _SyntheseInit on _PlannedSessionWizardState {
+  // Helper to normaliser synthèse initiale (ajout newline après phrase origine)
   String _normalizedSyntheseInitial() {
     final base = _syntheseDraft ?? '';
     if (base.isEmpty) return base;
