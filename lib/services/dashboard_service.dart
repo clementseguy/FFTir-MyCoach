@@ -223,28 +223,40 @@ class DashboardService {
   
   /// ===== MÉTHODES AVANCÉES =====
   
-  /// Génère les données pour les cartes avancées (consistency, progression, catégorie dominante)
+  /// Génère les données pour les cartes avancées (consistency, progression, prise dominante)
   AdvancedStatsData generateAdvancedStats() {
     final consistency = _statsService.consistencyIndexLast30Days();
     final progression = _statsService.progressionPercent30Days();
     
-    // Catégorie dominante
-    final categoryDist = _statsService.categoryDistribution();
-    String? dominantCategory;
-    int dominantCount = 0;
+    // Prise dominante basée sur toutes les séries
+    final allSeries = _statsService.lastNSortedSeriesAsc(1000); // Toutes les séries
     
-    if (categoryDist.isNotEmpty) {
-      final sorted = categoryDist.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      dominantCategory = sorted.first.key;
-      dominantCount = sorted.first.value;
+    String? dominantHandMethod;
+    double dominantHandMethodPercentage = 0.0;
+    
+    if (allSeries.isNotEmpty) {
+      final oneHandCount = allSeries.where((s) => s.handMethod == HandMethod.oneHand).length;
+      final twoHandsCount = allSeries.where((s) => s.handMethod == HandMethod.twoHands).length;
+      final totalCount = allSeries.length;
+      
+      if (oneHandCount > twoHandsCount) {
+        dominantHandMethod = 'one';
+        dominantHandMethodPercentage = (oneHandCount / totalCount) * 100;
+      } else if (twoHandsCount > oneHandCount) {
+        dominantHandMethod = 'two';
+        dominantHandMethodPercentage = (twoHandsCount / totalCount) * 100;
+      } else if (twoHandsCount > 0) {
+        // En cas d'égalité, privilégier 2 mains (plus courant)
+        dominantHandMethod = 'two';
+        dominantHandMethodPercentage = (twoHandsCount / totalCount) * 100;
+      }
     }
     
     return AdvancedStatsData(
       consistency: consistency,
       progression: progression,
-      dominantCategory: dominantCategory,
-      dominantCategoryCount: dominantCount,
+      dominantHandMethod: dominantHandMethod,
+      dominantHandMethodPercentage: dominantHandMethodPercentage,
     );
   }
   

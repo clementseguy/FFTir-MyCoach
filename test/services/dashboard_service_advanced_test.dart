@@ -24,9 +24,9 @@ void main() {
       // Progression peut être NaN si pas assez de données dans les 2 fenêtres
       expect(data.progression.isNaN || data.progression.isFinite, isTrue);
       
-      // Catégorie dominante devrait être définie avec des sessions test
-      expect(data.dominantCategory, isNotNull);
-      expect(data.dominantCategoryCount, greaterThan(0));
+      // Prise dominante devrait être définie avec des sessions test
+      expect(data.dominantHandMethod, isNotNull);
+      expect(data.dominantHandMethodPercentage, greaterThan(0));
     });
 
     test('generateEvolutionComparison calculates 30j vs 90j averages', () {
@@ -60,7 +60,7 @@ void main() {
       final advancedStats = emptyService.generateAdvancedStats();
       expect(advancedStats.consistency, equals(0.0)); // Pas assez de données (retourne 0 selon StatsService)
       expect(advancedStats.progression.isNaN, isTrue);
-      expect(advancedStats.dominantCategory, isNull);
+      expect(advancedStats.dominantHandMethod, isNull);
       
       final correlationData = emptyService.generateCorrelationData();
       expect(correlationData.points, isEmpty);

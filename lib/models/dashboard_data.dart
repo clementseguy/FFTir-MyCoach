@@ -120,21 +120,21 @@ class HistogramBucket {
 class AdvancedStatsData {
   final double consistency; // 0-100 ou -1 si pas assez de données
   final double progression; // pourcentage ou NaN si pas assez de données  
-  final String? dominantCategory; // null si pas de données
-  final int dominantCategoryCount;
+  final String? dominantHandMethod; // 'one' ou 'two' ou null si pas de données
+  final double dominantHandMethodPercentage; // pourcentage de séries avec la prise dominante
   
   const AdvancedStatsData({
     required this.consistency,
     required this.progression,
-    required this.dominantCategory,
-    required this.dominantCategoryCount,
+    required this.dominantHandMethod,
+    required this.dominantHandMethodPercentage,
   });
   
   const AdvancedStatsData.empty()
       : consistency = -1,
         progression = double.nan,
-        dominantCategory = null,
-        dominantCategoryCount = 0;
+        dominantHandMethod = null,
+        dominantHandMethodPercentage = 0.0;
 }
 
 /// Données pour la comparaison d'évolutions 30j/90j

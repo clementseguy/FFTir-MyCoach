@@ -48,10 +48,10 @@ class AdvancedStatsCards extends StatelessWidget {
           color: Colors.purple,
         ),
          StatCard(
-          title: 'Catégorie dominante',
-          value: _formatDominantCategory(statsData.dominantCategory, statsData.dominantCategoryCount),
+          title: 'Prise dominante',
+          value: _formatDominantHandMethod(statsData.dominantHandMethod, statsData.dominantHandMethodPercentage),
           unit: '',
-          icon: Icons.category,
+          icon: Icons.back_hand,
           color: Theme.of(context).colorScheme.primary,
         ),
         StatCard(
@@ -102,9 +102,10 @@ class AdvancedStatsCards extends StatelessWidget {
     return '$sign${progression.toStringAsFixed(1)}%';
   }
 
-  String _formatDominantCategory(String? category, int count) {
-    if (category == null) return '-';
-    return '$category ($count)';
+  String _formatDominantHandMethod(String? handMethod, double percentage) {
+    if (handMethod == null) return '-';
+    final methodLabel = handMethod == 'one' ? '1 main' : '2 mains';
+    return '$methodLabel (${percentage.toStringAsFixed(1)}%)';
   }
 
   Color _getConsistencyColor(double consistency) {

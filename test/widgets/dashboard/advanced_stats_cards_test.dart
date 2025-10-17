@@ -37,18 +37,18 @@ void main() {
 
       expect(find.text('Régularité'), findsOneWidget);
       expect(find.text('Progression'), findsOneWidget);
-      expect(find.text('Catégorie dominante'), findsOneWidget);
+      expect(find.text('Prise dominante'), findsOneWidget);
       
       // Vérifier les valeurs par défaut
-      expect(find.text('-'), findsAtLeastNWidgets(3)); // consistency, progression, catégorie
+      expect(find.text('-'), findsAtLeastNWidgets(3)); // consistency, progression, prise
     });
 
     testWidgets('displays valid data correctly', (WidgetTester tester) async {
       const data = AdvancedStatsData(
         consistency: 85.5,
         progression: 12.3,
-        dominantCategory: 'match',
-        dominantCategoryCount: 5,
+        dominantHandMethod: 'two',
+        dominantHandMethodPercentage: 75.5,
       );
       
       await tester.pumpWidget(
@@ -64,15 +64,15 @@ void main() {
 
       expect(find.text('85.5%'), findsOneWidget);
       expect(find.text('+12.3%'), findsOneWidget);
-      expect(find.text('match (5)'), findsOneWidget);
+      expect(find.text('2 mains (75.5%)'), findsOneWidget);
     });
 
     testWidgets('handles negative progression', (WidgetTester tester) async {
       const data = AdvancedStatsData(
         consistency: 65.0,
         progression: -8.2,
-        dominantCategory: 'entraînement',
-        dominantCategoryCount: 3,
+        dominantHandMethod: 'one',
+        dominantHandMethodPercentage: 40.2,
       );
       
       await tester.pumpWidget(
@@ -88,15 +88,15 @@ void main() {
 
       expect(find.text('65.0%'), findsOneWidget);
       expect(find.text('-8.2%'), findsOneWidget);
-      expect(find.text('entraînement (3)'), findsOneWidget);
+      expect(find.text('1 main (40.2%)'), findsOneWidget);
     });
 
     testWidgets('handles NaN progression', (WidgetTester tester) async {
       const data = AdvancedStatsData(
         consistency: 70.0,
         progression: double.nan,
-        dominantCategory: 'test matériel',
-        dominantCategoryCount: 1,
+        dominantHandMethod: 'two',
+        dominantHandMethodPercentage: 88.9,
       );
       
       await tester.pumpWidget(
@@ -112,15 +112,15 @@ void main() {
 
       expect(find.text('70.0%'), findsOneWidget);
       expect(find.text('-'), findsAtLeastNWidgets(1)); // progression NaN -> '-'
-      expect(find.text('test matériel (1)'), findsOneWidget);
+      expect(find.text('2 mains (88.9%)'), findsOneWidget);
     });
 
     testWidgets('displays widgets correctly', (WidgetTester tester) async {
       const data = AdvancedStatsData(
         consistency: 80.0,
         progression: 5.0,
-        dominantCategory: 'match',
-        dominantCategoryCount: 2,
+        dominantHandMethod: 'two',
+        dominantHandMethodPercentage: 66.7,
       );
       
       // Test simple sans contraintes spécifiques
