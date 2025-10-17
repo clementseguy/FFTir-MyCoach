@@ -10,6 +10,7 @@ import '../constants/session_constants.dart';
 import '../models/series.dart';
 import '../models/exercise.dart';
 import '../services/exercise_service.dart';
+import 'session_form/session_form_components.dart';
 
 class SessionForm extends StatefulWidget {
   final Map<String, dynamic>? initialSessionData;
@@ -263,7 +264,7 @@ class SessionFormState extends State<SessionForm> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          _FormSummaryHeader(
+          FormSummaryHeader(
             date: _date,
             onPickDate: () async {
               final picked = await showDatePicker(
@@ -385,8 +386,8 @@ class SessionFormState extends State<SessionForm> {
           // No direct goal link; exercises link goals indirectly.
           SizedBox(height: 24),
           // ---- Exercises selection ----
-          _ExercisesSelector(
-            loading: _loadingExercises,
+          ExercisesSelector(
+            isLoading: _loadingExercises,
             exercises: _allExercises,
             selectedIds: _selectedExerciseIds,
             onToggle: (id) {
@@ -459,204 +460,11 @@ class SessionFormState extends State<SessionForm> {
             ),
           ),
           SizedBox(height: 28),
-          _SyntheseCard(controller: _syntheseController),
+          SyntheseCard(
+            controller: _syntheseController,
+            status: _status,
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _FormSummaryHeader extends StatelessWidget {
-  final DateTime? date;
-  final VoidCallback onPickDate;
-  final int seriesCount;
-  final int totalPoints;
-  final double avgPoints;
-  final double? dominantDistance;
-  const _FormSummaryHeader({required this.date, required this.onPickDate, required this.seriesCount, required this.totalPoints, required this.avgPoints, required this.dominantDistance});
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.event, color: Colors.amberAccent),
-                SizedBox(width: 8),
-                Text(date!=null? '${date!.day}/${date!.month}/${date!.year}':'Date ?', style: TextStyle(fontWeight: FontWeight.w600)),
-                Spacer(),
-                TextButton.icon(onPressed: onPickDate, icon: Icon(Icons.calendar_month, size: 18), label: Text('Choisir')),
-              ],
-            ),
-            SizedBox(height: 12),
-            Row(
-              children: [
-                _MiniStat(label: 'Séries', value: seriesCount.toString(), icon: Icons.list_alt, color: Colors.lightBlueAccent),
-                _DividerV(),
-                _MiniStat(label: 'Total', value: totalPoints.toString(), icon: Icons.score, color: Colors.pinkAccent),
-                _DividerV(),
-                _MiniStat(label: 'Moy.', value: avgPoints.toStringAsFixed(1), icon: Icons.stacked_line_chart, color: Colors.greenAccent),
-                _DividerV(),
-                _MiniStat(label: 'Dist.', value: dominantDistance!=null? '${dominantDistance!.toStringAsFixed(0)}m':'-', icon: Icons.social_distance, color: Colors.tealAccent),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  final String label; final String value; final IconData icon; final Color color;
-  const _MiniStat({required this.label, required this.value, required this.icon, required this.color});
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(icon, size: 15, color: color),
-              ),
-              SizedBox(width: 4),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FittedBox(
-                      alignment: Alignment.centerLeft,
-                      fit: BoxFit.scaleDown,
-                      child: Text(label, style: TextStyle(fontSize: 9.5, color: Colors.white60)),
-                    ),
-                    SizedBox(height: 2),
-                    FittedBox(
-                      alignment: Alignment.centerLeft,
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _DividerV extends StatelessWidget { @override Widget build(BuildContext context)=> Container(width:1, height:40, color: Colors.white12, margin: EdgeInsets.symmetric(horizontal:8)); }
-
-
-class _SyntheseCard extends StatelessWidget {
-  final TextEditingController controller;
-  const _SyntheseCard({required this.controller});
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.summarize, color: Colors.amberAccent),
-                SizedBox(width: 8),
-                Text('Synthèse tireur', style: TextStyle(fontWeight: FontWeight.w600)),
-              ],
-            ),
-            SizedBox(height: 12),
-            TextFormField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: 'Récapitulatif',
-                hintText: 'Ressenti, axes travaillés, contexte...',
-              ),
-              minLines: 3,
-              maxLines: 8,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Widget for selecting multiple exercises inside the session form.
-class _ExercisesSelector extends StatelessWidget {
-  final bool loading;
-  final List<Exercise> exercises;
-  final Set<String> selectedIds;
-  final void Function(String id) onToggle;
-  const _ExercisesSelector({required this.loading, required this.exercises, required this.selectedIds, required this.onToggle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.fitness_center, color: Colors.amberAccent),
-                SizedBox(width: 8),
-                Text('Exercices liés', style: TextStyle(fontWeight: FontWeight.w600)),
-                Spacer(),
-                if (!loading) Text('${selectedIds.length}', style: TextStyle(fontSize: 12, color: Colors.white70)),
-              ],
-            ),
-            SizedBox(height: 12),
-            if (loading)
-              Center(child: SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2)))
-            else if (exercises.isEmpty)
-              Text('Aucun exercice créé pour le moment.', style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.white70))
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: exercises.map((e) {
-                  final selected = selectedIds.contains(e.id);
-                  return FilterChip(
-                    selected: selected,
-                    label: Text(e.name, style: TextStyle(fontSize: 12)),
-                    avatar: Icon(
-                      selected ? Icons.check_circle : Icons.circle_outlined,
-                      size: 16,
-                      color: selected ? Colors.greenAccent : Colors.white54,
-                    ),
-                    onSelected: (_) => onToggle(e.id),
-                    backgroundColor: Colors.white.withValues(alpha: 0.06),
-                    selectedColor: Colors.greenAccent.withValues(alpha: 0.25),
-                    shape: StadiumBorder(side: BorderSide(color: selected ? Colors.greenAccent : Colors.white12)),
-                  );
-                }).toList(),
-              ),
-          ],
-        ),
       ),
     );
   }
