@@ -317,14 +317,14 @@ class DashboardService {
     );
   }
 
-  /// Génère les données d'évolution pour les séries à 2 mains
+  /// Génère les données d'évolution pour les séries d'une méthode de prise spécifique
   /// Retourne un tuple avec les données de points et de groupement
-  (EvolutionData, EvolutionData) generateTwoHandsEvolutionData() {
+  (EvolutionData, EvolutionData) generateHandMethodEvolutionData(HandMethod handMethod) {
     final allSeries = _statsService.lastNSortedSeriesAsc(30);
     
-    // Filtrer les séries à 2 mains
-    final twoHandsSeries = allSeries.where((stat) {
-      return stat.handMethod == HandMethod.twoHands;
+    // Filtrer les séries selon la méthode de prise
+    final filteredSeries = allSeries.where((stat) {
+      return stat.handMethod == handMethod;
     }).toList();
     
     // Construire les données de points
@@ -337,8 +337,8 @@ class DashboardService {
     final List<DateTime> groupSizeDates = [];
     final List<int> groupSizeIndices = [];
     
-    for (int i = 0; i < twoHandsSeries.length; i++) {
-      final stat = twoHandsSeries[i];
+    for (int i = 0; i < filteredSeries.length; i++) {
+      final stat = filteredSeries[i];
       
       // Points
       pointsData.add(FlSpot(i.toDouble(), stat.points.toDouble()));
@@ -353,12 +353,13 @@ class DashboardService {
       }
     }
     
-    // Créer les EvolutionData
+    // Créer les EvolutionData avec des titres adaptés
+    final handMethodLabel = handMethod == HandMethod.oneHand ? '1 main' : '2 mains';
     final pointsEvolution = _createEvolutionData(
       pointsData, 
       pointsDates, 
       pointsIndices, 
-      'Points - 2 mains', 
+      'Points - $handMethodLabel', 
       'pts'
     );
     
@@ -366,11 +367,16 @@ class DashboardService {
       groupSizeData, 
       groupSizeDates, 
       groupSizeIndices, 
-      'Groupement - 2 mains', 
+      'Groupement - $handMethodLabel', 
       'cm'
     );
     
     return (pointsEvolution, groupSizeEvolution);
+  }
+
+  /// Génère les données d'évolution pour les séries à 2 mains (méthode de compatibilité)
+  (EvolutionData, EvolutionData) generateTwoHandsEvolutionData() {
+    return generateHandMethodEvolutionData(HandMethod.twoHands);
   }
 
   /// Méthode utilitaire pour créer un EvolutionData

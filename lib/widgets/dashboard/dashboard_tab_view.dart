@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../models/shooting_session.dart';
+import '../../models/series.dart';
 import '../../services/dashboard_service.dart';
 import '../../models/dashboard_data.dart';
 import 'stats_summary_cards.dart';
@@ -45,6 +46,10 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
   EvolutionData? _twoHandsPointsEvolution;
   EvolutionData? _twoHandsGroupSizeEvolution;
   
+  // Données évolution 1 main
+  EvolutionData? _oneHandPointsEvolution;
+  EvolutionData? _oneHandGroupSizeEvolution;
+  
   @override
   void initState() {
     super.initState();
@@ -81,6 +86,9 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
       // Données évolution 2 mains
       final (twoHandsPoints, twoHandsGroupSize) = _dashboardService.generateTwoHandsEvolutionData();
       
+      // Données évolution 1 main
+      final (oneHandPoints, oneHandGroupSize) = _dashboardService.generateHandMethodEvolutionData(HandMethod.oneHand);
+      
       if (mounted) {
         setState(() {
           _summary = summary;
@@ -98,6 +106,10 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           // Données évolution 2 mains
           _twoHandsPointsEvolution = twoHandsPoints;
           _twoHandsGroupSizeEvolution = twoHandsGroupSize;
+          
+          // Données évolution 1 main
+          _oneHandPointsEvolution = oneHandPoints;
+          _oneHandGroupSizeEvolution = oneHandGroupSize;
           
           _isLoading = false;
         });
@@ -244,6 +256,30 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
               EvolutionCurveConfig(
                 data: _twoHandsGroupSizeEvolution ?? const EvolutionData.empty('Groupement - 2 mains', 'cm'),
                 color: Colors.blueAccent,
+                label: 'Groupement',
+                showTrend: false,
+                useRightAxis: true, // Axe Y à droite pour le groupement
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Évolution Scores et Groupement - 1 main
+          EvolutionChart(
+            title: 'Scores et Groupement - 1 main',
+            isLoading: _isLoading,
+            curves: [
+              EvolutionCurveConfig(
+                data: _oneHandPointsEvolution ?? const EvolutionData.empty('Points - 1 main', 'pts'),
+                color: Colors.orangeAccent,
+                label: 'Points',
+                showTrend: false,
+                useRightAxis: false,
+              ),
+              EvolutionCurveConfig(
+                data: _oneHandGroupSizeEvolution ?? const EvolutionData.empty('Groupement - 1 main', 'cm'),
+                color: Colors.redAccent,
                 label: 'Groupement',
                 showTrend: false,
                 useRightAxis: true, // Axe Y à droite pour le groupement

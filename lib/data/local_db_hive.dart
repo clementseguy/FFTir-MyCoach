@@ -23,7 +23,7 @@ class LocalDatabaseHive {
     final random = Random();
     final now = DateTime.now();
     for (int i = 0; i < count; i++) {
-      final date = now.subtract(Duration(days: random.nextInt(90)));
+      final date = now.subtract(Duration(days: random.nextInt(60)));
       final weapon = ['GLOCK 17', 'DES', 'S&W Trophy'][random.nextInt(3)];
       final caliber = AppConfig.I.calibers[random.nextInt(AppConfig.I.calibers.length)];
       final session = {
