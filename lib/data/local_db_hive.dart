@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:hive/hive.dart';
+import '../config/app_config.dart';
 
 class LocalDatabaseHive {
   /// Supprime toutes les sessions de la base Hive
@@ -18,13 +19,13 @@ class LocalDatabaseHive {
   /// - Séries: entre 3 et 15
   /// - shot_count: <=5 (rarement 6 ou 7 comme exception ~10%)
   /// - points: borné à shot_count * 10
-  Future<void> insertRandomSessions({int count = 25, String status = 'réalisée'}) async {
+  Future<void> insertRandomSessions({int count = 5, String status = 'réalisée'}) async {
     final random = Random();
     final now = DateTime.now();
     for (int i = 0; i < count; i++) {
-      final date = now.subtract(Duration(days: random.nextInt(180)));
-      final weapon = ['Pistolet', 'Carabine', 'Revolver'][random.nextInt(3)];
-      final caliber = ['22LR', '9mm', '4.5mm'][random.nextInt(3)];
+      final date = now.subtract(Duration(days: random.nextInt(90)));
+      final weapon = ['GLOCK 17', 'DES', 'S&W Trophy'][random.nextInt(3)];
+      final caliber = AppConfig.I.calibers[random.nextInt(AppConfig.I.calibers.length)];
       final session = {
         'date': date.toIso8601String(),
         'weapon': weapon,
@@ -32,13 +33,16 @@ class LocalDatabaseHive {
         'status': status,
       };
 
-      final seriesCount = 3 + random.nextInt(13); // 3..15
+      final baseCount = 10;
+      // 10% chance d'avoir une variation
+      final seriesCount =
+          random.nextDouble() < 0.1 ? (random.nextDouble() < 0.5 ? baseCount - random.nextInt(3) : baseCount + random.nextInt(3)) : baseCount;
       final List<Map<String, dynamic>> seriesList = [];
       for (int j = 0; j < seriesCount; j++) {
-        // Base shot count 3-5
-        int shotCount = 3 + random.nextInt(3); // 3,4,5
-        // 10% chance small exception to 6 or 7
-        if (random.nextDouble() < 0.10) {
+        // Base shot count 4-5
+        int shotCount = 4 + random.nextInt(2); // 4,5
+        // 5% chance small exception to 6 or 7
+        if (random.nextDouble() < 0.05) {
           shotCount = 6 + random.nextInt(2); // 6 ou 7
         }
         final maxPoints = shotCount * 10;
@@ -49,8 +53,9 @@ class LocalDatabaseHive {
           'shot_count': shotCount,
           'distance': [10, 25, 50][random.nextInt(3)],
           'points': points,
-          'group_size': (5 + random.nextInt(26)).toDouble(),
+          'group_size': (5 + random.nextInt(21)).toDouble(),
           'comment': random.nextBool() ? 'RAS' : '',
+          'hand_method': random.nextDouble() < 0.3 ? 'one' : 'two', // 30% une main, 70% deux mains
         });
       }
       await insertSession(session, seriesList);

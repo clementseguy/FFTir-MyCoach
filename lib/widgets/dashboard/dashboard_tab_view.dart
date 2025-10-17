@@ -41,6 +41,10 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
   EvolutionComparisonData? _evolutionComparison;
   CorrelationData? _correlationData;
   
+  // Données évolution 2 mains
+  EvolutionData? _twoHandsPointsEvolution;
+  EvolutionData? _twoHandsGroupSizeEvolution;
+  
   @override
   void initState() {
     super.initState();
@@ -74,6 +78,9 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
       final evolutionComparison = _dashboardService.generateEvolutionComparison();
       final correlationData = _dashboardService.generateCorrelationData();
       
+      // Données évolution 2 mains
+      final (twoHandsPoints, twoHandsGroupSize) = _dashboardService.generateTwoHandsEvolutionData();
+      
       if (mounted) {
         setState(() {
           _summary = summary;
@@ -87,6 +94,10 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           _advancedStats = advancedStats;
           _evolutionComparison = evolutionComparison;
           _correlationData = correlationData;
+          
+          // Données évolution 2 mains
+          _twoHandsPointsEvolution = twoHandsPoints;
+          _twoHandsGroupSizeEvolution = twoHandsGroupSize;
           
           _isLoading = false;
         });
@@ -145,17 +156,19 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           const SizedBox(height: 24),
           
           // Evolution Score
-          EvolutionChart(
+          EvolutionChart.single(
             data: _scoreEvolution ?? const EvolutionData.empty('Évolution Score', 'pts'),
             isLoading: _isLoading,
+            showTrend: true,
           ),
           
           const SizedBox(height: 16),
           
           // Evolution Groupement
-          EvolutionChart(
+          EvolutionChart.single(
             data: _groupSizeEvolution ?? const EvolutionData.empty('Évolution Groupement', 'cm'),
             isLoading: _isLoading,
+            showTrend: true,
           ),
           
           const SizedBox(height: 16),
@@ -212,6 +225,30 @@ class _DashboardTabViewState extends State<DashboardTabView> with SingleTickerPr
           CorrelationScatterChart(
             data: _correlationData,
             isLoading: _isLoading,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Évolution Scores et Groupement - 2 mains
+          EvolutionChart(
+            title: 'Scores et Groupement - 2 mains',
+            isLoading: _isLoading,
+            curves: [
+              EvolutionCurveConfig(
+                data: _twoHandsPointsEvolution ?? const EvolutionData.empty('Points - 2 mains', 'pts'),
+                color: Colors.amberAccent,
+                label: 'Points',
+                showTrend: false,
+                useRightAxis: false,
+              ),
+              EvolutionCurveConfig(
+                data: _twoHandsGroupSizeEvolution ?? const EvolutionData.empty('Groupement - 2 mains', 'cm'),
+                color: Colors.blueAccent,
+                label: 'Groupement',
+                showTrend: false,
+                useRightAxis: true, // Axe Y à droite pour le groupement
+              ),
+            ],
           ),
         ],
       ),

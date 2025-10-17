@@ -1,4 +1,5 @@
 import '../models/shooting_session.dart';
+import '../models/series.dart';
 import '../utils/session_filters.dart';
 import '../interfaces/stats_service_interface.dart';
 
@@ -9,6 +10,7 @@ class SeriesStat {
   final double distance;
   final String category;
   final int seriesIndexInSession; // position de la série dans sa session (1-based)
+  final HandMethod handMethod; // prise (1 main / 2 mains)
   SeriesStat({
     required this.date,
     required this.points,
@@ -16,6 +18,7 @@ class SeriesStat {
     required this.distance,
     required this.category,
     required this.seriesIndexInSession,
+    required this.handMethod,
   });
 }
 
@@ -47,6 +50,7 @@ class StatsService implements IStatsService {
           distance: serie.distance,
           category: s.category,
           seriesIndexInSession: i + 1, // 1-based index
+          handMethod: serie.handMethod,
         ));
       }
     }

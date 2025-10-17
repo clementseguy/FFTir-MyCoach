@@ -4,16 +4,60 @@ import 'dart:developer' as developer;
 import '../../models/dashboard_data.dart';
 import '../../utils/mobile_utils.dart';
 
+/// Configuration pour une courbe de données
+class EvolutionCurveConfig {
+  final EvolutionData data;
+  final Color color;
+  final String label;
+  final bool showTrend;
+  final Color? trendColor;
+  final bool useRightAxis;
+
+  const EvolutionCurveConfig({
+    required this.data,
+    required this.color,
+    required this.label,
+    this.showTrend = false,
+    this.trendColor,
+    this.useRightAxis = false,
+  });
+}
+
 /// Widget réutilisable pour afficher l'évolution des scores ou groupements
 class EvolutionChart extends StatelessWidget {
-  final EvolutionData data;
+  final String title;
+  final List<EvolutionCurveConfig> curves;
   final bool isLoading;
   
   const EvolutionChart({
     super.key,
-    required this.data,
+    required this.title,
+    required this.curves,
     this.isLoading = false,
   });
+
+  // Constructeur de compatibilité pour l'usage existant
+  factory EvolutionChart.single({
+    Key? key,
+    required EvolutionData data,
+    bool isLoading = false,
+    bool showTrend = false,
+  }) {
+    return EvolutionChart(
+      key: key,
+      title: data.title,
+      isLoading: isLoading,
+      curves: [
+        EvolutionCurveConfig(
+          data: data,
+          color: data.unit == 'pts' ? Colors.amber : Colors.blue,
+          label: data.unit == 'pts' ? 'Points' : 'Groupement',
+          showTrend: showTrend,
+          trendColor: data.unit == 'pts' ? Colors.deepOrange : Colors.red.shade700,
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +70,7 @@ class EvolutionChart extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              data.title,
+              title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -58,9 +102,32 @@ class EvolutionChart extends StatelessWidget {
   }
 
   Widget _buildChart(BuildContext context) {
-    if (data.dataPoints.isEmpty) {
+    if (curves.isEmpty || curves.every((curve) => curve.data.dataPoints.isEmpty)) {
       return _buildEmptyState();
     }
+
+    final hasRightAxis = curves.any((curve) => curve.useRightAxis);
+    final leftCurves = curves.where((curve) => !curve.useRightAxis).toList();
+    final rightCurves = curves.where((curve) => curve.useRightAxis).toList();
+
+    // Calculer les bornes Y pour chaque axe
+    final leftMinY = leftCurves.isNotEmpty 
+        ? leftCurves.map((c) => c.data.minY).reduce((a, b) => a < b ? a : b)
+        : 0.0;
+    final leftMaxY = leftCurves.isNotEmpty
+        ? leftCurves.map((c) => c.data.maxY).reduce((a, b) => a > b ? a : b)
+        : 100.0;
+    
+    final rightMinY = rightCurves.isNotEmpty
+        ? rightCurves.map((c) => c.data.minY).reduce((a, b) => a < b ? a : b)
+        : 0.0;
+    final rightMaxY = rightCurves.isNotEmpty
+        ? rightCurves.map((c) => c.data.maxY).reduce((a, b) => a > b ? a : b)
+        : 100.0;
+
+    // Trouver la courbe avec le plus de points pour les labels X
+    final mainCurve = curves.isNotEmpty ? curves.first : null;
+    final maxDataPoints = curves.map((c) => c.data.dataPoints.length).reduce((a, b) => a > b ? a : b);
 
     return LineChart(
       LineChartData(
@@ -68,7 +135,7 @@ class EvolutionChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: (data.maxY - data.minY) / 4,
+          horizontalInterval: leftCurves.isNotEmpty ? (leftMaxY - leftMinY) / 4 : 25,
           getDrawingHorizontalLine: (value) {
             return FlLine(
               color: Colors.grey.withValues(alpha: 0.2),
@@ -76,38 +143,62 @@ class EvolutionChart extends StatelessWidget {
             );
           },
         ),
-        // Configuration des tooltips améliorés
         lineTouchData: LineTouchData(
-          enabled: !MobileUtils.isMobile(context), // Désactiver sur mobile pour éviter les interactions non voulues
+          enabled: !MobileUtils.isMobile(context),
           touchTooltipData: LineTouchTooltipData(
             getTooltipItems: (List<LineBarSpot> touchedSpots) {
               return touchedSpots.map((LineBarSpot touchedSpot) {
-                // Déterminer quelle courbe est touchée
-                final isMainData = touchedSpot.barIndex == 0;
-                final curveName = isMainData 
-                    ? (data.unit == 'pts' ? 'Points' : 'Groupement')
-                    : 'Tendance SMA3';
-                
-                return LineTooltipItem(
-                  '$curveName\n${touchedSpot.y.toStringAsFixed(1)}${data.unit}',
-                  TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                );
-              }).toList();
+                final curveIndex = _getCurveIndexFromBarIndex(touchedSpot.barIndex);
+                if (curveIndex < curves.length) {
+                  final curve = curves[curveIndex];
+                  final isTrend = _isTrendBar(touchedSpot.barIndex);
+                  final curveName = isTrend ? 'Tendance ${curve.label}' : curve.label;
+                  
+                  // Dénormaliser la valeur si c'est sur l'axe droit
+                  double realValue = touchedSpot.y;
+                  if (curve.useRightAxis) {
+                    realValue = _denormalizeFromLeftAxis(touchedSpot.y, leftMinY, leftMaxY, rightMinY, rightMaxY);
+                  }
+                  
+                  return LineTooltipItem(
+                    '$curveName\n${realValue.toStringAsFixed(1)}${curve.data.unit}',
+                    TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  );
+                }
+                return null;
+              }).where((item) => item != null).cast<LineTooltipItem>().toList();
             },
           ),
         ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
-              showTitles: true,
+              showTitles: leftCurves.isNotEmpty,
               reservedSize: 40,
               getTitlesWidget: (value, meta) {
+                final unit = leftCurves.isNotEmpty ? leftCurves.first.data.unit : '';
                 return Text(
-                  '${value.toInt()}${data.unit}',
+                  '${value.toInt()}$unit',
+                  style: const TextStyle(fontSize: 10),
+                );
+              },
+            ),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: hasRightAxis && rightCurves.isNotEmpty,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                if (rightCurves.isEmpty) return const SizedBox.shrink();
+                // Dénormaliser la valeur pour afficher la vraie valeur de l'axe droit
+                final denormalizedValue = _denormalizeFromLeftAxis(value, leftMinY, leftMaxY, rightMinY, rightMaxY);
+                final unit = rightCurves.first.data.unit;
+                return Text(
+                  '${denormalizedValue.toInt()}$unit',
                   style: const TextStyle(fontSize: 10),
                 );
               },
@@ -117,53 +208,21 @@ class EvolutionChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 30,
-              interval: 5, // Afficher 1 label sur 5
+              interval: 5,
               getTitlesWidget: (value, meta) {
-                return _buildDateIndexLabel(value.toInt());
+                return _buildDateIndexLabel(value.toInt(), mainCurve?.data);
               },
             ),
           ),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
-        borderData: FlBorderData(
-          show: false,
-        ),
+        borderData: FlBorderData(show: false),
         minX: 0,
-        maxX: (data.dataPoints.length - 1).toDouble(),
-        minY: data.minY,
-        maxY: data.maxY,
-        lineBarsData: [
-          // Courbe principale (données)
-          LineChartBarData(
-            spots: data.dataPoints,
-            isCurved: false,
-            color: _getPrimaryColor(),
-            barWidth: 2,
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                radius: 3,
-                color: _getPrimaryColor(),
-                strokeWidth: 0,
-              ),
-            ),
-            belowBarData: BarAreaData(show: false),
-          ),
-          // Courbe SMA3 (tendance)
-          if (data.sma3Points.isNotEmpty)
-            LineChartBarData(
-              spots: data.sma3Points,
-              isCurved: true,
-              color: _getSecondaryColor(),
-              barWidth: 2,
-              dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(
-                show: true,
-                color: _getSecondaryColor().withValues(alpha: 0.1),
-              ),
-            ),
-        ],
+        maxX: (maxDataPoints - 1).toDouble(),
+        minY: leftMinY,
+        maxY: leftMaxY,
+        extraLinesData: ExtraLinesData(),
+        lineBarsData: _buildLineBarsData(leftMinY, leftMaxY, rightMinY, rightMaxY),
       ),
     );
   }
@@ -211,52 +270,154 @@ class EvolutionChart extends StatelessWidget {
 
   /// Construit la légende pour améliorer la lisibilité
   Widget _buildLegend(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _LegendItem(
-          color: _getPrimaryColor(),
-          label: data.unit == 'pts' ? 'Points' : 'Groupement',
-        ),
-        const SizedBox(width: 16),
-        if (data.sma3Points.isNotEmpty)
-          _LegendItem(
-            color: _getSecondaryColor(),
-            label: 'Tendance SMA3',
-          ),
-      ],
+    final legendItems = <Widget>[];
+    
+    for (final curve in curves) {
+      legendItems.add(_LegendItem(
+        color: curve.color,
+        label: curve.label,
+      ));
+      
+      if (curve.showTrend && curve.data.sma3Points.isNotEmpty) {
+        legendItems.add(const SizedBox(width: 8));
+        legendItems.add(_LegendItem(
+          color: curve.trendColor ?? curve.color.withValues(alpha: 0.7),
+          label: 'Tendance ${curve.label}',
+        ));
+      }
+      
+      if (curve != curves.last) {
+        legendItems.add(const SizedBox(width: 16));
+      }
+    }
+    
+    return Wrap(
+      alignment: WrapAlignment.center,
+      children: legendItems,
     );
   }
 
-  Color _getPrimaryColor() {
-    return data.unit == 'pts' ? Colors.amber : Colors.blue;
+  /// Construit les données des courbes pour le graphique
+  List<LineChartBarData> _buildLineBarsData(double leftMinY, double leftMaxY, double rightMinY, double rightMaxY) {
+    final lineBars = <LineChartBarData>[];
+    
+    for (final curve in curves) {
+      // Normaliser les données selon l'axe utilisé
+      final spots = curve.useRightAxis 
+          ? _normalizeToLeftAxis(curve.data.dataPoints, curve.data.minY, curve.data.maxY, leftMinY, leftMaxY)
+          : curve.data.dataPoints;
+      
+      // Courbe principale
+      lineBars.add(LineChartBarData(
+        spots: spots,
+        isCurved: false,
+        color: curve.color,
+        barWidth: 2,
+        dotData: FlDotData(
+          show: true,
+          getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+            radius: 3,
+            color: curve.color,
+            strokeWidth: 0,
+          ),
+        ),
+        belowBarData: BarAreaData(show: false),
+      ));
+      
+      // Courbe de tendance si activée
+      if (curve.showTrend && curve.data.sma3Points.isNotEmpty) {
+        final trendSpots = curve.useRightAxis
+            ? _normalizeToLeftAxis(curve.data.sma3Points, curve.data.minY, curve.data.maxY, leftMinY, leftMaxY)
+            : curve.data.sma3Points;
+        
+        lineBars.add(LineChartBarData(
+          spots: trendSpots,
+          isCurved: true,
+          color: curve.trendColor ?? curve.color.withValues(alpha: 0.7),
+          barWidth: 2,
+          dotData: const FlDotData(show: false),
+          belowBarData: BarAreaData(
+            show: true,
+            color: (curve.trendColor ?? curve.color).withValues(alpha: 0.1),
+          ),
+        ));
+      }
+    }
+    
+    return lineBars;
   }
 
-  Color _getSecondaryColor() {
-    // Amélioration du contraste pour meilleure lisibilité - SMA3 plus contrastée
-    return data.unit == 'pts' ? Colors.deepOrange : Colors.red.shade700;
+  /// Normalise les données de l'axe droit vers l'axe gauche pour l'affichage
+  List<FlSpot> _normalizeToLeftAxis(List<FlSpot> spots, double dataMin, double dataMax, double targetMin, double targetMax) {
+    if (dataMax == dataMin) return spots; // Éviter division par zéro
+    
+    return spots.map((spot) {
+      final normalizedY = (spot.y - dataMin) / (dataMax - dataMin);
+      final targetY = targetMin + normalizedY * (targetMax - targetMin);
+      return FlSpot(spot.x, targetY);
+    }).toList();
+  }
+
+  /// Dénormalise une valeur de l'axe gauche vers l'axe droit pour l'affichage des titres
+  double _denormalizeFromLeftAxis(double normalizedValue, double leftMin, double leftMax, double rightMin, double rightMax) {
+    if (leftMax == leftMin) return rightMin; // Éviter division par zéro
+    
+    final normalizedRatio = (normalizedValue - leftMin) / (leftMax - leftMin);
+    return rightMin + normalizedRatio * (rightMax - rightMin);
+  }
+
+  /// Détermine l'index de la courbe à partir de l'index de la barre
+  int _getCurveIndexFromBarIndex(int barIndex) {
+    int currentBarIndex = 0;
+    for (int i = 0; i < curves.length; i++) {
+      if (currentBarIndex == barIndex) return i;
+      currentBarIndex++; // Courbe principale
+      
+      if (curves[i].showTrend && curves[i].data.sma3Points.isNotEmpty) {
+        if (currentBarIndex == barIndex) return i;
+        currentBarIndex++; // Courbe de tendance
+      }
+    }
+    return 0; // Fallback
+  }
+
+  /// Détermine si la barre correspond à une tendance
+  bool _isTrendBar(int barIndex) {
+    int currentBarIndex = 0;
+    for (int i = 0; i < curves.length; i++) {
+      if (currentBarIndex == barIndex) return false; // Courbe principale
+      currentBarIndex++;
+      
+      if (curves[i].showTrend && curves[i].data.sma3Points.isNotEmpty) {
+        if (currentBarIndex == barIndex) return true; // Courbe de tendance
+        currentBarIndex++;
+      }
+    }
+    return false;
   }
 
   /// Construit un label au format DD/MM[index] pour l'axe X.
   ///
   /// Affiche 1 label sur 5 (géré par `interval`) et échoue rapidement
   /// si `seriesDates` est manquant ou incohérent (log + throw).
-  Widget _buildDateIndexLabel(int index) {
+  Widget _buildDateIndexLabel(int index, EvolutionData? data) {
+    if (data == null) return const SizedBox.shrink();
+    
     // Vérification stricte : on doit avoir des dates pour chaque série
     if (data.seriesDates.isEmpty) {
       developer.log(
-        'EvolutionChart: seriesDates is empty for "${data.title}"',
+        'EvolutionChart: seriesDates is empty for "$title"',
         level: 900, // error
       );
-      throw StateError('EvolutionChart: seriesDates missing for "${data.title}"');
+      throw StateError('EvolutionChart: seriesDates missing for "$title"');
     }
 
     if (data.seriesIndices.isEmpty) {
       developer.log(
-        'EvolutionChart: seriesIndices is empty for "${data.title}"',
+        'EvolutionChart: seriesIndices is empty for "$title"',
         level: 900, // error
       );
-      throw StateError('EvolutionChart: seriesIndices missing for "${data.title}"');
+      throw StateError('EvolutionChart: seriesIndices missing for "$title"');
     }
 
     if (index < 0 || index >= data.dataPoints.length) {
@@ -270,7 +431,7 @@ class EvolutionChart extends StatelessWidget {
 
     if (index >= data.seriesDates.length) {
       developer.log(
-        'EvolutionChart: seriesDates length (${data.seriesDates.length}) < required index (${index}) for "${data.title}"',
+        'EvolutionChart: seriesDates length (${data.seriesDates.length}) < required index ($index) for "$title"',
         level: 900,
       );
       throw RangeError.index(index, data.seriesDates, 'seriesDates',
@@ -279,7 +440,7 @@ class EvolutionChart extends StatelessWidget {
 
     if (index >= data.seriesIndices.length) {
       developer.log(
-        'EvolutionChart: seriesIndices length (${data.seriesIndices.length}) < required index (${index}) for "${data.title}"',
+        'EvolutionChart: seriesIndices length (${data.seriesIndices.length}) < required index ($index) for "$title"',
         level: 900,
       );
       throw RangeError.index(index, data.seriesIndices, 'seriesIndices',

@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../models/shooting_session.dart';
 import '../models/dashboard_data.dart';
+import '../models/series.dart';
 import '../services/stats_service.dart';
 
 /// Service responsable de l'agrégation des données pour le dashboard
@@ -315,5 +316,88 @@ class DashboardService {
       title: 'Corrélation Points/Groupement',
     );
   }
-  
+
+  /// Génère les données d'évolution pour les séries à 2 mains
+  /// Retourne un tuple avec les données de points et de groupement
+  (EvolutionData, EvolutionData) generateTwoHandsEvolutionData() {
+    final allSeries = _statsService.lastNSortedSeriesAsc(30);
+    
+    // Filtrer les séries à 2 mains
+    final twoHandsSeries = allSeries.where((stat) {
+      return stat.handMethod == HandMethod.twoHands;
+    }).toList();
+    
+    // Construire les données de points
+    final List<FlSpot> pointsData = [];
+    final List<DateTime> pointsDates = [];
+    final List<int> pointsIndices = [];
+    
+    // Construire les données de groupement  
+    final List<FlSpot> groupSizeData = [];
+    final List<DateTime> groupSizeDates = [];
+    final List<int> groupSizeIndices = [];
+    
+    for (int i = 0; i < twoHandsSeries.length; i++) {
+      final stat = twoHandsSeries[i];
+      
+      // Points
+      pointsData.add(FlSpot(i.toDouble(), stat.points.toDouble()));
+      pointsDates.add(stat.date);
+      pointsIndices.add(stat.seriesIndexInSession);
+      
+      // Groupement (seulement si > 0)
+      if (stat.groupSize > 0) {
+        groupSizeData.add(FlSpot(i.toDouble(), stat.groupSize));
+        groupSizeDates.add(stat.date);
+        groupSizeIndices.add(stat.seriesIndexInSession);
+      }
+    }
+    
+    // Créer les EvolutionData
+    final pointsEvolution = _createEvolutionData(
+      pointsData, 
+      pointsDates, 
+      pointsIndices, 
+      'Points - 2 mains', 
+      'pts'
+    );
+    
+    final groupSizeEvolution = _createEvolutionData(
+      groupSizeData, 
+      groupSizeDates, 
+      groupSizeIndices, 
+      'Groupement - 2 mains', 
+      'cm'
+    );
+    
+    return (pointsEvolution, groupSizeEvolution);
+  }
+
+  /// Méthode utilitaire pour créer un EvolutionData
+  EvolutionData _createEvolutionData(
+    List<FlSpot> dataPoints,
+    List<DateTime> seriesDates,
+    List<int> seriesIndices,
+    String title,
+    String unit,
+  ) {
+    if (dataPoints.isEmpty) {
+      return EvolutionData.empty(title, unit);
+    }
+    
+    final values = dataPoints.map((p) => p.y).toList();
+    final minY = _calculateMinY(values, buffer: unit == 'pts' ? 2.0 : 1.0);
+    final maxY = _calculateMaxY(values, buffer: unit == 'pts' ? 2.0 : 1.0);
+    
+    return EvolutionData(
+      dataPoints: dataPoints,
+      sma3Points: [], // Pas de tendance selon les contraintes
+      seriesDates: seriesDates,
+      seriesIndices: seriesIndices,
+      title: title,
+      unit: unit,
+      minY: minY,
+      maxY: maxY,
+    );
+  }
 }
